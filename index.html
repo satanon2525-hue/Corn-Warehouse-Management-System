@@ -26,10 +26,17 @@
             background-color: white; padding: 20px; border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        .card-title {
-            margin-top: 0; border-bottom: 2px solid #3498db; 
-            padding-bottom: 10px; margin-bottom: 20px; color: #2980b9;
+        .card-header-flex {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-bottom: 20px;
         }
+        .card-title { margin: 0; color: #2980b9; }
+
+        .btn-refresh {
+            background-color: #3498db; color: white; border: none; padding: 6px 12px;
+            border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold;
+        }
+        .btn-refresh:hover { background-color: #2980b9; }
 
         /* ฟอร์มกรอกข้อมูล */
         .form-group { margin-bottom: 15px; }
@@ -51,6 +58,7 @@
             cursor: pointer; transition: 0.3s;
         }
         .btn-submit:hover { background-color: #219150; }
+        .btn-submit:disabled { background-color: #bdc3c7; cursor: not-allowed; }
 
         /* ตารางประวัติ */
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
@@ -59,7 +67,6 @@
         .badge-in { background-color: #d5f5e3; color: #27ae60; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
         .badge-out { background-color: #fadbd8; color: #c0392b; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .main-layout { grid-template-columns: 1fr; }
         }
@@ -79,7 +86,9 @@
             
             <!-- ส่วนที่ 1: ฟอร์มกรอกข้อมูล (ด้านซ้าย) -->
             <section class="card">
-                <h2 class="card-title">📝 บันทึกรายการใหม่</h2>
+                <div class="card-header-flex">
+                    <h2 class="card-title">📝 บันทึกรายการใหม่</h2>
+                </div>
                 <form id="entry-form">
                     
                     <div class="form-row">
@@ -159,7 +168,10 @@
 
             <!-- ส่วนที่ 2: ตารางแสดงประวัติประจำวัน (ด้านขวา) -->
             <section class="card">
-                <h2 class="card-title">📋 ประวัติการรับรถวันนี้</h2>
+                <div class="card-header-flex">
+                    <h2 class="card-title">📋 ประวัติการรับรถทั้งหมด</h2>
+                    <button id="btn-refresh" class="btn-refresh" onclick="fetchDataFromGoogleSheets()">🔄 ดึงข้อมูลล่าสุด</button>
+                </div>
                 <div style="overflow-x: auto;">
                     <table id="logTable">
                         <thead>
@@ -173,7 +185,7 @@
                             </tr>
                         </thead>
                         <tbody id="table-body">
-                            <!-- ข้อมูลจะถูกเพิ่มที่นี่ -->
+                            <tr><td colspan="6" style="color:#777;">⏳ กำลังโหลดข้อมูล...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -184,13 +196,12 @@
 
     <script>
         // ใส่ URL ที่ได้จากการ Deploy Google Apps Script (Web App URL) ที่นี่
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby-3yRMXcAbJMS0FvKT71yiuqB1gXwkHxWw4ijWMeLuJkidLZbEHH2sR4HAwnrBHRpb/exec';
+        const GOOGLE_SCRIPT_URL = 'วาง_WEB_APP_URL_ตรงนี้';
 
-        // แสดงวันที่ปัจจุบันบน Header
+        // แสดงวันที่ปัจจุบัน
         const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
         document.getElementById('current-date').innerText = new Date().toLocaleDateString('th-TH', dateOptions);
 
-        // ตัวแปรสำหรับคำนวณ
         const weightInEl = document.getElementById('weightIn');
         const weightOutEl = document.getElementById('weightOut');
         const netWeightEl = document.getElementById('netWeight');
@@ -200,80 +211,88 @@
         const displayTotalEl = document.getElementById('display-total');
         let totalAmount = 0;
 
-        // ฟังก์ชันคำนวณน้ำหนักและราคาอัตโนมัติ
         function calculateAll() {
-            // 1. คำนวณน้ำหนักสุทธิ
             let wIn = parseFloat(weightInEl.value) || 0;
             let wOut = parseFloat(weightOutEl.value) || 0;
-            let net = Math.abs(wIn - wOut); // เอาค่าความต่างเป็นบวกเสมอ
+            let net = Math.abs(wIn - wOut);
             netWeightEl.value = wIn > 0 && wOut > 0 ? net : 0;
 
-            // 2. ถ้ามีการพิมพ์ "ราคาต่อถัง" ให้แปลงเป็น กก. อัตโนมัติ
             if (document.activeElement === pricePerBucketEl && pricePerBucketEl.value !== "") {
                 let bucketPrice = parseFloat(pricePerBucketEl.value);
                 pricePerKgEl.value = (bucketPrice / 15).toFixed(2);
-            } 
-            // 3. ถ้าลบราคาต่อถังออก ให้รีเซ็ตราคาต่อ กก.
-            else if (document.activeElement === pricePerBucketEl && pricePerBucketEl.value === "") {
+            } else if (document.activeElement === pricePerBucketEl && pricePerBucketEl.value === "") {
                 pricePerKgEl.value = "";
             }
 
-            // 4. คำนวณยอดเงินรวม
             let priceKg = parseFloat(pricePerKgEl.value) || 0;
             totalAmount = (net * priceKg);
             displayTotalEl.innerText = '฿ ' + totalAmount.toLocaleString('th-TH', {minimumFractionDigits: 2});
         }
 
-        // ดักจับ Event เมื่อมีการพิมพ์ตัวเลขในช่องต่างๆ
         document.querySelectorAll('.input-calc').forEach(input => {
             input.addEventListener('input', calculateAll);
         });
 
         // ----------------------------------------------------
-        // ระบบบันทึกและแสดงผล (ใช้ LocalStorage ในเบื้องต้น)
+        // ฟังก์ชันดึงข้อมูลจาก Google Sheets แสดงบนหน้าเว็บทุกเครื่อง
         // ----------------------------------------------------
-        let transactions = JSON.parse(localStorage.getItem('cornTransactions')) || [];
-
-        function renderTable() {
+        async function fetchDataFromGoogleSheets() {
             const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '';
-            
-            if(transactions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="color:#999;">ยังไม่มีข้อมูลการรับรถในวันนี้</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="color:#777;">⏳ กำลังโหลดข้อมูลล่าสุด...</td></tr>';
+
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbzdCtXWCfpQVH_x3xwEwdKJuLBtHhTb0dDwQ_evdbX-7o7L0-dYHRhwwlEjKdi_4Y6O/exec') {
+                tbody.innerHTML = '<tr><td colspan="6" style="color:red;">ยังไม่ได้วาง GOOGLE_SCRIPT_URL ในโค้ด</td></tr>';
                 return;
             }
 
-            transactions.forEach(t => {
-                const badge = t.type === 'รับเข้า' ? 'badge-in' : 'badge-out';
-                const moneyColor = t.type === 'รับเข้า' ? '#c0392b' : '#27ae60';
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL);
+                const data = await response.json();
+                
+                if(!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="color:#999;">ยังไม่มีข้อมูลในระบบ</td></tr>';
+                    return;
+                }
 
-                const row = `
-                    <tr>
-                        <td>${t.time} <br><span class="${badge}" style="font-size:0.75rem;">${t.type}</span></td>
-                        <td>${t.plate}<br><span style="font-size:0.8rem; color:#777;">${t.customerType}</span></td>
-                        <td>${t.moisture}%</td>
-                        <td style="font-weight:bold;">${parseFloat(t.netWeight).toLocaleString('th-TH')}</td>
-                        <td>${parseFloat(t.pricePerKg).toFixed(2)}</td>
-                        <td style="color:${moneyColor}; font-weight:bold; text-align:right;">
-                            ${parseFloat(t.totalAmount).toLocaleString('th-TH', {minimumFractionDigits: 2})}
-                        </td>
-                    </tr>
-                `;
-                tbody.insertAdjacentHTML('afterbegin', row); // เอาข้อมูลใหม่ขึ้นบนสุด
-            });
+                tbody.innerHTML = '';
+                // วนลูปแสดงข้อมูลเอาอันใหม่ไว้บนสุด
+                data.reverse().forEach(t => {
+                    const badge = t.type === 'รับเข้า' ? 'badge-in' : 'badge-out';
+                    const moneyColor = t.type === 'รับเข้า' ? '#c0392b' : '#27ae60';
+
+                    const row = `
+                        <tr>
+                            <td>${t.time} <br><span class="${badge}" style="font-size:0.75rem;">${t.type}</span></td>
+                            <td>${t.plate}<br><span style="font-size:0.8rem; color:#777;">${t.customerType}</span></td>
+                            <td>${t.moisture}%</td>
+                            <td style="font-weight:bold;">${parseFloat(t.netWeight || 0).toLocaleString('th-TH')}</td>
+                            <td>${parseFloat(t.pricePerKg || 0).toFixed(2)}</td>
+                            <td style="color:${moneyColor}; font-weight:bold; text-align:right;">
+                                ${parseFloat(t.totalAmount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2})}
+                            </td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+            } catch (error) {
+                console.error("Error loading data:", error);
+                tbody.innerHTML = '<tr><td colspan="6" style="color:red;">เกิดข้อผิดพลาดในการดึงข้อมูล กรุณากดปุ่มรีเฟรชอีกครั้ง</td></tr>';
+            }
         }
 
         // เมื่อกดปุ่ม บันทึกข้อมูล
-        document.getElementById('entry-form').addEventListener('submit', function(e) {
+        document.getElementById('entry-form').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            // เช็คว่ามีน้ำหนักสุทธิหรือไม่
             if (parseFloat(netWeightEl.value) <= 0) {
                 alert("กรุณาตรวจสอบน้ำหนักเข้า-ออกให้ถูกต้อง (น้ำหนักสุทธิต้องมากกว่า 0)");
                 return;
             }
 
-            // สร้างออบเจ็กต์เก็บข้อมูล
+            const submitBtn = this.querySelector('.btn-submit');
+            submitBtn.disabled = true;
+            submitBtn.innerText = '⏳ กำลังบันทึกข้อมูล...';
+
             const newRecord = {
                 time: new Date().toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'}),
                 type: document.getElementById('type').value,
@@ -286,33 +305,37 @@
                 totalAmount: totalAmount
             };
 
-            // ส่งข้อมูลไปยัง Google Sheets
-            if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== 'วาง_WEB_APP_URL_ตรงนี้') {
-                fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(newRecord)
-                }).catch(error => console.error('Error sending to Google Sheets:', error));
+            try {
+                if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== 'วาง_WEB_APP_URL_ตรงนี้') {
+                    await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newRecord)
+                    });
+                }
+
+                alert(`บันทึกข้อมูลรถทะเบียน ${newRecord.plate} สำเร็จ!`);
+                this.reset();
+                displayTotalEl.innerText = '฿ 0.00';
+                
+                // โหลดข้อมูลในตารางใหม่ทันทีหลังบันทึกเสร็จ
+                setTimeout(fetchDataFromGoogleSheets, 1500);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('เกิดข้อผิดพลาดในการส่งข้อมูล');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = '💾 บันทึกข้อมูลขึ้นระบบ';
             }
-
-            // บันทึกลง Array และ LocalStorage
-            transactions.push(newRecord);
-            localStorage.setItem('cornTransactions', JSON.stringify(transactions));
-
-            // รีเฟรชตาราง และ ล้างฟอร์ม
-            renderTable();
-            this.reset();
-            displayTotalEl.innerText = '฿ 0.00';
-            
-            // แจ้งเตือน
-            alert(`บันทึกข้อมูลรถทะเบียน ${newRecord.plate} สำเร็จ! ยอดเงิน: ${newRecord.totalAmount.toLocaleString('th-TH')} บาท`);
         });
 
-        // โหลดข้อมูลตารางเมื่อเปิดหน้าเว็บ
-        renderTable();
+        // โหลดข้อมูลตารางอัตโนมัติเมื่อเปิดหน้าเว็บ
+        fetchDataFromGoogleSheets();
+
+        // ตั้งระบบให้รีเฟรชตารางอัตโนมัติทุกๆ 30 วินาที เพื่อให้อุปกรณ์อื่นๆ เห็นข้อมูลตรงกันตลอดเวลา
+        setInterval(fetchDataFromGoogleSheets, 30000);
     </script>
 </body>
 </html>

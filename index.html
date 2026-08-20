@@ -194,9 +194,11 @@
         </div>
     </div>
 
-    <script>
-        // ใส่ URL ที่ได้จากการ Deploy Google Apps Script (Web App URL) ที่นี่
-        const GOOGLE_SCRIPT_URL = 'วาง_WEB_APP_URL_ตรงนี้';
+   <script>
+        // ----------------------------------------------------
+        // 1. วาง Web App URL ที่ได้จาก Google Apps Script ที่นี่ที่เดียว!
+        // ----------------------------------------------------
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzdCtXWCfpQVH_x3xwEwdKJuLBtHhTb0dDwQ_evdbX-7o7L0-dYHRhwwlEjKdi_4Y6O/exec';
 
         // แสดงวันที่ปัจจุบัน
         const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
@@ -234,14 +236,14 @@
         });
 
         // ----------------------------------------------------
-        // ฟังก์ชันดึงข้อมูลจาก Google Sheets แสดงบนหน้าเว็บทุกเครื่อง
+        // ฟังก์ชันดึงข้อมูลจาก Google Sheets แสดงบนหน้าเว็บ
         // ----------------------------------------------------
         async function fetchDataFromGoogleSheets() {
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '<tr><td colspan="6" style="color:#777;">⏳ กำลังโหลดข้อมูลล่าสุด...</td></tr>';
 
-            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbzdCtXWCfpQVH_x3xwEwdKJuLBtHhTb0dDwQ_evdbX-7o7L0-dYHRhwwlEjKdi_4Y6O/exec') {
-                tbody.innerHTML = '<tr><td colspan="6" style="color:red;">ยังไม่ได้วาง GOOGLE_SCRIPT_URL ในโค้ด</td></tr>';
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === '' || GOOGLE_SCRIPT_URL.includes('วาง_')) {
+                tbody.innerHTML = '<tr><td colspan="6" style="color:red;">ยังไม่ได้ใส่ GOOGLE_SCRIPT_URL ในโค้ด</td></tr>';
                 return;
             }
 
@@ -294,7 +296,6 @@
             submitBtn.innerText = '⏳ กำลังบันทึกข้อมูล...';
 
             const newRecord = {
-                time: new Date().toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'}),
                 type: document.getElementById('type').value,
                 plate: document.getElementById('plate').value,
                 customerType: document.getElementById('customerType').value,
@@ -306,7 +307,7 @@
             };
 
             try {
-                if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== 'วาง_WEB_APP_URL_ตรงนี้') {
+                if (GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.includes('วาง_')) {
                     await fetch(GOOGLE_SCRIPT_URL, {
                         method: 'POST',
                         mode: 'no-cors',
@@ -334,7 +335,7 @@
         // โหลดข้อมูลตารางอัตโนมัติเมื่อเปิดหน้าเว็บ
         fetchDataFromGoogleSheets();
 
-        // ตั้งระบบให้รีเฟรชตารางอัตโนมัติทุกๆ 30 วินาที เพื่อให้อุปกรณ์อื่นๆ เห็นข้อมูลตรงกันตลอดเวลา
+        // ตั้งระบบให้รีเฟรชตารางอัตโนมัติทุกๆ 30 วินาที
         setInterval(fetchDataFromGoogleSheets, 30000);
     </script>
 </body>

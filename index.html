@@ -4,382 +4,95 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบคีย์ข้อมูล รับ-จ่าย ลานท่าข้าวโพด</title>
-    <!-- Google Fonts: Prompt -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
     <style>
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg-main: #f1f5f9;
-            --card-bg: #ffffff;
-            --text-dark: #0f172a;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --success: #10b981;
-            --success-bg: #d1fae5;
-            --danger: #ef4444;
-            --danger-bg: #fee2e2;
-            --warning: #f59e0b;
-            --purple: #8b5cf6;
-            --radius: 12px;
-            --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
-        }
-
-        * { box-sizing: border-box; }
-
         body {
-            font-family: 'Prompt', sans-serif;
-            margin: 0;
-            padding: 24px;
-            background-color: var(--bg-main);
-            color: var(--text-dark);
-            line-height: 1.5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 20px; background-color: #eef2f3; color: #333;
         }
-
-        .container { max-width: 1380px; margin: 0 auto; }
-
-        /* Header */
         header {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            color: white;
-            padding: 20px 28px;
-            border-radius: var(--radius);
-            margin-bottom: 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);
-            flex-wrap: wrap;
-            gap: 12px;
+            background-color: #2c3e50; color: white; padding: 15px 20px; 
+            border-radius: 8px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center;
         }
-
-        header h1 {
-            margin: 0;
-            font-size: 1.4rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .date-badge {
-            font-size: 0.85rem;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(8px);
-            padding: 6px 14px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-        }
-
-        /* Dashboard Cards Grid */
+        header h1 { margin: 0; font-size: 1.5rem; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* สไตล์สำหรับแดชบอร์ดที่เพิ่มใหม่ */
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
         }
-
         .stat-card {
-            background-color: var(--card-bg);
-            padding: 20px;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-            border-top: 4px solid var(--primary);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            background-color: white;
+            padding: 15px 18px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-left: 5px solid #3498db;
         }
+        .stat-card.stock-grain { border-left-color: #f39c12; }
+        .stat-card.stock-cob { border-left-color: #e67e22; }
+        .stat-card.cash-out { border-left-color: #e74c3c; }
+        .stat-card.cash-in { border-left-color: #2ecc71; }
+        .stat-card.margin { border-left-color: #9b59b6; }
+        
+        .stat-title { font-size: 0.82rem; color: #7f8c8d; font-weight: bold; margin-bottom: 5px; }
+        .stat-value { font-size: 1.35rem; font-weight: bold; color: #2c3e50; }
+        .stat-subtext { font-size: 0.75rem; color: #95a5a6; margin-top: 4px; }
 
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08);
-        }
-
-        .stat-card.stock-grain { border-top-color: #f59e0b; }
-        .stat-card.stock-cob { border-top-color: #d97706; }
-        .stat-card.cash-out { border-top-color: var(--danger); }
-        .stat-card.cash-in { border-top-color: var(--success); }
-        .stat-card.margin { border-top-color: var(--purple); }
-
-        .stat-title {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            font-weight: 500;
-            margin-bottom: 6px;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            letter-spacing: -0.5px;
-        }
-
-        .stat-subtext {
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        /* Main Layout */
         .main-layout {
-            display: grid;
-            grid-template-columns: 420px 1fr;
-            gap: 24px;
+            display: grid; grid-template-columns: 1fr 2fr; gap: 20px;
             align-items: start;
         }
-
+        
         .card {
-            background-color: var(--card-bg);
-            padding: 24px;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
+            background-color: white; padding: 20px; border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-
         .card-header-flex {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 14px;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-bottom: 20px;
         }
-
-        .card-title {
-            margin: 0;
-            font-size: 1.15rem;
-            color: var(--text-dark);
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Form Styles */
-        .form-group { margin-bottom: 16px; }
-        .form-group label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 6px;
-            font-size: 0.88rem;
-            color: #334155;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-family: inherit;
-            background-color: #f8fafc;
-            color: var(--text-dark);
-            transition: all 0.2s;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary);
-            background-color: #fff;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
-        }
-
-        /* Calculation Box */
-        .calc-box {
-            background-color: #f0f9ff;
-            padding: 18px;
-            border-radius: 10px;
-            border: 1px solid #bae6fd;
-            margin: 20px 0 16px;
-        }
-
-        .result-amount {
-            font-size: 2rem;
-            color: #047857;
-            font-weight: 700;
-            text-align: center;
-            margin: 6px 0 0 0;
-            font-feature-settings: "tnum";
-        }
-
-        .btn-submit {
-            background-color: var(--success);
-            color: white;
-            width: 100%;
-            padding: 13px;
-            font-size: 1rem;
-            font-weight: 600;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-            font-family: inherit;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
-        }
-
-        .btn-submit:hover { background-color: #059669; }
-        .btn-submit:active { transform: scale(0.99); }
-        .btn-submit:disabled { background-color: #cbd5e1; cursor: not-allowed; box-shadow: none; }
+        .card-title { margin: 0; color: #2980b9; }
 
         .btn-refresh {
-            background-color: #f1f5f9;
-            color: #334155;
-            border: 1px solid var(--border);
-            padding: 8px 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 500;
-            font-family: inherit;
-            transition: all 0.2s;
+            background-color: #3498db; color: white; border: none; padding: 6px 12px;
+            border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold;
         }
+        .btn-refresh:hover { background-color: #2980b9; }
 
-        .btn-refresh:hover { background-color: #e2e8f0; color: var(--text-dark); }
-
-        /* Filter Section Styles */
-        .filter-card {
-            background-color: #f8fafc;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 20px;
+        /* ฟอร์มกรอกข้อมูล */
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        .form-control {
+            width: 100%; padding: 10px; border: 1px solid #ccc; 
+            border-radius: 6px; box-sizing: border-box; font-size: 1rem;
         }
-
-        .filter-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr;
-            gap: 12px;
-            align-items: end;
+        .form-control:focus { outline: none; border-color: #3498db; box-shadow: 0 0 5px rgba(52,152,219,0.3); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        /* กล่องคำนวณเงิน */
+        .calc-box { background-color: #f8f9f9; padding: 15px; border-radius: 6px; border: 1px dashed #bdc3c7; margin-bottom: 15px; }
+        .result-amount { font-size: 2rem; color: #27ae60; font-weight: bold; text-align: center; margin: 10px 0; }
+        
+        .btn-submit {
+            background-color: #27ae60; color: white; width: 100%; padding: 12px;
+            font-size: 1.1rem; font-weight: bold; border: none; border-radius: 6px;
+            cursor: pointer; transition: 0.3s;
         }
+        .btn-submit:hover { background-color: #219150; }
+        .btn-submit:disabled { background-color: #bdc3c7; cursor: not-allowed; }
 
-        .quick-pills {
-            display: flex;
-            gap: 6px;
-            margin-top: 12px;
-            flex-wrap: wrap;
-        }
+        /* ตารางประวัติ */
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        th { background-color: #ecf0f1; }
+        .badge-in { background-color: #d5f5e3; color: #27ae60; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+        .badge-out { background-color: #fadbd8; color: #c0392b; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
 
-        .pill-btn {
-            background-color: #fff;
-            border: 1px solid var(--border);
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.15s ease;
-        }
-
-        .pill-btn:hover, .pill-btn.active {
-            background-color: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        .filter-summary {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #eff6ff;
-            border: 1px solid #bfdbfe;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            color: #1e40af;
-            margin-bottom: 16px;
-            font-weight: 500;
-        }
-
-        .btn-reset {
-            background-color: #e2e8f0;
-            color: #475569;
-            border: none;
-            padding: 10px 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.88rem;
-            font-family: inherit;
-            transition: background-color 0.2s;
-        }
-
-        .btn-reset:hover { background-color: #cbd5e1; }
-
-        /* Table Styles */
-        .table-container {
-            overflow-x: auto;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            max-height: 600px;
-            overflow-y: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.88rem;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f8fafc;
-            color: #475569;
-            font-weight: 600;
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        td {
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--border);
-            color: #334155;
-            vertical-align: middle;
-        }
-
-        tbody tr:hover { background-color: #f8fafc; }
-
-        .badge-in {
-            background-color: var(--success-bg);
-            color: #047857;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 0.75rem;
-            display: inline-block;
-        }
-
-        .badge-out {
-            background-color: var(--danger-bg);
-            color: #b91c1c;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 0.75rem;
-            display: inline-block;
-        }
-
-        @media (max-width: 1100px) {
+        @media (max-width: 768px) {
             .main-layout { grid-template-columns: 1fr; }
-            .filter-grid { grid-template-columns: 1fr 1fr; }
-        }
-
-        @media (max-width: 640px) {
-            body { padding: 12px; }
-            .dashboard-grid { grid-template-columns: 1fr 1fr; }
-            .filter-grid { grid-template-columns: 1fr; }
-            .form-row { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -388,12 +101,14 @@
     <div class="container">
         <header>
             <h1>🚜 ระบบบันทึกข้อมูลหน้าลานท่าข้าวโพด</h1>
-            <div class="date-badge">
-                📅 วันที่ระบบ: <span id="current-date"></span>
+            <div style="font-size: 0.9rem; background: #34495e; padding: 5px 10px; border-radius: 4px;">
+                วันที่ระบบ: <span id="current-date"></span>
             </div>
         </header>
 
-        <!-- แดชบอร์ดสรุปสต็อกและยอดประจำวัน -->
+        <!-- ========================================== -->
+        <!-- ส่วนที่เพิ่มใหม่: แดชบอร์ดสรุปสต็อกและยอดประจำวัน -->
+        <!-- ========================================== -->
         <div class="dashboard-grid">
             <div class="stat-card stock-grain">
                 <div class="stat-title">🌽 สต็อกข้าวโพดเมล็ดคงเหลือ</div>
@@ -409,13 +124,13 @@
 
             <div class="stat-card cash-out">
                 <div class="stat-title">📉 ยอดจ่ายซื้อวันนี้ (Cash Out)</div>
-                <div class="stat-value" style="color: var(--danger);" id="cash-out-val">฿ 0.00</div>
+                <div class="stat-value" style="color: #c0392b;" id="cash-out-val">฿ 0.00</div>
                 <div class="stat-subtext" id="avg-buy-sub">เฉลี่ย 0.00 บาท/กก.</div>
             </div>
 
             <div class="stat-card cash-in">
                 <div class="stat-title">📈 ยอดขายได้วันนี้ (Cash In)</div>
-                <div class="stat-value" style="color: var(--success);" id="cash-in-val">฿ 0.00</div>
+                <div class="stat-value" style="color: #27ae60;" id="cash-in-val">฿ 0.00</div>
                 <div class="stat-subtext" id="avg-sell-sub">เฉลี่ย 0.00 บาท/กก.</div>
             </div>
 
@@ -450,10 +165,11 @@
                     </div>
 
                     <div class="form-row">
+                        <!-- แก้ไขจุดนี้: เปลี่ยนเป็น Dropdown -->
                         <div class="form-group">
                             <label>ประเภทลูกค้า</label>
                             <select id="customerType" class="form-control" required>
-                                <option value="" disabled selected>-- เลือกประเภท --</option>
+                                <option value="" disabled selected>-- เลือกประเภทลูกค้า --</option>
                                 <option value="ขาประจำ">ขาประจำ</option>
                                 <option value="ขาจร">ขาจร</option>
                             </select>
@@ -468,11 +184,11 @@
                     </div>
 
                     <div class="form-group">
-                        <label>ความชื้น (%) <span style="color:var(--danger); font-size: 0.78rem;">*ชื้นน้อย=ราคาสูง ชื้นมาก=ราคาต่ำ</span></label>
+                        <label>ความชื้น (%) <span style="color:red; font-size: 0.8rem; font-weight: normal;">*ชื้นน้อย=ราคาสูง ชื้นมาก=ราคาต่ำ</span></label>
                         <input type="number" id="moisture" class="form-control" step="0.1" placeholder="เช่น 14.5" required>
                     </div>
 
-                    <hr style="border: 0; border-top: 1px dashed var(--border); margin: 20px 0;">
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
 
                     <!-- ส่วนคำนวณน้ำหนัก -->
                     <div class="form-row">
@@ -487,25 +203,25 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>น้ำหนักสุทธิ (กก.) <span style="color:var(--text-muted); font-size:0.78rem;">(คำนวณให้อัตโนมัติ)</span></label>
-                        <input type="number" id="netWeight" class="form-control" style="background:#ecfdf5; font-weight:bold; color:#047857;" readonly>
+                        <label>น้ำหนักสุทธิ (กก.) <span style="color:#7f8c8d; font-size:0.8rem;">(ระบบคำนวณให้อัตโนมัติ)</span></label>
+                        <input type="number" id="netWeight" class="form-control" style="background:#e8f8f5; font-weight:bold;" readonly>
                     </div>
 
                     <!-- ส่วนช่วยคำนวณราคา -->
                     <div class="calc-box">
-                        <div class="form-row">
+                        <div class="form-row" style="margin-bottom: 10px;">
                             <div class="form-group" style="margin-bottom: 0;">
-                                <label style="color:#d97706;">ราคาต่อถัง (บาท)</label>
-                                <input type="number" id="pricePerBucket" class="form-control input-calc" placeholder="เช่น 95 (15กก.)">
+                                <label style="color:#d35400;">เครื่องช่วยคิด: ราคาต่อถัง (บาท)</label>
+                                <input type="number" id="pricePerBucket" class="form-control input-calc" placeholder="เช่น 95 (1 ถัง=15กก.)">
                             </div>
                             <div class="form-group" style="margin-bottom: 0;">
-                                <label style="color:var(--primary);">ราคาต่อกิโลกรัม (บาท)</label>
-                                <input type="number" id="pricePerKg" class="form-control input-calc" step="0.01" placeholder="ระบุราคา" required>
+                                <label style="color:#2980b9;">ราคาต่อกิโลกรัม (บาท)</label>
+                                <input type="number" id="pricePerKg" class="form-control input-calc" step="0.01" placeholder="ใส่เอง หรือใช้เครื่องช่วยคิด" required>
                             </div>
                         </div>
                         
-                        <div style="text-align: center; margin-top: 14px;">
-                            <span style="color: var(--text-muted); font-size: 0.85rem;">ยอดรวมที่ต้องชำระทั้งสิ้น</span>
+                        <div style="text-align: center; margin-top: 15px;">
+                            <span style="color: #7f8c8d; font-size: 0.9rem;">จำนวนเงินรวมที่ต้องชำระ (บาท)</span>
                             <div class="result-amount" id="display-total">฿ 0.00</div>
                         </div>
                     </div>
@@ -514,73 +230,26 @@
                 </form>
             </section>
 
-            <!-- ส่วนที่ 2: ตารางแสดงประวัติประจำวัน และระบบ ค้นหา/กรองข้อมูล (ด้านขวา) -->
+            <!-- ส่วนที่ 2: ตารางแสดงประวัติประจำวัน (ด้านขวา) -->
             <section class="card">
                 <div class="card-header-flex">
-                    <h2 class="card-title">📋 ประวัติรายการและค้นหาย้อนหลัง</h2>
+                    <h2 class="card-title">📋 ประวัติการรับรถทั้งหมด</h2>
                     <button id="btn-refresh" class="btn-refresh" onclick="fetchDataFromGoogleSheets()">🔄 ดึงข้อมูลล่าสุด</button>
                 </div>
-
-                <!-- กล่องค้นหาและตัวกรองข้อมูล (Search & Filter Section) -->
-                <div class="filter-card">
-                    <div class="filter-grid">
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label>🔍 ค้นหาทะเบียน / ลูกค้า</label>
-                            <input type="text" id="searchKeyword" class="form-control" placeholder="พิมพ์ทะเบียนรถ เช่น กข 1234...">
-                        </div>
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label>ประเภทรายการ</label>
-                            <select id="filterType" class="form-control">
-                                <option value="ทั้งหมด">ทั้งหมด</option>
-                                <option value="รับเข้า">รับเข้า</option>
-                                <option value="จ่ายออก">จ่ายออก</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label>ตั้งแต่วันที่</label>
-                            <input type="date" id="filterStartDate" class="form-control">
-                        </div>
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label>ถึงวันที่</label>
-                            <input type="date" id="filterEndDate" class="form-control">
-                        </div>
-                    </div>
-
-                    <!-- ปุ่มกรองด่วน & รีเซ็ต -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 8px;">
-                        <div class="quick-pills">
-                            <span style="font-size: 0.8rem; color: var(--text-muted); align-self: center;">ช่วงเวล้าด่วน:</span>
-                            <button type="button" class="pill-btn" onclick="setQuickDate('today')">วันนี้</button>
-                            <button type="button" class="pill-btn" onclick="setQuickDate('7days')">7 วันล่าสุด</button>
-                            <button type="button" class="pill-btn" onclick="setQuickDate('thisMonth')">เดือนนี้</button>
-                            <button type="button" class="pill-btn active" onclick="setQuickDate('all')">ทั้งหมด</button>
-                        </div>
-                        <button type="button" class="btn-reset" onclick="resetFilters()">🔄 ล้างตัวกรอง</button>
-                    </div>
-                </div>
-
-                <!-- แถบสรุปผลลัพธ์ที่ค้นพบ -->
-                <div class="filter-summary" id="filter-summary-bar">
-                    <span>📊 ผลการค้นหา: <b id="summary-count">0</b> รายการ</span>
-                    <span>⚖️ น้ำหนักรวม: <b id="summary-weight">0</b> กก.</span>
-                    <span>💵 ยอดเงินรวม: <b id="summary-amount">฿ 0.00</b></span>
-                </div>
-
-                <!-- ตารางข้อมูล -->
-                <div class="table-container">
+                <div style="overflow-x: auto;">
                     <table id="logTable">
                         <thead>
                             <tr>
-                                <th>เวลา / ประเภท</th>
-                                <th>รถ / ลูกค้า</th>
+                                <th>เวลา</th>
+                                <th>รถ/ลูกค้า</th>
                                 <th>ความชื้น</th>
-                                <th>นน.สุทธิ (กก.)</th>
+                                <th>นน.สุทธิ(กก.)</th>
                                 <th>ราคา/กก.</th>
-                                <th style="text-align: right;">ยอดเงิน (บาท)</th>
+                                <th>ยอดเงิน(บาท)</th>
                             </tr>
                         </thead>
                         <tbody id="table-body">
-                            <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">⏳ กำลังโหลดข้อมูล...</td></tr>
+                            <tr><td colspan="6" style="color:#777;">⏳ กำลังโหลดข้อมูล...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -589,28 +258,25 @@
         </div>
     </div>
 
-    <script>
+   <script>
         // ----------------------------------------------------
-        // 1. Web App URL จาก Google Apps Script
+        // 1. วาง Web App URL ที่ได้จาก Google Apps Script ที่นี่ที่เดียว!
         // ----------------------------------------------------
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzdCtXWCfpQVH_x3xwEwdKJuLBtHhTb0dDwQ_evdbX-7o7L0-dYHRhwwlEjKdi_4Y6O/exec';
 
-        // เก็บข้อมูลดิบทั้งหมดที่ดึงมาจาก Google Sheets
-        let rawRecordsData = [];
-
         // แสดงวันที่ปัจจุบัน
-        const dateOptions = { year: 'numeric', month: 'short', day: 'numeric', weekday: 'long' };
+        const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
         document.getElementById('current-date').innerText = new Date().toLocaleDateString('th-TH', dateOptions);
 
         const weightInEl = document.getElementById('weightIn');
         const weightOutEl = document.getElementById('weightOut');
         const netWeightEl = document.getElementById('netWeight');
+        
         const pricePerBucketEl = document.getElementById('pricePerBucket');
         const pricePerKgEl = document.getElementById('pricePerKg');
         const displayTotalEl = document.getElementById('display-total');
         let totalAmount = 0;
 
-        // คำนวณน้ำหนักและราคาทันทีขณะพิมพ์
         function calculateAll() {
             let wIn = parseFloat(weightInEl.value) || 0;
             let wOut = parseFloat(weightOutEl.value) || 0;
@@ -626,7 +292,7 @@
 
             let priceKg = parseFloat(pricePerKgEl.value) || 0;
             totalAmount = (net * priceKg);
-            displayTotalEl.innerText = '฿ ' + totalAmount.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            displayTotalEl.innerText = '฿ ' + totalAmount.toLocaleString('th-TH', {minimumFractionDigits: 2});
         }
 
         document.querySelectorAll('.input-calc').forEach(input => {
@@ -634,13 +300,15 @@
         });
 
         // ----------------------------------------------------
-        // 2. คำนวณและอัปเดตแดชบอร์ดสรุปสต็อก + ยอดรายวัน
+        // ฟังก์ชันใหม่: คำนวณและอัปเดตแดชบอร์ดสรุปสต็อก + ยอดรายวัน
         // ----------------------------------------------------
         function updateDashboard(data) {
             let grainStock = 0;
             let cobStock = 0;
+
             let todayCashOut = 0;
             let todayBuyWeight = 0;
+
             let todayCashIn = 0;
             let todaySellWeight = 0;
 
@@ -650,14 +318,14 @@
             const todayYear = today.getFullYear();
 
             data.forEach(t => {
-                if (!t.plate || t.plate.toString().trim() === '') return;
+                if (!t.plate || t.plate.toString().trim() === '') return; // ข้ามแถวว่าง
 
                 const weight = parseFloat(t.netWeight || 0);
                 const amount = parseFloat(t.totalAmount || 0);
                 const product = (t.product || '').trim();
                 const type = (t.type || '').trim();
 
-                // 1. สต็อกคงเหลือสะสมทั้งหมด (Real-Time Stock)
+                // 1. คำนวณสต็อกคงเหลือสะสมทั้งหมด (Real-Time Stock)
                 if (type === 'รับเข้า') {
                     if (product === 'ข้าวโพดเมล็ด') grainStock += weight;
                     else if (product === 'ข้าวโพดฝัก') cobStock += weight;
@@ -666,14 +334,16 @@
                     else if (product === 'ข้าวโพดฝัก') cobStock -= weight;
                 }
 
-                // 2. ยอดสรุปเฉพาะวันนี้
+                // 2. คำนวณสรุปเฉพาะวันนี้ (Today Summary)
                 let isToday = false;
                 if (t.time) {
-                    const itemDate = parseDate(t.time);
-                    if (itemDate && itemDate.getDate() === todayDay && 
-                        itemDate.getMonth() === todayMonth && 
-                        itemDate.getFullYear() === todayYear) {
-                        isToday = true;
+                    const itemDate = new Date(t.time);
+                    if (!isNaN(itemDate.getTime())) {
+                        if (itemDate.getDate() === todayDay && 
+                            itemDate.getMonth() === todayMonth && 
+                            itemDate.getFullYear() === todayYear) {
+                            isToday = true;
+                        }
                     }
                 }
 
@@ -688,10 +358,12 @@
                 }
             });
 
+            // คำนวณราคาเฉลี่ยต่อ กก.
             const avgBuyPrice = todayBuyWeight > 0 ? (todayCashOut / todayBuyWeight) : 0;
             const avgSellPrice = todaySellWeight > 0 ? (todayCashIn / todaySellWeight) : 0;
             const todayMargin = todayCashIn - todayCashOut;
 
+            // แสดงผลขึ้นแดชบอร์ด
             document.getElementById('stock-grain-val').innerText = (grainStock / 1000).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ตัน';
             document.getElementById('stock-grain-sub').innerText = '(' + grainStock.toLocaleString('th-TH') + ' กก.)';
 
@@ -706,174 +378,18 @@
 
             const marginEl = document.getElementById('margin-val');
             marginEl.innerText = '฿ ' + todayMargin.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            marginEl.style.color = todayMargin >= 0 ? 'var(--success)' : 'var(--danger)';
-        }
-
-        // Helper แปลงข้อความวันที่ให้เป็น Date Object
-        function parseDate(dateStr) {
-            if (!dateStr) return null;
-            let d = new Date(dateStr);
-            if (!isNaN(d.getTime())) return d;
-            
-            // กรณีรูปแบบ DD/MM/YYYY หรือ YYYY-MM-DD
-            const parts = dateStr.split(/[\sT]+/)[0].split(/[\/-]/);
-            if (parts.length === 3) {
-                if (parts[0].length === 4) return new Date(parts[0], parts[1]-1, parts[2]); // YYYY-MM-DD
-                return new Date(parts[2], parts[1]-1, parts[0]); // DD/MM/YYYY
-            }
-            return null;
+            marginEl.style.color = todayMargin >= 0 ? '#27ae60' : '#c0392b';
         }
 
         // ----------------------------------------------------
-        // 3. ระบบค้นหาและกรองข้อมูล (Search & Filter Logic)
-        // ----------------------------------------------------
-        function applyFilters() {
-            const keyword = document.getElementById('searchKeyword').value.toLowerCase().trim();
-            const filterType = document.getElementById('filterType').value;
-            const startDateVal = document.getElementById('filterStartDate').value;
-            const endDateVal = document.getElementById('filterEndDate').value;
-
-            const startDate = startDateVal ? new Date(startDateVal + 'T00:00:00') : null;
-            const endDate = endDateVal ? new Date(endDateVal + 'T23:59:59') : null;
-
-            let filtered = rawRecordsData.filter(item => {
-                // 1. ค้นหาคีย์เวิร์ด (ทะเบียน / ประเภทลูกค้า / สินค้า)
-                const plateMatch = (item.plate || '').toLowerCase().includes(keyword);
-                const custMatch = (item.customerType || '').toLowerCase().includes(keyword);
-                const prodMatch = (item.product || '').toLowerCase().includes(keyword);
-                if (keyword && !plateMatch && !custMatch && !prodMatch) return false;
-
-                // 2. กรองประเภทรายการ
-                if (filterType !== 'ทั้งหมด' && item.type !== filterType) return false;
-
-                // 3. กรองช่วงวันที่
-                if (startDate || endDate) {
-                    const itemDate = parseDate(item.time);
-                    if (itemDate) {
-                        if (startDate && itemDate < startDate) return false;
-                        if (endDate && itemDate > endDate) return false;
-                    }
-                }
-
-                return true;
-            });
-
-            renderTable(filtered);
-        }
-
-        // สรุปยอดและวาดตาราง
-        function renderTable(dataList) {
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '';
-
-            let totalWeight = 0;
-            let totalMoney = 0;
-
-            if (dataList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">🚫 ไม่พบข้อมูลตรงตามเงื่อนไขที่ค้นหา</td></tr>';
-            } else {
-                [...dataList].reverse().forEach(t => {
-                    const badge = t.type === 'รับเข้า' ? 'badge-in' : 'badge-out';
-                    const moneyColor = t.type === 'รับเข้า' ? 'var(--danger)' : 'var(--success)';
-                    const weight = parseFloat(t.netWeight || 0);
-                    const amount = parseFloat(t.totalAmount || 0);
-
-                    totalWeight += weight;
-                    totalMoney += amount;
-
-                    const row = `
-                        <tr>
-                            <td>
-                                <div>${t.time || '-'}</div>
-                                <span class="${badge}">${t.type}</span>
-                            </td>
-                            <td>
-                                <strong style="color:var(--text-dark);">${t.plate}</strong>
-                                <div style="font-size:0.78rem; color:var(--text-muted);">${t.customerType || '-'} • ${t.product || '-'}</div>
-                            </td>
-                            <td>${t.moisture}%</td>
-                            <td style="font-weight:600;">${weight.toLocaleString('th-TH')}</td>
-                            <td>${parseFloat(t.pricePerKg || 0).toFixed(2)}</td>
-                            <td style="color:${moneyColor}; font-weight:700; text-align:right;">
-                                ฿ ${amount.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                            </td>
-                        </tr>
-                    `;
-                    tbody.insertAdjacentHTML('beforeend', row);
-                });
-            }
-
-            // อัปเดตแถบสรุปผลลัพธ์
-            document.getElementById('summary-count').innerText = dataList.length.toLocaleString('th-TH');
-            document.getElementById('summary-weight').innerText = totalWeight.toLocaleString('th-TH');
-            document.getElementById('summary-amount').innerText = '฿ ' + totalMoney.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        }
-
-        // ปุ่มกดเลือกวันที่ด่วน
-        function setQuickDate(type) {
-            const today = new Date();
-            const startDateInput = document.getElementById('filterStartDate');
-            const endDateInput = document.getElementById('filterEndDate');
-
-            document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
-
-            const formatDate = (d) => {
-                let month = '' + (d.getMonth() + 1);
-                let day = '' + d.getDate();
-                let year = d.getFullYear();
-                if (month.length < 2) month = '0' + month;
-                if (day.length < 2) day = '0' + day;
-                return [year, month, day].join('-');
-            };
-
-            if (type === 'today') {
-                startDateInput.value = formatDate(today);
-                endDateInput.value = formatDate(today);
-            } else if (type === '7days') {
-                let past = new Date();
-                past.setDate(today.getDate() - 6);
-                startDateInput.value = formatDate(past);
-                endDateInput.value = formatDate(today);
-            } else if (type === 'thisMonth') {
-                let firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                startDateInput.value = formatDate(firstDay);
-                endDateInput.value = formatDate(today);
-            } else if (type === 'all') {
-                startDateInput.value = '';
-                endDateInput.value = '';
-            }
-
-            event.target.classList.add('active');
-            applyFilters();
-        }
-
-        function resetFilters() {
-            document.getElementById('searchKeyword').value = '';
-            document.getElementById('filterType').value = 'ทั้งหมด';
-            document.getElementById('filterStartDate').value = '';
-            document.getElementById('filterEndDate').value = '';
-            
-            document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.pill-btn')[3].classList.add('active'); // Select "ทั้งหมด"
-
-            applyFilters();
-        }
-
-        // ผูก Event Listener เมื่อผู้ใช้พิมพ์หรือเปลี่ยนตัวกรอง
-        document.getElementById('searchKeyword').addEventListener('input', applyFilters);
-        document.getElementById('filterType').addEventListener('change', applyFilters);
-        document.getElementById('filterStartDate').addEventListener('change', applyFilters);
-        document.getElementById('filterEndDate').addEventListener('change', applyFilters);
-
-        // ----------------------------------------------------
-        // 4. ดึงข้อมูลจาก Google Sheets
+        // ฟังก์ชันดึงข้อมูลจาก Google Sheets แสดงบนหน้าเว็บ
         // ----------------------------------------------------
         async function fetchDataFromGoogleSheets() {
             const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">⏳ กำลังโหลดข้อมูลล่าสุด...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="color:#777;">⏳ กำลังโหลดข้อมูลล่าสุด...</td></tr>';
 
             if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === '' || GOOGLE_SCRIPT_URL.includes('วาง_')) {
-                tbody.innerHTML = '<tr><td colspan="6" style="color:var(--danger); text-align:center;">⚠️ ยังไม่ได้ตั้งค่า GOOGLE_SCRIPT_URL ในโค้ด</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="color:red;">ยังไม่ได้ใส่ GOOGLE_SCRIPT_URL ในโค้ด</td></tr>';
                 return;
             }
 
@@ -881,25 +397,45 @@
                 const response = await fetch(GOOGLE_SCRIPT_URL);
                 const data = await response.json();
                 
-                if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">ยังไม่มีข้อมูลในระบบ</td></tr>';
-                    rawRecordsData = [];
+                if(!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="color:#999;">ยังไม่มีข้อมูลในระบบ</td></tr>';
                     updateDashboard([]);
-                    applyFilters();
                     return;
                 }
 
-                rawRecordsData = data.filter(t => t.plate && t.plate.toString().trim() !== '');
-                updateDashboard(rawRecordsData);
-                applyFilters();
+                // กรองข้อมูลแถวว่างก่อนส่งไปคำนวณแดชบอร์ด
+                const validData = data.filter(t => t.plate && t.plate.toString().trim() !== '');
+                
+                // เรียกอัปเดตแดชบอร์ดสรุปผล
+                updateDashboard(validData);
 
+                tbody.innerHTML = '';
+                // วนลูปแสดงข้อมูลเอาอันใหม่ไว้บนสุด
+                [...validData].reverse().forEach(t => {
+                    const badge = t.type === 'รับเข้า' ? 'badge-in' : 'badge-out';
+                    const moneyColor = t.type === 'รับเข้า' ? '#c0392b' : '#27ae60';
+
+                    const row = `
+                        <tr>
+                            <td>${t.time} <br><span class="${badge}" style="font-size:0.75rem;">${t.type}</span></td>
+                            <td>${t.plate}<br><span style="font-size:0.8rem; color:#777;">${t.customerType}</span></td>
+                            <td>${t.moisture}%</td>
+                            <td style="font-weight:bold;">${parseFloat(t.netWeight || 0).toLocaleString('th-TH')}</td>
+                            <td>${parseFloat(t.pricePerKg || 0).toFixed(2)}</td>
+                            <td style="color:${moneyColor}; font-weight:bold; text-align:right;">
+                                ${parseFloat(t.totalAmount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2})}
+                            </td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
             } catch (error) {
                 console.error("Error loading data:", error);
-                tbody.innerHTML = '<tr><td colspan="6" style="color:var(--danger); text-align:center;">เกิดข้อผิดพลาดในการดึงข้อมูล กรุณากดปุ่มรีเฟรชอีกครั้ง</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="color:red;">เกิดข้อผิดพลาดในการดึงข้อมูล กรุณากดปุ่มรีเฟรชอีกครั้ง</td></tr>';
             }
         }
 
-        // บันทึกข้อมูลขึ้นระบบ
+        // เมื่อกดปุ่ม บันทึกข้อมูล
         document.getElementById('entry-form').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -937,6 +473,7 @@
                 this.reset();
                 displayTotalEl.innerText = '฿ 0.00';
                 
+                // โหลดข้อมูลในตารางใหม่ทันทีหลังบันทึกเสร็จ
                 setTimeout(fetchDataFromGoogleSheets, 1500);
 
             } catch (error) {
@@ -948,10 +485,10 @@
             }
         });
 
-        // โหลดข้อมูลอัตโนมัติเมื่อเปิดหน้าเว็บ
+        // โหลดข้อมูลตารางอัตโนมัติเมื่อเปิดหน้าเว็บ
         fetchDataFromGoogleSheets();
 
-        // รีเฟรชตารางอัตโนมัติทุกๆ 30 วินาที
+        // ตั้งระบบให้รีเฟรชตารางอัตโนมัติทุกๆ 30 วินาที
         setInterval(fetchDataFromGoogleSheets, 30000);
     </script>
 </body>

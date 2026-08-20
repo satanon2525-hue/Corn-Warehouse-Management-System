@@ -106,9 +106,14 @@
                     </div>
 
                     <div class="form-row">
+                        <!-- แก้ไขจุดนี้: เปลี่ยนเป็น Dropdown -->
                         <div class="form-group">
                             <label>ประเภทลูกค้า</label>
-                            <input type="text" id="customerType" class="form-control" placeholder="เช่น ขาประจำ, ขาจร" required>
+                            <select id="customerType" class="form-control" required>
+                                <option value="" disabled selected>-- เลือกประเภทลูกค้า --</option>
+                                <option value="ขาประจำ">ขาประจำ</option>
+                                <option value="ขาจร">ขาจร</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>สินค้า</label>

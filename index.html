@@ -183,6 +183,9 @@
     </div>
 
     <script>
+        // ใส่ URL ที่ได้จากการ Deploy Google Apps Script (Web App URL) ที่นี่
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby-3yRMXcAbJMS0FvKT71yiuqB1gXwkHxWw4ijWMeLuJkidLZbEHH2sR4HAwnrBHRpb/exec';
+
         // แสดงวันที่ปัจจุบันบน Header
         const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
         document.getElementById('current-date').innerText = new Date().toLocaleDateString('th-TH', dateOptions);
@@ -282,6 +285,18 @@
                 pricePerKg: pricePerKgEl.value,
                 totalAmount: totalAmount
             };
+
+            // ส่งข้อมูลไปยัง Google Sheets
+            if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== 'วาง_WEB_APP_URL_ตรงนี้') {
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newRecord)
+                }).catch(error => console.error('Error sending to Google Sheets:', error));
+            }
 
             // บันทึกลง Array และ LocalStorage
             transactions.push(newRecord);

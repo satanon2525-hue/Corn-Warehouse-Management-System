@@ -17,6 +17,30 @@
         header h1 { margin: 0; font-size: 1.5rem; }
         .container { max-width: 1200px; margin: 0 auto; }
         
+        /* สไตล์สำหรับแดชบอร์ดที่เพิ่มใหม่ */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background-color: white;
+            padding: 15px 18px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-left: 5px solid #3498db;
+        }
+        .stat-card.stock-grain { border-left-color: #f39c12; }
+        .stat-card.stock-cob { border-left-color: #e67e22; }
+        .stat-card.cash-out { border-left-color: #e74c3c; }
+        .stat-card.cash-in { border-left-color: #2ecc71; }
+        .stat-card.margin { border-left-color: #9b59b6; }
+        
+        .stat-title { font-size: 0.82rem; color: #7f8c8d; font-weight: bold; margin-bottom: 5px; }
+        .stat-value { font-size: 1.35rem; font-weight: bold; color: #2c3e50; }
+        .stat-subtext { font-size: 0.75rem; color: #95a5a6; margin-top: 4px; }
+
         .main-layout {
             display: grid; grid-template-columns: 1fr 2fr; gap: 20px;
             align-items: start;
@@ -81,6 +105,41 @@
                 วันที่ระบบ: <span id="current-date"></span>
             </div>
         </header>
+
+        <!-- ========================================== -->
+        <!-- ส่วนที่เพิ่มใหม่: แดชบอร์ดสรุปสต็อกและยอดประจำวัน -->
+        <!-- ========================================== -->
+        <div class="dashboard-grid">
+            <div class="stat-card stock-grain">
+                <div class="stat-title">🌽 สต็อกข้าวโพดเมล็ดคงเหลือ</div>
+                <div class="stat-value" id="stock-grain-val">0.00 ตัน</div>
+                <div class="stat-subtext" id="stock-grain-sub">(0 กก.)</div>
+            </div>
+
+            <div class="stat-card stock-cob">
+                <div class="stat-title">🌽 สต็อกข้าวโพดฝักคงเหลือ</div>
+                <div class="stat-value" id="stock-cob-val">0.00 ตัน</div>
+                <div class="stat-subtext" id="stock-cob-sub">(0 กก.)</div>
+            </div>
+
+            <div class="stat-card cash-out">
+                <div class="stat-title">📉 ยอดจ่ายซื้อวันนี้ (Cash Out)</div>
+                <div class="stat-value" style="color: #c0392b;" id="cash-out-val">฿ 0.00</div>
+                <div class="stat-subtext" id="avg-buy-sub">เฉลี่ย 0.00 บาท/กก.</div>
+            </div>
+
+            <div class="stat-card cash-in">
+                <div class="stat-title">📈 ยอดขายได้วันนี้ (Cash In)</div>
+                <div class="stat-value" style="color: #27ae60;" id="cash-in-val">฿ 0.00</div>
+                <div class="stat-subtext" id="avg-sell-sub">เฉลี่ย 0.00 บาท/กก.</div>
+            </div>
+
+            <div class="stat-card margin">
+                <div class="stat-title">💰 กำไรขั้นต้นวันนี้ (Spread Margin)</div>
+                <div class="stat-value" id="margin-val">฿ 0.00</div>
+                <div class="stat-subtext">Cash In - Cash Out ประจำวัน</div>
+            </div>
+        </div>
 
         <div class="main-layout">
             
@@ -241,6 +300,88 @@
         });
 
         // ----------------------------------------------------
+        // ฟังก์ชันใหม่: คำนวณและอัปเดตแดชบอร์ดสรุปสต็อก + ยอดรายวัน
+        // ----------------------------------------------------
+        function updateDashboard(data) {
+            let grainStock = 0;
+            let cobStock = 0;
+
+            let todayCashOut = 0;
+            let todayBuyWeight = 0;
+
+            let todayCashIn = 0;
+            let todaySellWeight = 0;
+
+            const today = new Date();
+            const todayDay = today.getDate();
+            const todayMonth = today.getMonth();
+            const todayYear = today.getFullYear();
+
+            data.forEach(t => {
+                if (!t.plate || t.plate.toString().trim() === '') return; // ข้ามแถวว่าง
+
+                const weight = parseFloat(t.netWeight || 0);
+                const amount = parseFloat(t.totalAmount || 0);
+                const product = (t.product || '').trim();
+                const type = (t.type || '').trim();
+
+                // 1. คำนวณสต็อกคงเหลือสะสมทั้งหมด (Real-Time Stock)
+                if (type === 'รับเข้า') {
+                    if (product === 'ข้าวโพดเมล็ด') grainStock += weight;
+                    else if (product === 'ข้าวโพดฝัก') cobStock += weight;
+                } else if (type === 'จ่ายออก') {
+                    if (product === 'ข้าวโพดเมล็ด') grainStock -= weight;
+                    else if (product === 'ข้าวโพดฝัก') cobStock -= weight;
+                }
+
+                // 2. คำนวณสรุปเฉพาะวันนี้ (Today Summary)
+                let isToday = false;
+                if (t.time) {
+                    const itemDate = new Date(t.time);
+                    if (!isNaN(itemDate.getTime())) {
+                        if (itemDate.getDate() === todayDay && 
+                            itemDate.getMonth() === todayMonth && 
+                            itemDate.getFullYear() === todayYear) {
+                            isToday = true;
+                        }
+                    }
+                }
+
+                if (isToday) {
+                    if (type === 'รับเข้า') {
+                        todayCashOut += amount;
+                        todayBuyWeight += weight;
+                    } else if (type === 'จ่ายออก') {
+                        todayCashIn += amount;
+                        todaySellWeight += weight;
+                    }
+                }
+            });
+
+            // คำนวณราคาเฉลี่ยต่อ กก.
+            const avgBuyPrice = todayBuyWeight > 0 ? (todayCashOut / todayBuyWeight) : 0;
+            const avgSellPrice = todaySellWeight > 0 ? (todayCashIn / todaySellWeight) : 0;
+            const todayMargin = todayCashIn - todayCashOut;
+
+            // แสดงผลขึ้นแดชบอร์ด
+            document.getElementById('stock-grain-val').innerText = (grainStock / 1000).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ตัน';
+            document.getElementById('stock-grain-sub').innerText = '(' + grainStock.toLocaleString('th-TH') + ' กก.)';
+
+            document.getElementById('stock-cob-val').innerText = (cobStock / 1000).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ตัน';
+            document.getElementById('stock-cob-sub').innerText = '(' + cobStock.toLocaleString('th-TH') + ' กก.)';
+
+            document.getElementById('cash-out-val').innerText = '฿ ' + todayCashOut.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('avg-buy-sub').innerText = 'เฉลี่ย ' + avgBuyPrice.toFixed(2) + ' บาท/กก.';
+
+            document.getElementById('cash-in-val').innerText = '฿ ' + todayCashIn.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('avg-sell-sub').innerText = 'เฉลี่ย ' + avgSellPrice.toFixed(2) + ' บาท/กก.';
+
+            const marginEl = document.getElementById('margin-val');
+            marginEl.innerText = '฿ ' + todayMargin.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            marginEl.style.color = todayMargin >= 0 ? '#27ae60' : '#c0392b';
+        }
+
+        // ----------------------------------------------------
         // ฟังก์ชันดึงข้อมูลจาก Google Sheets แสดงบนหน้าเว็บ
         // ----------------------------------------------------
         async function fetchDataFromGoogleSheets() {
@@ -258,12 +399,19 @@
                 
                 if(!data || data.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="6" style="color:#999;">ยังไม่มีข้อมูลในระบบ</td></tr>';
+                    updateDashboard([]);
                     return;
                 }
 
+                // กรองข้อมูลแถวว่างก่อนส่งไปคำนวณแดชบอร์ด
+                const validData = data.filter(t => t.plate && t.plate.toString().trim() !== '');
+                
+                // เรียกอัปเดตแดชบอร์ดสรุปผล
+                updateDashboard(validData);
+
                 tbody.innerHTML = '';
                 // วนลูปแสดงข้อมูลเอาอันใหม่ไว้บนสุด
-                data.reverse().forEach(t => {
+                [...validData].reverse().forEach(t => {
                     const badge = t.type === 'รับเข้า' ? 'badge-in' : 'badge-out';
                     const moneyColor = t.type === 'รับเข้า' ? '#c0392b' : '#27ae60';
 

@@ -562,7 +562,7 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th>เวลา</th>
+                                    <th>วันเวลา/ประเภท</th>
                                     <th>รถ/ลูกค้า</th>
                                     <th>ความชื้น</th>
                                     <th style="text-align: right;">นน.สุทธิ(กก.)</th>
@@ -653,8 +653,29 @@
 
         let globalRawData = [];
 
-        // แสดงวันที่ปัจจุบัน
-        const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+        // ฟังก์ชันแปลงข้อความวันเวลาเป็นภาษาไทยและโซนเวลาประเทศไทย (Asia/Bangkok)
+        function formatThaiDateTime(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+
+            const options = {
+                timeZone: 'Asia/Bangkok',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            };
+
+            const formatted = new Intl.DateTimeFormat('th-TH', options).format(date);
+            return formatted + ' น.';
+        }
+
+        // แสดงวันที่ปัจจุบันส่วน Header
+        const dateOptions = { timeZone: 'Asia/Bangkok', year: 'numeric', month: 'long', day: 'numeric' };
         document.getElementById('current-date').innerText = new Date().toLocaleDateString('th-TH', dateOptions);
 
         const weightInEl = document.getElementById('weightIn');
@@ -763,10 +784,11 @@
             [...todayData].reverse().forEach(t => {
                 const badgeClass = t.type === 'รับเข้า' ? 'badge-in' : 'badge-out';
                 const moneyColor = t.type === 'รับเข้า' ? 'var(--danger)' : 'var(--success)';
+                const thaiFormattedTime = formatThaiDateTime(t.time);
 
                 const row = `
                     <tr>
-                        <td><strong>${t.time}</strong><br><span class="badge ${badgeClass}">${t.type}</span></td>
+                        <td><strong>${thaiFormattedTime}</strong><br><span class="badge ${badgeClass}">${t.type}</span></td>
                         <td><strong>${t.plate}</strong><br><span style="font-size:0.78rem; color:var(--text-muted);">${t.customerType || '-'}</span></td>
                         <td>${t.moisture}%</td>
                         <td style="font-weight:600; text-align:right;">${parseFloat(t.netWeight || 0).toLocaleString('th-TH')}</td>
@@ -845,10 +867,11 @@
 
                 const badgeClass = t.type === 'รับเข้า' ? 'badge-in' : 'badge-out';
                 const moneyColor = t.type === 'รับเข้า' ? 'var(--danger)' : 'var(--success)';
+                const thaiFormattedTime = formatThaiDateTime(t.time);
 
                 const row = `
                     <tr>
-                        <td>${t.time}</td>
+                        <td>${thaiFormattedTime}</td>
                         <td><span class="badge ${badgeClass}">${t.type}</span></td>
                         <td><strong>${t.plate}</strong><br><span style="font-size:0.78rem; color:var(--text-muted);">${t.customerType || '-'}</span></td>
                         <td>${t.product || '-'}</td>

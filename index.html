@@ -1,1419 +1,1540 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mockup - Smart Corn WMS (Desktop / Mobile Preview)</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
-        * { font-family: 'Sarabun', sans-serif; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Smart Corn WMS v2.1 — ระบบบริหารคลังลานข้าวโพด</title>
 
-        /* Frame Transitions */
-        .preview-frame {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+<!-- CDN (pin version) -->
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-        /* Mobile Shell Styles */
-        .mobile-shell {
-            width: 390px;
-            height: 844px;
-            border-radius: 48px;
-            border: 12px solid #1e293b;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 2px #334155;
-            position: relative;
-        }
+<!-- ROUTER: ตัดสินโหมดก่อนวาดจอ กัน flash -->
+<script>
+(function(){
+  var inIframe = false; try { inIframe = window.self !== window.top; } catch(e){ inIframe = true; }
+  var wantPreview = (location.hash === '#preview') && !inIframe;
+  document.documentElement.setAttribute('data-mode', wantPreview ? 'preview' : 'app');
+  window.__WMS_MODE__ = wantPreview ? 'preview' : 'app';
+})();
+</script>
 
-        /* Mobile Notch / Dynamic Island */
-        .mobile-shell::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 120px;
-            height: 28px;
-            background-color: #1e293b;
-            border-bottom-left-radius: 16px;
-            border-bottom-right-radius: 16px;
-            z-index: 50;
-        }
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+*{font-family:'Sarabun',sans-serif}
+html,body{height:100%}
+body{min-height:100dvh}
 
-        /* Desktop Shell Styles */
-        .desktop-shell {
-            width: 100%;
-            height: 100%;
-            border-radius: 8px;
-            border: 1px solid #cbd5e1;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-    </style>
+/* ---- สลับโหมด ---- */
+html[data-mode="app"]     #preview-shell{display:none!important}
+html[data-mode="preview"] #app-root,
+html[data-mode="preview"] #modal-root,
+html[data-mode="preview"] #toast-root{display:none!important}
+html[data-mode="preview"] body{background:#0f172a;color:#f1f5f9;overflow:hidden}
+
+/* ---- Preview shell ---- */
+#preview-shell{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.preview-frame{transition:all .4s cubic-bezier(.4,0,.2,1)}
+.mobile-shell{width:390px;height:min(844px,88dvh);border-radius:48px;border:12px solid #1e293b;
+  box-shadow:0 25px 50px -12px rgba(0,0,0,.4),0 0 0 2px #334155;position:relative}
+.mobile-shell::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:120px;height:28px;background:#1e293b;border-radius:0 0 16px 16px;z-index:50;pointer-events:none}
+.tablet-shell{width:min(820px,95vw);height:min(1000px,88dvh);border-radius:24px;border:10px solid #1e293b;
+  box-shadow:0 25px 50px -12px rgba(0,0,0,.4)}
+.desktop-shell{width:100%;height:100%;border-radius:8px;border:1px solid #cbd5e1;
+  box-shadow:0 10px 15px -3px rgba(0,0,0,.1)}
+
+/* ---- App ---- */
+.sidebar-active{background:#1e293b;color:#38bdf8;border-right:4px solid #38bdf8}
+aside{transition:width .3s ease,transform .3s ease}
+.sidebar-collapsed{width:5rem!important}
+.sidebar-collapsed .sidebar-text,.sidebar-collapsed .sidebar-header-text,
+.sidebar-collapsed .user-info-text,.sidebar-collapsed .sidebar-footer{display:none!important}
+.sidebar-collapsed nav button{justify-content:center;padding-left:0;padding-right:0}
+
+@media (max-width:767px){
+  #main-sidebar{position:fixed;top:0;bottom:0;left:0;width:17rem!important;
+    transform:translateX(-100%);z-index:60;padding-top:env(safe-area-inset-top)}
+  #main-sidebar.drawer-open{transform:translateX(0)}
+  body.drawer-lock{overflow:hidden}
+  #app-header{padding-top:calc(.25rem + env(safe-area-inset-top))}
+  .rtable thead{display:none}
+  .rtable tbody{display:block}
+  .rtable tr{display:block;border:1px solid #e2e8f0;border-radius:.75rem;margin-bottom:.6rem;padding:.4rem .2rem;background:#fff}
+  .rtable td{display:flex;justify-content:space-between;align-items:center;gap:1rem;
+    border:0!important;padding:.4rem .7rem;text-align:right!important}
+  .rtable td::before{content:attr(data-label);font-weight:600;color:#64748b;font-size:.72rem;text-align:left;flex-shrink:0}
+  .rtable td:empty{display:none}
+  button,select,input,a.btn{min-height:44px}
+  .btn-xs{min-height:38px}
+}
+
+@media print{
+  .no-print,#preview-shell{display:none!important}
+  body{height:auto!important;min-height:0!important;overflow:visible!important;display:block!important}
+  aside,#sidebar-overlay{display:none!important}
+  main,#main-container{overflow:visible!important;height:auto!important;display:block!important}
+  tr,td,.avoid-break{page-break-inside:avoid}
+  .rtable thead{display:table-header-group}
+  body.print-ticket #app-root{display:none!important}
+  body.print-ticket #print-area{display:block!important}
+}
+#print-area{display:none}
+.toast-in{animation:ti .25s ease}
+@keyframes ti{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+</style>
 </head>
-<body class="bg-slate-900 text-slate-100 h-screen flex flex-col overflow-hidden">
 
-    <!-- TOP CONTROLLER BAR -->
-    <header class="bg-slate-800 border-b border-slate-700 h-16 px-6 flex items-center justify-between shrink-0 z-10 shadow-md">
-        <div class="flex items-center gap-3">
-            <div class="p-2 bg-amber-500 rounded-lg text-slate-900 font-bold">
-                <i data-lucide="smartphone-charging" class="w-5 h-5"></i>
-            </div>
-            <div>
-                <h1 class="font-bold text-white text-base leading-tight">Smart Corn WMS - Responsive Preview Tester</h1>
-                <p class="text-xs text-slate-400">ระบบจำลองการแสดงผลบนอุปกรณ์ (Mockup Viewer)</p>
-            </div>
-        </div>
+<body class="bg-slate-100 text-slate-800 overflow-hidden">
 
-        <!-- DEVICE SWITCHING BUTTONS -->
-        <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700 gap-1">
-            <button id="btn-desktop" onclick="switchDevice('desktop')" class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition bg-amber-500 text-slate-950 shadow">
-                <i data-lucide="monitor" class="w-4 h-4"></i>
-                <span>คอมพิวเตอร์ (Desktop)</span>
-            </button>
-            <button id="btn-mobile" onclick="switchDevice('mobile')" class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
-                <i data-lucide="smartphone" class="w-4 h-4"></i>
-                <span>มือถือ (Mobile)</span>
-            </button>
-        </div>
-
-        <!-- DEVICE INFO BADGE -->
-        <div class="hidden md:flex items-center gap-2 text-xs text-slate-400 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-700/50">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span id="device-info-text">โหมดปัจจุบัน: Desktop (100% Full Width)</span>
-        </div>
-    </header>
-
-    <!-- PREVIEW AREA CONTAINER -->
-    <main class="flex-1 bg-slate-950 p-4 md:p-6 flex items-center justify-center overflow-auto relative">
-        
-        <!-- IFRAME HOLDER FRAME -->
-        <div id="frame-wrapper" class="preview-frame desktop-shell bg-white overflow-hidden relative">
-            <iframe id="app-iframe" class="w-full h-full border-none" title="Smart Corn WMS App"></iframe>
-        </div>
-
-    </main>
-
-    <!-- EMBEDDED APPLICATION CODE -->
-    <script>
-        const originalHtmlCode = `<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบบริหารจัดการคลังสินค้าและลานข้าวโพด (Smart Corn WMS)</title>
-    <!-- Tailwind CSS for Responsive UI & Utility Styling -->
-    <script src="https://cdn.tailwindcss.com"><\/script>
-    <!-- Chart.js for Dynamic Dashboard Analytics -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"><\/script>
-    <!-- QRCode.js Library for QR Code Generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
-        * { font-family: 'Sarabun', sans-serif; }
-        .sidebar-active { background-color: #1e293b; color: #38bdf8; border-right: 4px solid #38bdf8; }
-        @media print {
-            .no-print { display: none !important; }
-            .print-only { display: block !important; }
-        }
-        /* Custom Transition for Collapsible Sidebar */
-        aside { transition: width 0.3s ease, transform 0.3s ease; }
-        .sidebar-collapsed .sidebar-text { display: none !important; }
-        .sidebar-collapsed { width: 5rem !important; }
-        .sidebar-collapsed .sidebar-header-text { display: none !important; }
-        .sidebar-collapsed .user-info-text { display: none !important; }
-        .sidebar-collapsed .sidebar-footer { display: none !important; }
-        .sidebar-collapsed nav button { justify-content: center; padding-left: 0; padding-right: 0; }
-    </style>
-</head>
-<body class="bg-slate-100 text-slate-800 flex h-screen overflow-hidden">
-
-    <!-- SIDEBAR NAVIGATION -->
-    <aside id="main-sidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col no-print shrink-0 shadow-lg relative z-20">
-        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
-            <div class="flex items-center gap-2 overflow-hidden">
-                <i data-lucide="wheat" class="text-amber-500 w-8 h-8 shrink-0"></i>
-                <div class="sidebar-header-text">
-                    <h1 class="font-bold text-white text-lg leading-tight truncate">Smart Corn WMS</h1>
-                    <span class="text-xs text-slate-400 truncate block">ระบบบริหารคลังลานข้าวโพด</span>
-                </div>
-            </div>
-            <!-- Sidebar Collapse Toggle Button -->
-            <button onclick="toggleSidebar()" class="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition">
-                <i data-lucide="panel-left-close" id="sidebar-toggle-icon" class="w-5 h-5"></i>
-            </button>
-        </div>
-
-        <!-- User Info / Role Indicator -->
-        <div class="p-3 bg-slate-800/50 m-2 rounded-lg flex items-center gap-3 border border-slate-700/50 overflow-hidden">
-            <div class="w-10 h-10 rounded-full bg-amber-500 text-slate-900 font-bold flex items-center justify-center text-lg shrink-0" id="user-avatar">
-                เจ้า
-            </div>
-            <div class="overflow-hidden user-info-text">
-                <p class="font-semibold text-white text-sm truncate" id="user-display-name">เจ้าของลาน (Owner)</p>
-                <select id="role-selector" onchange="changeRole(this.value)" class="bg-slate-900 text-xs text-amber-400 border border-slate-700 rounded px-1 py-0.5 mt-1 focus:outline-none w-full">
-                    <option value="เจ้าของลาน">เจ้าของลาน</option>
-                    <option value="ผู้จัดการ">ผู้จัดการ</option>
-                    <option value="พนักงานคลัง">พนักงานคลัง</option>
-                    <option value="พนักงานชั่งน้ำหนัก">พนักงานชั่งน้ำหนัก</option>
-                    <option value="ผู้ตรวจสอบคุณภาพ">ผู้ตรวจสอบคุณภาพ</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Main Navigation Links -->
-        <nav class="flex-1 overflow-y-auto py-2 px-2 space-y-1 text-sm">
-            <button onclick="switchView('dashboard')" id="nav-dashboard" title="Dashboard" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition sidebar-active">
-                <i data-lucide="layout-dashboard" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">Dashboard</span>
-            </button>
-            <button onclick="switchView('receiving')" id="nav-receiving" title="บันทึกรับ-จ่ายข้าวโพด" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="arrow-left-right" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">บันทึกรับ-จ่ายข้าวโพด</span>
-            </button>
-            <button onclick="switchView('weighing')" id="nav-weighing" title="ระบบชั่งน้ำหนัก" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="scale" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">ระบบชั่งน้ำหนัก</span>
-            </button>
-            <button onclick="switchView('lots')" id="nav-lots" title="จัดการ Lot ข้าวโพด" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="boxes" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">จัดการ Lot ข้าวโพด</span>
-            </button>
-            <button onclick="switchView('map')" id="nav-map" title="แผนผังลานข้าวโพด (Map)" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="map" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">แผนผังลานข้าวโพด (Map)</span>
-            </button>
-            <button onclick="switchView('moisture')" id="nav-moisture" title="ตรวจบันทึกความชื้น" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="droplets" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">ตรวจบันทึกความชื้น</span>
-            </button>
-            <button onclick="switchView('issue')" id="nav-issue" title="เบิกจ่ายสินค้า (FIFO/FEFO)" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="arrow-up-right" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">เบิกจ่ายสินค้า (FIFO/FEFO)</span>
-            </button>
-            <button onclick="switchView('alerts')" id="nav-alerts" title="ศูนย์แจ้งเตือน" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <div class="flex items-center gap-3 overflow-hidden">
-                    <i data-lucide="bell" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">ศูนย์แจ้งเตือน</span>
-                </div>
-                <span id="alert-badge" class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold hidden sidebar-text">0</span>
-            </button>
-            <button onclick="switchView('reports')" id="nav-reports" title="รายงานและส่งออก" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="file-text" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">รายงานและส่งออก</span>
-            </button>
-            <button onclick="switchView('settings')" id="nav-settings" title="ตั้งค่าเกณฑ์ระบบ" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="settings" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">ตั้งค่าเกณฑ์ระบบ</span>
-            </button>
-        </nav>
-
-        <div class="p-3 border-t border-slate-800 text-xs text-slate-500 text-center sidebar-footer">
-            Smart Corn WMS v1.0
-        </div>
-    </aside>
-
-    <!-- MAIN CONTENT AREA -->
-    <main class="flex-1 flex flex-col overflow-hidden bg-slate-50">
-        <!-- TOP NAVBAR -->
-        <header class="bg-white border-b border-slate-200 h-16 px-4 md:px-6 flex items-center justify-between shrink-0 no-print gap-3">
-            <div class="flex items-center gap-3 flex-1 max-w-xl">
-                <!-- Mobile Expand Button (When Sidebar Collapsed) -->
-                <button onclick="toggleSidebar()" class="p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
-                    <i data-lucide="menu" class="w-5 h-5"></i>
-                </button>
-                <div class="relative w-full">
-                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="global-search" oninput="handleGlobalSearch(this.value)" placeholder="ค้นหา Lot Number, ทะเบียนรถ, ผู้ขาย, ตำแหน่งจัดเก็บ..." class="w-full pl-9 pr-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
-                </div>
-            </div>
-
-            <div class="flex items-center gap-3 shrink-0">
-                <button onclick="toggleDemoData()" class="px-3 py-1.5 bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg hover:bg-amber-200 transition border border-amber-300">
-                    ⚡ <span class="hidden sm:inline">โหมดข้อมูลจำลอง</span> (Demo)
-                </button>
-                <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
-                <button onclick="resetData()" class="text-xs text-red-500 hover:text-red-700 underline hidden sm:inline">
-                    ล้างข้อมูล
-                </button>
-            </div>
-        </header>
-
-        <!-- VIEW PANELS CONTAINER -->
-        <div class="flex-1 overflow-y-auto p-4 md:p-6" id="main-container">
-
-            <!-- ================= VIEW 1: DASHBOARD ================= -->
-            <section id="view-dashboard" class="space-y-6">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h2 class="text-2xl font-bold text-slate-800">ภาพรวมคลังและลานข้าวโพด</h2>
-                        <p class="text-sm text-slate-500">ติดตามสถานะการรับเข้า ปริมาณคงเหลือ และความเสี่ยงแบบ Real-time</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <select id="dashboard-timeframe" onchange="renderDashboard()" class="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500">
-                            <option value="today">วันนี้</option>
-                            <option value="7days" selected>7 วันล่าสุด</option>
-                            <option value="30days">30 วันล่าสุด</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div id="empty-state-notice" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
-                    <i data-lucide="inbox" class="w-12 h-12 text-amber-500 mx-auto mb-2"></i>
-                    <h3 class="font-bold text-lg text-amber-900">ยังไม่มีข้อมูลในระบบ</h3>
-                    <p class="text-slate-600 text-sm mb-4">ระบบเริ่มเก็บข้อมูลตั้งแต่วันนี้ สามารถเริ่มต้นโดยการบันทึกการรับข้าวโพดล็อตแรก</p>
-                    <button onclick="switchView('receiving')" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg shadow text-sm">
-                        + บันทึกรับ-จ่ายข้าวโพด
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-slate-500 uppercase">ปริมาณคงเหลือรวม</p>
-                            <h3 class="text-2xl font-bold text-slate-800 mt-1" id="dash-total-stock">0 <span class="text-sm font-normal text-slate-500">ตัน</span></h3>
-                        </div>
-                        <div class="p-3 bg-amber-50 text-amber-600 rounded-lg"><i data-lucide="boxes" class="w-6 h-6"></i></div>
-                    </div>
-
-                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-slate-500 uppercase">รับเข้าวันนี้</p>
-                            <h3 class="text-2xl font-bold text-emerald-600 mt-1" id="dash-today-in">0 <span class="text-sm font-normal text-slate-500">ตัน</span></h3>
-                        </div>
-                        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg"><i data-lucide="arrow-down-left" class="w-6 h-6"></i></div>
-                    </div>
-
-                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-slate-500 uppercase">จ่ายออกวันนี้</p>
-                            <h3 class="text-2xl font-bold text-blue-600 mt-1" id="dash-today-out">0 <span class="text-sm font-normal text-slate-500">ตัน</span></h3>
-                        </div>
-                        <div class="p-3 bg-blue-50 text-blue-600 rounded-lg"><i data-lucide="arrow-up-right" class="w-6 h-6"></i></div>
-                    </div>
-
-                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-slate-500 uppercase">ความชื้นเฉลี่ย</p>
-                            <h3 class="text-2xl font-bold text-slate-800 mt-1" id="dash-avg-moisture">0 <span class="text-sm font-normal text-slate-500">%</span></h3>
-                        </div>
-                        <div class="p-3 bg-cyan-50 text-cyan-600 rounded-lg"><i data-lucide="droplet" class="w-6 h-6"></i></div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                    <div class="bg-white p-3.5 rounded-lg border border-slate-200 shadow-sm text-center">
-                        <span class="text-xs text-slate-500 block">จำนวน Lot ทั้งหมด</span>
-                        <span class="text-lg font-bold text-slate-800" id="dash-count-lots">0</span>
-                    </div>
-                    <div class="bg-white p-3.5 rounded-lg border border-slate-200 shadow-sm text-center">
-                        <span class="text-xs text-slate-500 block">จำนวนรถ เข้า-ออก</span>
-                        <span class="text-lg font-bold text-slate-800" id="dash-count-vehicles">0</span>
-                    </div>
-                    <div class="bg-white p-3.5 rounded-lg border border-slate-200 shadow-sm text-center">
-                        <span class="text-xs text-amber-600 font-medium block">Lot เฝ้าระวัง</span>
-                        <span class="text-lg font-bold text-amber-600" id="dash-warning-lots">0</span>
-                    </div>
-                    <div class="bg-white p-3.5 rounded-lg border border-slate-200 shadow-sm text-center">
-                        <span class="text-xs text-red-600 font-medium block">Lot มีความเสี่ยง</span>
-                        <span class="text-lg font-bold text-red-600" id="dash-risk-lots">0</span>
-                    </div>
-                    <div class="bg-white p-3.5 rounded-lg border border-slate-200 shadow-sm text-center">
-                        <span class="text-xs text-slate-500 block">มูลค่าคงเหลือประมาณ</span>
-                        <span class="text-lg font-bold text-emerald-700" id="dash-est-value">0 ฿</span>
-                    </div>
-                    <div class="bg-white p-3.5 rounded-lg border border-slate-200 shadow-sm text-center">
-                        <span class="text-xs text-slate-500 block">พื้นที่ถูกใช้งาน</span>
-                        <span class="text-lg font-bold text-indigo-600" id="dash-used-capacity">0%</span>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                        <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <i data-lucide="trending-up" class="w-4 h-4 text-amber-500"></i> ปริมาณข้าวโพด เข้า-ออก (ตัน)
-                        </h4>
-                        <div class="h-64"><canvas id="chart-inout"></canvas></div>
-                    </div>
-                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                        <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <i data-lucide="pie-chart" class="w-4 h-4 text-amber-500"></i> สัดส่วนคุณภาพข้าวโพด
-                        </h4>
-                        <div class="h-64 flex justify-center"><canvas id="chart-quality"></canvas></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ================= VIEW 2: RECEIVING ================= -->
-            <section id="view-receiving" class="hidden space-y-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-2xl font-bold text-slate-800">บันทึกรับ-จ่ายข้าวโพด</h2>
-                        <p class="text-sm text-slate-500">บันทึกรายการรับเข้า/จ่ายออก ตรวจสอบคุณภาพ และคำนวณราคาซื้อขาย</p>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                    <form id="form-receiving" onsubmit="handleReceivingSubmit(event)" class="space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">1. ประเภทรายการ *</label>
-                                <select id="rec-type" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none bg-amber-50">
-                                    <option value="รับเข้า">📥 รับเข้า (Inbound)</option>
-                                    <option value="จ่ายออก">📤 จ่ายออก (Outbound)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">เลขที่เอกสาร</label>
-                                <input type="text" id="rec-doc-no" readonly class="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono font-bold text-slate-600">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">วันที่และเวลา *</label>
-                                <input type="datetime-local" id="rec-datetime" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">2. ทะเบียนรถ *</label>
-                                <input type="text" id="rec-plate" placeholder="เช่น 80-1234 สุโขทัย" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">3. ประเภทลูกค้า *</label>
-                                <select id="rec-customer-type" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                                    <option value="ลูกค้าทั่วไป">ลูกค้าทั่วไป</option>
-                                    <option value="บริษัท CPF">บริษัท CPF</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">ชื่อผู้ขาย / ลูกค้า</label>
-                                <input type="text" id="rec-supplier" placeholder="ระบุชื่อ-นามสกุล หรือชื่อบริษัท" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">4. สินค้า *</label>
-                                <select id="rec-product" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none font-medium">
-                                    <option value="ข้าวโพดเมล็ด">🌽 ข้าวโพดเมล็ด</option>
-                                    <option value="ข้าวโพดฝัก">🌽 ข้าวโพดฝัก</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="border-t border-slate-200 pt-4 bg-slate-50 p-4 rounded-lg space-y-4">
-                            <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2">
-                                <i data-lucide="scale" class="w-4 h-4 text-amber-600"></i> ตรวจสอบคุณภาพและน้ำหนัก
-                            </h3>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">5. เปอร์เซ็นต์ความชื้น (%) *</label>
-                                    <input type="number" id="rec-moisture" step="0.1" min="0" max="100" required placeholder="เช่น 15.5" oninput="calculatePrice()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none font-semibold text-cyan-700">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">6. น้ำหนักรถเข้า (กก.) *</label>
-                                    <input type="number" id="rec-weight-in" step="1" min="0" oninput="calcNetWeight()" required placeholder="เช่น 15000" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-800">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">7. น้ำหนักรถออก (กก.) *</label>
-                                    <input type="number" id="rec-weight-out" step="1" min="0" oninput="calcNetWeight()" required placeholder="เช่น 5000" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-800">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">8. น้ำหนักสุทธิ (กก.) [คำนวณอัตโนมัติ]</label>
-                                    <input type="number" id="rec-weight-net" readonly class="w-full bg-emerald-100 border border-emerald-300 rounded-lg px-3 py-2 text-sm font-bold text-emerald-800">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="border border-amber-200 bg-amber-50/60 p-4 rounded-xl space-y-3">
-                            <div class="flex items-center justify-between">
-                                <h3 class="font-bold text-amber-900 text-sm flex items-center gap-2">
-                                    <i data-lucide="calculator" class="w-4 h-4 text-amber-600"></i> 9. เครื่องช่วยคิดคำนวณราคาต่อถัง (1 ถัง = 15 กก.)
-                                </h3>
-                            </div>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label class="block text-xs font-semibold text-amber-800 mb-1">ราคาต่อถัง (บาท)</label>
-                                    <input type="number" id="price-per-bucket" step="0.01" min="0" placeholder="เช่น 95" oninput="calculatePrice()" class="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm font-bold text-amber-900 focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-amber-800 mb-1">คำนวณราคาต่อ กก. (บาท/กก.)</label>
-                                    <input type="text" id="price-per-kg" readonly placeholder="0.00" class="w-full bg-amber-100/70 border border-amber-300 rounded-lg px-3 py-2 text-sm font-mono font-bold text-amber-900">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-amber-800 mb-1">จำนวนเงินสุทธิทั้งหมด (บาท)</label>
-                                    <input type="text" id="total-price-display" readonly placeholder="0.00" class="w-full bg-emerald-600 border border-emerald-700 rounded-lg px-3 py-2 text-base font-mono font-bold text-white">
-                                </div>
-                            </div>
-                            <p class="text-xs text-amber-700 italic">
-                                * สูตรคำนวณ: (ราคาต่อถัง ÷ 15) × น้ำหนักสุทธิ = จำนวนเงินสุทธิ (ตัวอย่าง: 95 ÷ 15 = 6.33 บาท/กก. x 5,550 กก. = 35,150 บาท)
-                            </p>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">ตำแหน่งจัดเก็บ (กอง/Zone) *</label>
-                                <select id="rec-location" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                                    <option value="">-- เลือกตำแหน่งจัดเก็บ --</option>
-                                    <option value="A01">Zone A - กอง A01</option>
-                                    <option value="A02">Zone A - กอง A02</option>
-                                    <option value="B01">Zone B - กอง B01</option>
-                                    <option value="B02">Zone B - กอง B02</option>
-                                    <option value="C01">Zone C - กอง C01</option>
-                                    <option value="D01">Zone D - กอง D01</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">หมายเหตุ</label>
-                                <input type="text" id="rec-remark" placeholder="ข้อความเพิ่มเติม..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                            <button type="reset" onclick="resetFormCalculations()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg text-sm">ล้างข้อมูล</button>
-                            <button type="submit" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm flex items-center gap-2 shadow-md transition">
-                                <i data-lucide="save" class="w-4 h-4"></i> บันทึกข้อมูลเข้าระบบ / จัดเก็บในคลัง
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </section>
-
-            <!-- ================= VIEW 3: WEIGHING STATION ================= -->
-            <section id="view-weighing" class="hidden space-y-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-2xl font-bold text-slate-800">ระบบชั่งน้ำหนัก (Weigh Scale)</h2>
-                        <p class="text-sm text-slate-500">บันทึกการชั่งเข้า-ออก พิมพ์ตั๋วชั่งน้ำหนัก</p>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm text-slate-600">
-                            <thead class="bg-slate-100 text-slate-700 uppercase text-xs font-bold">
-                                <tr>
-                                    <th class="p-3">วันที่/เวลา</th>
-                                    <th class="p-3">ทะเบียนรถ</th>
-                                    <th class="p-3">ผู้ขาย/ลูกค้า</th>
-                                    <th class="p-3 text-right">น้ำหนักเข้า (กก.)</th>
-                                    <th class="p-3 text-right">น้ำหนักออก (กก.)</th>
-                                    <th class="p-3 text-right">น้ำหนักสุทธิ (กก.)</th>
-                                    <th class="p-3 text-center">พิมพ์</th>
-                                </tr>
-                            </thead>
-                            <tbody id="table-weighing-body" class="divide-y divide-slate-200">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ================= VIEW 4: LOT MANAGEMENT ================= -->
-            <section id="view-lots" class="hidden space-y-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-2xl font-bold text-slate-800">จัดการ Lot ข้าวโพด (Lot Management)</h2>
-                        <p class="text-sm text-slate-500">ติดตามสถานะ คุณภาพ อายุการเก็บรักษา และ Risk Score แต่ละ Lot</p>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm text-slate-600">
-                            <thead class="bg-slate-800 text-slate-200 uppercase text-xs font-bold">
-                                <tr>
-                                    <th class="p-3">Lot Number</th>
-                                    <th class="p-3">ประเภท</th>
-                                    <th class="p-3">สินค้า</th>
-                                    <th class="p-3">ผู้ขาย/ลูกค้า</th>
-                                    <th class="p-3">ตำแหน่ง</th>
-                                    <th class="p-3 text-right">คงเหลือ (กก.)</th>
-                                    <th class="p-3 text-center">ความชื้น</th>
-                                    <th class="p-3 text-center">Risk Score</th>
-                                    <th class="p-3 text-center">การจัดการ</th>
-                                </tr>
-                            </thead>
-                            <tbody id="table-lots-body" class="divide-y divide-slate-200">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ================= VIEW 5: WAREHOUSE MAP ================= -->
-            <section id="view-map" class="hidden space-y-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-800">แผนผังลานข้าวโพด (Interactive Warehouse Map)</h2>
-                    <p class="text-sm text-slate-500">แสดงสถานะกองข้าวโพดในแต่ละ Zone ตามระดับความเสี่ยง</p>
-                </div>
-
-                <div class="flex flex-wrap items-center gap-4 md:gap-6 bg-white p-3 rounded-lg border border-slate-200 text-xs">
-                    <span class="font-bold text-slate-700">คำอธิบายสี:</span>
-                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-300"></span> ว่าง (Empty)</span>
-                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> ปกติ (Normal)</span>
-                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500"></span> เฝ้าระวัง (Warning)</span>
-                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500"></span> มีความเสี่ยงสูง (High Risk)</span>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="map-grid-container">
-                </div>
-            </section>
-
-            <!-- ================= VIEW 6: MOISTURE TRACKING ================= -->
-            <section id="view-moisture" class="hidden space-y-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-800">บันทึกและตรวจวัดความชื้น (Moisture Control)</h2>
-                    <p class="text-sm text-slate-500">บันทึกค่าความชื้นประจำวันเพื่อติดตามแนวโน้มและการเสื่อมคุณภาพ</p>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                        <h3 class="font-bold text-slate-800 mb-4">บันทึกค่าความชื้นใหม่</h3>
-                        <form id="form-moisture" onsubmit="handleMoistureSubmit(event)" class="space-y-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">เลือก Lot Number *</label>
-                                <select id="moist-lot-id" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">ค่าความชื้นที่วัดได้ (%) *</label>
-                                <input type="number" id="moist-val" step="0.1" min="5" max="40" required placeholder="เช่น 14.8" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">ผู้ตรวจวัด</label>
-                                <input type="text" id="moist-inspector" placeholder="ระบุชื่อผู้ตรวจ" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">หมายเหตุ</label>
-                                <input type="text" id="moist-remark" placeholder="เช่น ตัวอย่างสุ่มจากใจกลางกอง" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            </div>
-                            <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 rounded-lg text-sm flex items-center justify-center gap-2">
-                                <i data-lucide="plus-circle" class="w-4 h-4"></i> บันทึกค่าความชื้น
-                            </button>
-                        </form>
-                    </div>
-
-                    <div class="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                        <h3 class="font-bold text-slate-800 mb-4">ประวัติการตรวจวัดความชื้น</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm text-slate-600">
-                                <thead class="bg-slate-100 text-slate-700 text-xs font-bold uppercase">
-                                    <tr>
-                                        <th class="p-2.5">วัน-เวลา</th>
-                                        <th class="p-2.5">Lot Number</th>
-                                        <th class="p-2.5 text-center">ความชื้น (%)</th>
-                                        <th class="p-2.5 text-center">สถานะประเมิน</th>
-                                        <th class="p-2.5">ผู้ตรวจ</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-moisture-history" class="divide-y divide-slate-200">
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ================= VIEW 7: STOCK ISSUE / FIFO / FEFO ================= -->
-            <section id="view-issue" class="hidden space-y-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-800">ระบบเบิกจ่ายข้าวโพด (Outbound / Issue Management)</h2>
-                    <p class="text-sm text-slate-500">ระบบแนะนำการจ่ายตามหลัก FIFO (เก่าสุด) และ FEFO (เสี่ยงสุด)</p>
-                </div>
-
-                <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-5">
-                    <h3 class="font-bold text-indigo-900 flex items-center gap-2 text-base">
-                        <i data-lucide="lightbulb" class="w-5 h-5 text-indigo-600"></i> ข้อแนะนำการเบิกจ่ายสินค้า (Smart Recommendation)
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3" id="recommendation-cards">
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <h3 class="font-bold text-slate-800 mb-4">แบบฟอร์มการบันทึกเบิกจ่าย</h3>
-                    <form id="form-issue" onsubmit="handleIssueSubmit(event)" class="space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">เลือก Lot ที่ต้องการเบิก *</label>
-                                <select id="issue-lot-id" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">ชื่อลูกค้า / ปลายทาง *</label>
-                                <input type="text" id="issue-customer" required placeholder="เช่น โรงงานอาหารสัตว์ A" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">ทะเบียนรถมารับ</label>
-                                <input type="text" id="issue-plate" placeholder="เช่น 70-9999" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">จำนวนที่เบิกจ่าย (กก.) *</label>
-                                <input type="number" id="issue-weight" min="1" step="10" required placeholder="ระบุน้ำหนัก" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">ผู้ดำเนินการ</label>
-                                <input type="text" id="issue-operator" placeholder="ระบุชื่อพนักงาน" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">หมายเหตุ</label>
-                                <input type="text" id="issue-remark" placeholder="ข้อความเพิ่มเติม..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            </div>
-                        </div>
-                        <div class="flex justify-end pt-2">
-                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg text-sm flex items-center gap-2">
-                                <i data-lucide="check-circle" class="w-4 h-4"></i> ยืนยันการเบิกจ่ายสินค้า
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </section>
-
-            <!-- ================= VIEW 8: ALERTS CENTER ================= -->
-            <section id="view-alerts" class="hidden space-y-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-800">ศูนย์แจ้งเตือนอัจฉริยะ (Smart Alert Center)</h2>
-                    <p class="text-sm text-slate-500">แจ้งเตือนความชื้นสูง สินค้าเก็บนาน หรือพื้นที่ใกล้เต็ม</p>
-                </div>
-
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3" id="alerts-container">
-                </div>
-            </section>
-
-            <!-- ================= VIEW 9: REPORTS ================= -->
-            <section id="view-reports" class="hidden space-y-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-2xl font-bold text-slate-800">ระบบรายงานและส่งออก (Reports & Export)</h2>
-                        <p class="text-sm text-slate-500">พิมพ์และส่งออกรายงานสรุปสำหรับผู้บริหาร</p>
-                    </div>
-                    <button onclick="window.print()" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-slate-700">
-                        <i data-lucide="printer" class="w-4 h-4"></i> พิมพ์รายงาน (Print)
-                    </button>
-                </div>
-
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <h3 class="font-bold text-slate-800 text-lg mb-4 text-center border-b pb-2">รายงานสรุปสถานะคลังสินค้าลานข้าวโพด</h3>
-                    <div class="grid grid-cols-2 gap-4 text-sm mb-6">
-                        <div><strong>วันที่ออกรายงาน:</strong> <span id="report-date"></span></div>
-                        <div><strong>ผู้ออกรายงาน:</strong> <span id="report-author">เจ้าของลาน</span></div>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm border-collapse border border-slate-300">
-                            <thead>
-                                <tr class="bg-slate-100">
-                                    <th class="border border-slate-300 p-2">Lot Number</th>
-                                    <th class="border border-slate-300 p-2">ประเภท</th>
-                                    <th class="border border-slate-300 p-2">ผู้ขาย/ลูกค้า</th>
-                                    <th class="border border-slate-300 p-2">ตำแหน่ง</th>
-                                    <th class="border border-slate-300 p-2 text-right">คงเหลือ (กก.)</th>
-                                    <th class="border border-slate-300 p-2 text-center">ความชื้น (%)</th>
-                                    <th class="border border-slate-300 p-2 text-center">Risk Score</th>
-                                </tr>
-                            </thead>
-                            <tbody id="report-table-body">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ================= VIEW 10: SETTINGS ================= -->
-            <section id="view-settings" class="hidden space-y-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-800">ตั้งค่าเกณฑ์ระบบ (System Settings)</h2>
-                    <p class="text-sm text-slate-500">ปรับแต่งเกณฑ์ความชื้น Risk Score และข้อมูลลานข้าวโพด</p>
-                </div>
-
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-2xl space-y-4">
-                    <h3 class="font-bold text-slate-800 border-b pb-2">เกณฑ์การประเมินความชื้น (%)</h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">ความชื้นเกณฑ์ปกติ (ไม่เกิน %)</label>
-                            <input type="number" id="setting-moist-normal" value="15.0" step="0.1" class="w-full border rounded-lg p-2 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">ความชื้นเกณฑ์เฝ้าระวัง (เกิน %)</label>
-                            <input type="number" id="setting-moist-warn" value="17.0" step="0.1" class="w-full border rounded-lg p-2 text-sm">
-                        </div>
-                    </div>
-
-                    <h3 class="font-bold text-slate-800 border-b pb-2 pt-4">เกณฑ์ระยะเวลาการจัดเก็บ (วัน)</h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">จำนวนวันที่เริ่มเฝ้าระวัง</label>
-                            <input type="number" id="setting-age-warn" value="14" class="w-full border rounded-lg p-2 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">จำนวนวันที่จัดเก็บนานเกินกำหนด</label>
-                            <input type="number" id="setting-age-max" value="30" class="w-full border rounded-lg p-2 text-sm">
-                        </div>
-                    </div>
-
-                    <div class="pt-4 flex justify-end">
-                        <button onclick="saveSettings()" class="bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700">
-                            บันทึกการตั้งค่า
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-        </div>
-    </main>
-
-    <!-- MODAL FOR QR CODE & LOT DETAIL -->
-    <div id="modal-qr" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div class="flex items-center justify-between border-b pb-3">
-                <h3 class="font-bold text-slate-800 text-lg">รายละเอียด Lot & QR Code</h3>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-            <div class="flex flex-col items-center justify-center py-2">
-                <div id="qrcode-container" class="p-3 bg-white border border-slate-200 rounded-lg shadow-inner"></div>
-                <p class="font-mono font-bold text-lg text-slate-800 mt-2" id="modal-lot-number">CORN-XXXX</p>
-            </div>
-            <div class="text-xs space-y-2 bg-slate-50 p-4 rounded-lg border border-slate-200" id="modal-lot-info">
-            </div>
-            <div class="flex gap-2 pt-2">
-                <button onclick="window.print()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-2 rounded-lg font-medium">พิมพ์ QR Code / รายละเอียด</button>
-                <button onclick="closeModal()" class="px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs py-2 rounded-lg font-medium">ปิด</button>
-            </div>
-        </div>
+<!-- ═══════════════ PREVIEW SHELL (Mockup Viewer) ═══════════════ -->
+<div id="preview-shell" class="no-print">
+  <header class="bg-slate-800 border-b border-slate-700 h-16 px-4 md:px-6 flex items-center justify-between shrink-0 gap-3">
+    <div class="flex items-center gap-3 min-w-0">
+      <div class="p-2 bg-amber-500 rounded-lg text-slate-900"><i data-lucide="smartphone-charging" class="w-5 h-5"></i></div>
+      <div class="min-w-0">
+        <h1 class="font-bold text-white text-sm md:text-base truncate">Smart Corn WMS — Responsive Preview</h1>
+        <p class="text-xs text-slate-400 truncate">จำลองการแสดงผลบนอุปกรณ์จริง</p>
+      </div>
     </div>
-
-    <!-- MAIN JAVASCRIPT LOGIC ARCHITECTURE -->
-    <script>
-        const STORAGE_KEY = 'SMART_CORN_WMS_DB';
-
-        let appState = {
-            currentUserRole: 'เจ้าของลาน',
-            settings: { moistNormal: 15.0, moistWarn: 17.0, ageWarn: 14, ageMax: 30 },
-            lots: [],
-            weighingRecords: [],
-            moistureRecords: [],
-            issueRecords: [],
-            activityLogs: []
-        };
-
-        // SIDEBAR TOGGLE LOGIC
-        function toggleSidebar() {
-            const sidebar = document.getElementById('main-sidebar');
-            const icon = document.getElementById('sidebar-toggle-icon');
-            sidebar.classList.toggle('sidebar-collapsed');
-            
-            if(sidebar.classList.contains('sidebar-collapsed')) {
-                if(icon) icon.setAttribute('data-lucide', 'panel-left-open');
-            } else {
-                if(icon) icon.setAttribute('data-lucide', 'panel-left-close');
-            }
-            lucide.createIcons();
-        }
-
-        // Initialize App & Storage
-        function initApp() {
-            const savedData = localStorage.getItem(STORAGE_KEY);
-            if (savedData) {
-                try {
-                    appState = JSON.parse(savedData);
-                } catch(e) {
-                    console.error("Failed to parse stored data", e);
-                }
-            }
-            updateDocNo();
-            renderDashboard();
-            lucide.createIcons();
-        }
-
-        function saveData() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
-            renderDashboard();
-        }
-
-        function changeRole(role) {
-            appState.currentUserRole = role;
-            document.getElementById('user-display-name').innerText = \`\${role}\`;
-            document.getElementById('user-avatar').innerText = role.substring(0, 2);
-            logActivity(\`เปลี่ยนสิทธิ์ผู้ใช้งานเป็น: \${role}\`);
-            
-            if (role === 'พนักงานชั่งน้ำหนัก') switchView('weighing');
-            else if (role === 'ผู้ตรวจสอบคุณภาพ') switchView('moisture');
-            else switchView('dashboard');
-        }
-
-        function switchView(viewId) {
-            const views = ['dashboard', 'receiving', 'weighing', 'lots', 'map', 'moisture', 'issue', 'alerts', 'reports', 'settings'];
-            views.forEach(v => {
-                const el = document.getElementById(\`view-\${v}\`);
-                const nav = document.getElementById(\`nav-\${v}\`);
-                if (el) el.classList.add('hidden');
-                if (nav) nav.classList.remove('sidebar-active');
-            });
-
-            const activeView = document.getElementById(\`view-\${viewId}\`);
-            const activeNav = document.getElementById(\`nav-\${viewId}\`);
-            if (activeView) activeView.classList.remove('hidden');
-            if (activeNav) activeNav.classList.add('sidebar-active');
-
-            if (viewId === 'dashboard') renderDashboard();
-            if (viewId === 'weighing') renderWeighingTable();
-            if (viewId === 'lots') renderLotsTable();
-            if (viewId === 'map') renderWarehouseMap();
-            if (viewId === 'moisture') renderMoistureView();
-            if (viewId === 'issue') renderIssueView();
-            if (viewId === 'alerts') renderAlertsCenter();
-            if (viewId === 'reports') renderReports();
-            
-            lucide.createIcons();
-        }
-
-        function calculateDaysStored(dateString) {
-            const received = new Date(dateString);
-            const today = new Date();
-            const diffTime = Math.abs(today - received);
-            return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        }
-
-        function evaluateLotRisk(lot) {
-            let score = 0;
-            const days = calculateDaysStored(lot.receivedDate);
-            const moist = lot.currentMoisture;
-
-            if (moist > appState.settings.moistWarn) score += 50;
-            else if (moist > appState.settings.moistNormal) score += 25;
-
-            if (days > appState.settings.ageMax) score += 40;
-            else if (days > appState.settings.ageWarn) score += 20;
-
-            score = Math.min(score, 100);
-
-            let status = 'ปกติ';
-            let badgeClass = 'bg-emerald-100 text-emerald-800';
-            if (score > 60) { status = 'มีความเสี่ยงสูง'; badgeClass = 'bg-red-100 text-red-800'; }
-            else if (score > 30) { status = 'เฝ้าระวัง'; badgeClass = 'bg-amber-100 text-amber-800'; }
-
-            return { score, status, badgeClass, days };
-        }
-
-        function updateDocNo() {
-            const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-            const count = appState.lots.length + 1;
-            const docNo = \`CORN-\${today}-\${String(count).padStart(3, '0')}\`;
-            document.getElementById('rec-doc-no').value = docNo;
-            document.getElementById('rec-datetime').value = new Date().toISOString().slice(0, 16);
-        }
-
-        function calcNetWeight() {
-            const wIn = parseFloat(document.getElementById('rec-weight-in').value) || 0;
-            const wOut = parseFloat(document.getElementById('rec-weight-out').value) || 0;
-            const net = Math.max(0, Math.abs(wIn - wOut));
-            document.getElementById('rec-weight-net').value = net;
-            calculatePrice();
-        }
-
-        function calculatePrice() {
-            const netWeight = parseFloat(document.getElementById('rec-weight-net').value) || 0;
-            const bucketPrice = parseFloat(document.getElementById('price-per-bucket').value) || 0;
-
-            if (bucketPrice > 0) {
-                const pricePerKg = bucketPrice / 15;
-                const totalPrice = netWeight * pricePerKg;
-
-                document.getElementById('price-per-kg').value = pricePerKg.toFixed(2);
-                document.getElementById('total-price-display').value = totalPrice.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
-            } else {
-                document.getElementById('price-per-kg').value = '0.00';
-                document.getElementById('total-price-display').value = '0.00 ฿';
-            }
-        }
-
-        function resetFormCalculations() {
-            document.getElementById('price-per-kg').value = '0.00';
-            document.getElementById('total-price-display').value = '0.00 ฿';
-        }
-
-        function handleReceivingSubmit(e) {
-            e.preventDefault();
-            const netWeight = parseFloat(document.getElementById('rec-weight-net').value);
-            if (netWeight <= 0) {
-                alert('คำเตือน: น้ำหนักสุทธิต้องมากกว่า 0 กิโลกรัม');
-                return;
-            }
-
-            const lotNo = document.getElementById('rec-doc-no').value;
-            const transactionType = document.getElementById('rec-type').value;
-            const bucketPrice = parseFloat(document.getElementById('price-per-bucket').value) || 0;
-            const pricePerKg = bucketPrice > 0 ? bucketPrice / 15 : 0;
-            const totalPrice = netWeight * pricePerKg;
-
-            const newLot = {
-                lotNumber: lotNo,
-                transactionType: transactionType,
-                receivedDate: document.getElementById('rec-datetime').value,
-                plate: document.getElementById('rec-plate').value,
-                customerType: document.getElementById('rec-customer-type').value,
-                supplier: document.getElementById('rec-supplier').value || document.getElementById('rec-customer-type').value,
-                product: document.getElementById('rec-product').value,
-                currentMoisture: parseFloat(document.getElementById('rec-moisture').value),
-                weightIn: parseFloat(document.getElementById('rec-weight-in').value),
-                weightOut: parseFloat(document.getElementById('rec-weight-out').value),
-                netWeight: netWeight,
-                currentWeight: transactionType === 'รับเข้า' ? netWeight : 0,
-                bucketPrice: bucketPrice,
-                pricePerKg: pricePerKg,
-                totalPrice: totalPrice,
-                location: document.getElementById('rec-location').value,
-                remark: document.getElementById('rec-remark').value,
-                grade: 'A'
-            };
-
-            appState.lots.unshift(newLot);
-            appState.weighingRecords.unshift({
-                datetime: newLot.receivedDate,
-                plate: newLot.plate,
-                supplier: newLot.supplier,
-                weightIn: newLot.weightIn,
-                weightOut: newLot.weightOut,
-                netWeight: newLot.netWeight,
-                lotNumber: newLot.lotNumber
-            });
-
-            logActivity(\`บันทึกรายการ [\${transactionType}] Lot: \${newLot.lotNumber} ปริมาณ \${newLot.netWeight} กก. มูลค่า \${totalPrice.toLocaleString()} บาท\`);
-            saveData();
-            alert(\`บันทึกสำเร็จ! ทำรายการ [\${transactionType}] หมายเลข Lot: \${newLot.lotNumber}\\nราคารวมทั้งสิ้น: \${totalPrice.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท\`);
-            
-            document.getElementById('form-receiving').reset();
-            resetFormCalculations();
-            updateDocNo();
-            switchView('lots');
-        }
-
-        let chartInOutInstance = null;
-        let chartQualityInstance = null;
-
-        function renderDashboard() {
-            const emptyNotice = document.getElementById('empty-state-notice');
-            if (appState.lots.length === 0) {
-                emptyNotice.classList.remove('hidden');
-            } else {
-                emptyNotice.classList.add('hidden');
-            }
-
-            let totalStock = 0;
-            let totalMoist = 0;
-            let warningCount = 0;
-            let riskCount = 0;
-
-            appState.lots.forEach(lot => {
-                totalStock += lot.currentWeight;
-                totalMoist += lot.currentMoisture;
-                const risk = evaluateLotRisk(lot);
-                if (risk.score > 60) riskCount++;
-                else if (risk.score > 30) warningCount++;
-            });
-
-            const avgMoist = appState.lots.length > 0 ? (totalMoist / appState.lots.length).toFixed(1) : 0;
-            const estValue = (totalStock * 11.5).toLocaleString();
-
-            document.getElementById('dash-total-stock').innerHTML = \`\${(totalStock / 1000).toFixed(2)} <span class="text-sm font-normal text-slate-500">ตัน</span>\`;
-            document.getElementById('dash-today-in').innerHTML = \`\${(totalStock / 1000).toFixed(2)} <span class="text-sm font-normal text-slate-500">ตัน</span>\`;
-            document.getElementById('dash-avg-moisture').innerHTML = \`\${avgMoist} <span class="text-sm font-normal text-slate-500">%</span>\`;
-            document.getElementById('dash-count-lots').innerText = appState.lots.length;
-            document.getElementById('dash-count-vehicles').innerText = appState.weighingRecords.length;
-            document.getElementById('dash-warning-lots').innerText = warningCount;
-            document.getElementById('dash-risk-lots').innerText = riskCount;
-            document.getElementById('dash-est-value').innerText = \`\${estValue} ฿\`;
-            document.getElementById('dash-used-capacity').innerText = \`\${Math.min(100, (totalStock / 500000 * 100)).toFixed(0)}%\`;
-
-            renderCharts();
-        }
-
-        function renderCharts() {
-            const ctx1 = document.getElementById('chart-inout').getContext('2d');
-            if (chartInOutInstance) chartInOutInstance.destroy();
-
-            chartInOutInstance = new Chart(ctx1, {
-                type: 'bar',
-                data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                    datasets: [
-                        { label: 'รับเข้า (ตัน)', data: [12, 19, 15, 22, 28, 14, (appState.lots.filter(l=>l.transactionType==='รับเข้า').reduce((a,b)=>a+b.netWeight,0)/1000)], backgroundColor: '#10b981' },
-                        { label: 'จ่ายออก (ตัน)', data: [5, 8, 12, 10, 15, 9, (appState.lots.filter(l=>l.transactionType==='จ่ายออก').reduce((a,b)=>a+b.netWeight,0)/1000)], backgroundColor: '#3b82f6' }
-                    ]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-
-            const ctx2 = document.getElementById('chart-quality').getContext('2d');
-            if (chartQualityInstance) chartQualityInstance.destroy();
-
-            let cornSeed = appState.lots.filter(l => l.product === 'ข้าวโพดเมล็ด').length;
-            let cornCob = appState.lots.filter(l => l.product === 'ข้าวโพดฝัก').length;
-
-            chartQualityInstance = new Chart(ctx2, {
-                type: 'doughnut',
-                data: {
-                    labels: ['ข้าวโพดเมล็ด', 'ข้าวโพดฝัก'],
-                    datasets: [{
-                        data: [cornSeed || 1, cornCob || 0],
-                        backgroundColor: ['#f59e0b', '#10b981']
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
-
-        function renderWarehouseMap() {
-            const container = document.getElementById('map-grid-container');
-            const locations = ['A01', 'A02', 'B01', 'B02', 'C01', 'D01'];
-            
-            let html = '';
-            locations.forEach(loc => {
-                const lotsInLoc = appState.lots.filter(l => l.location === loc && l.currentWeight > 0);
-                let totalLocWeight = lotsInLoc.reduce((acc, l) => acc + l.currentWeight, 0);
-                
-                let maxRiskScore = 0;
-                lotsInLoc.forEach(l => {
-                    const r = evaluateLotRisk(l);
-                    if (r.score > maxRiskScore) maxRiskScore = r.score;
-                });
-
-                let statusColor = 'border-slate-300 bg-white';
-                let badge = '<span class="px-2 py-0.5 rounded text-xs bg-slate-200 text-slate-600">ว่าง</span>';
-                
-                if (lotsInLoc.length > 0) {
-                    if (maxRiskScore > 60) {
-                        statusColor = 'border-red-500 bg-red-50/50';
-                        badge = '<span class="px-2 py-0.5 rounded text-xs bg-red-500 text-white font-bold">เสี่ยงสูง</span>';
-                    } else if (maxRiskScore > 30) {
-                        statusColor = 'border-amber-500 bg-amber-50/50';
-                        badge = '<span class="px-2 py-0.5 rounded text-xs bg-amber-500 text-white font-bold">เฝ้าระวัง</span>';
-                    } else {
-                        statusColor = 'border-emerald-500 bg-emerald-50/50';
-                        badge = '<span class="px-2 py-0.5 rounded text-xs bg-emerald-500 text-white font-bold">ปกติ</span>';
-                    }
-                }
-
-                html += \`
-                    <div class="border-2 \${statusColor} rounded-xl p-5 shadow-sm space-y-3">
-                        <div class="flex justify-between items-center border-b pb-2">
-                            <h3 class="font-bold text-lg text-slate-800">กองจัดเก็บ \${loc}</h3>
-                            \${badge}
-                        </div>
-                        <div class="space-y-1 text-sm">
-                            <p class="text-slate-600">ปริมาณคงเหลือ: <strong class="text-slate-800">\${(totalLocWeight/1000).toFixed(2)} ตัน</strong></p>
-                            <p class="text-slate-600">จำนวน Lot: <strong class="text-slate-800">\${lotsInLoc.length} Lot</strong></p>
-                        </div>
-                        <div class="pt-2 border-t text-xs text-slate-500">
-                            \${lotsInLoc.map(l => \`• \${l.lotNumber} (\${l.product} - \${l.currentMoisture}%)\`).join('<br>') || 'ไม่มีสินค้า'}
-                        </div>
-                    </div>
-                \`;
-            });
-            container.innerHTML = html;
-        }
-
-        function renderLotsTable() {
-            const tbody = document.getElementById('table-lots-body');
-            if (appState.lots.length === 0) {
-                tbody.innerHTML = \`<tr><td colspan="9" class="p-4 text-center text-slate-400">ยังไม่มีข้อมูล Lot ข้าวโพด</td></tr>\`;
-                return;
-            }
-
-            tbody.innerHTML = appState.lots.map(lot => {
-                const risk = evaluateLotRisk(lot);
-                const isTypeIn = lot.transactionType === 'รับเข้า';
-                return \`
-                    <tr class="hover:bg-slate-50">
-                        <td class="p-3 font-mono font-bold text-amber-700">\${lot.lotNumber}</td>
-                        <td class="p-3"><span class="px-2 py-0.5 rounded text-xs font-bold \${isTypeIn ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">\${lot.transactionType || 'รับเข้า'}</span></td>
-                        <td class="p-3 font-medium text-slate-800">\${lot.product || 'ข้าวโพดเมล็ด'}</td>
-                        <td class="p-3 font-medium text-slate-800">\${lot.supplier} <span class="text-xs text-slate-400">(\${lot.customerType || 'ลูกค้าทั่วไป'})</span></td>
-                        <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 rounded border text-xs font-bold">\${lot.location}</span></td>
-                        <td class="p-3 text-right font-bold">\${lot.currentWeight.toLocaleString()}</td>
-                        <td class="p-3 text-center font-semibold text-cyan-700">\${lot.currentMoisture}%</td>
-                        <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-xs \${risk.badgeClass} font-bold">\${risk.score} (\${risk.status})</span></td>
-                        <td class="p-3 text-center">
-                            <button onclick="openQRModal('\${lot.lotNumber}')" class="px-2 py-1 bg-slate-800 text-white rounded text-xs hover:bg-slate-700">QR / Detail</button>
-                        </td>
-                    </tr>
-                \`;
-            }).join('');
-        }
-
-        function openQRModal(lotNo) {
-            const lot = appState.lots.find(l => l.lotNumber === lotNo);
-            if (!lot) return;
-
-            document.getElementById('modal-lot-number').innerText = lot.lotNumber;
-
-            document.getElementById('modal-lot-info').innerHTML = \`
-                <div class="grid grid-cols-2 gap-1">
-                    <div><strong>ประเภทรายการ:</strong> \${lot.transactionType || 'รับเข้า'}</div>
-                    <div><strong>สินค้า:</strong> \${lot.product || 'ข้าวโพดเมล็ด'}</div>
-                    <div><strong>ลูกค้า/ผู้ขาย:</strong> \${lot.supplier}</div>
-                    <div><strong>ประเภทลูกค้า:</strong> \${lot.customerType || 'ลูกค้าทั่วไป'}</div>
-                    <div><strong>ทะเบียนรถ:</strong> \${lot.plate}</div>
-                    <div><strong>ตำแหน่งจัดเก็บ:</strong> \${lot.location}</div>
-                    <div><strong>น้ำหนักสุทธิ:</strong> \${lot.netWeight.toLocaleString()} กก.</div>
-                    <div><strong>ความชื้น:</strong> \${lot.currentMoisture}%</div>
-                    <div><strong>ราคา/ถัง:</strong> \${lot.bucketPrice || 0} บาท</div>
-                    <div><strong>จำนวนเงินรวม:</strong> \${(lot.totalPrice || 0).toLocaleString()} บาท</div>
-                </div>
-            \`;
-
-            const qrContainer = document.getElementById('qrcode-container');
-            qrContainer.innerHTML = '';
-            new QRCode(qrContainer, {
-                text: JSON.stringify({ lot: lot.lotNumber, supplier: lot.supplier, product: lot.product, weight: lot.netWeight }),
-                width: 128,
-                height: 128
-            });
-
-            document.getElementById('modal-qr').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('modal-qr').classList.add('hidden');
-        }
-
-        function renderMoistureView() {
-            const select = document.getElementById('moist-lot-id');
-            select.innerHTML = appState.lots.map(l => \`<option value="\${l.lotNumber}">\${l.lotNumber} (\${l.location} - ชื้นเดิม \${l.currentMoisture}%)</option>\`).join('');
-
-            const tbody = document.getElementById('table-moisture-history');
-            if (appState.moistureRecords.length === 0) {
-                tbody.innerHTML = \`<tr><td colspan="5" class="p-4 text-center text-slate-400">ยังไม่มีประวัติการตรวจวัด</td></tr>\`;
-                return;
-            }
-
-            tbody.innerHTML = appState.moistureRecords.map(m => \`
-                <tr class="hover:bg-slate-50">
-                    <td class="p-2.5 text-xs">\${m.datetime}</td>
-                    <td class="p-2.5 font-mono font-bold text-amber-700">\${m.lotNumber}</td>
-                    <td class="p-2.5 text-center font-bold text-cyan-700">\${m.val}%</td>
-                    <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded text-xs \${m.val > appState.settings.moistWarn ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'} font-bold">\${m.val > appState.settings.moistWarn ? 'ความชื้นสูง' : 'ปกติ'}</span></td>
-                    <td class="p-2.5 text-xs">\${m.inspector}</td>
-                </tr>
-            \`).join('');
-        }
-
-        function handleMoistureSubmit(e) {
-            e.preventDefault();
-            const lotNo = document.getElementById('moist-lot-id').value;
-            const moistVal = parseFloat(document.getElementById('moist-val').value);
-            const inspector = document.getElementById('moist-inspector').value || 'พนักงาน';
-
-            const lot = appState.lots.find(l => l.lotNumber === lotNo);
-            if (lot) {
-                lot.currentMoisture = moistVal;
-            }
-
-            appState.moistureRecords.unshift({
-                datetime: new Date().toLocaleString('th-TH'),
-                lotNumber: lotNo,
-                val: moistVal,
-                inspector: inspector
-            });
-
-            logActivity(\`อัปเดตค่าความชื้น Lot: \${lotNo} เป็น \${moistVal}%\`);
-            saveData();
-            alert('อัปเดตความชื้นสำเร็จ!');
-            renderMoistureView();
-        }
-
-        function renderIssueView() {
-            const select = document.getElementById('issue-lot-id');
-            const availableLots = appState.lots.filter(l => l.currentWeight > 0);
-            select.innerHTML = availableLots.map(l => \`<option value="\${l.lotNumber}">\${l.lotNumber} [คงเหลือ: \${l.currentWeight.toLocaleString()} กก. | ชื้น: \${l.currentMoisture}%]</option>\`).join('');
-
-            const recoContainer = document.getElementById('recommendation-cards');
-            if (availableLots.length === 0) {
-                recoContainer.innerHTML = \`<p class="text-sm text-slate-500">ไม่มีสินค้าคงเหลือสำหรับเบิกจ่าย</p>\`;
-                return;
-            }
-
-            const fifoLot = [...availableLots].sort((a,b) => new Date(a.receivedDate) - new Date(b.receivedDate))[0];
-            const fefoLot = [...availableLots].sort((a,b) => evaluateLotRisk(b).score - evaluateLotRisk(a).score)[0];
-
-            recoContainer.innerHTML = \`
-                <div class="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
-                    <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-bold rounded">จ่ายตาม FIFO (เก่าสุด)</span>
-                    <h4 class="font-bold text-slate-800 mt-1">\${fifoLot.lotNumber}</h4>
-                    <p class="text-xs text-slate-500">จัดเก็บเมื่อ: \${fifoLot.receivedDate.split('T')[0]} (\${calculateDaysStored(fifoLot.receivedDate)} วันมาแล้ว)</p>
-                </div>
-                <div class="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
-                    <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded">จ่ายตาม FEFO (เสี่ยงสูงสุด)</span>
-                    <h4 class="font-bold text-slate-800 mt-1">\${fefoLot.lotNumber}</h4>
-                    <p class="text-xs text-slate-500">ความชื้น: \${fefoLot.currentMoisture}% | Risk Score: \${evaluateLotRisk(fefoLot).score}</p>
-                </div>
-            \`;
-        }
-
-        function handleIssueSubmit(e) {
-            e.preventDefault();
-            const lotNo = document.getElementById('issue-lot-id').value;
-            const issueWeight = parseFloat(document.getElementById('issue-weight').value);
-            const lot = appState.lots.find(l => l.lotNumber === lotNo);
-
-            if (!lot || issueWeight > lot.currentWeight) {
-                alert('ข้อผิดพลาด: ปริมาณการเบิกจ่ายเกินกว่าน้ำหนักที่มีอยู่ใน Lot!');
-                return;
-            }
-
-            lot.currentWeight -= issueWeight;
-            appState.issueRecords.unshift({
-                datetime: new Date().toLocaleString('th-TH'),
-                lotNumber: lotNo,
-                customer: document.getElementById('issue-customer').value,
-                weight: issueWeight,
-                operator: document.getElementById('issue-operator').value
-            });
-
-            logActivity(\`เบิกจ่ายสินค้าจาก Lot: \${lotNo} ปริมาณ \${issueWeight} กก.\`);
-            saveData();
-            alert('บันทึกการเบิกจ่ายสำเร็จ!');
-            renderIssueView();
-        }
-
-        function renderWeighingTable() {
-            const tbody = document.getElementById('table-weighing-body');
-            tbody.innerHTML = appState.weighingRecords.map(w => \`
-                <tr class="hover:bg-slate-50">
-                    <td class="p-3 text-xs">\${w.datetime.replace('T', ' ')}</td>
-                    <td class="p-3 font-bold text-slate-800">\${w.plate}</td>
-                    <td class="p-3">\${w.supplier}</td>
-                    <td class="p-3 text-right font-mono">\${w.weightIn.toLocaleString()}</td>
-                    <td class="p-3 text-right font-mono">\${w.weightOut.toLocaleString()}</td>
-                    <td class="p-3 text-right font-mono font-bold text-emerald-700">\${w.netWeight.toLocaleString()}</td>
-                    <td class="p-3 text-center"><button onclick="window.print()" class="text-xs bg-slate-100 hover:bg-slate-200 p-1 rounded">ตั๋วชั่ง</button></td>
-                </tr>
-            \`).join('');
-        }
-
-        function renderAlertsCenter() {
-            const container = document.getElementById('alerts-container');
-            let alerts = [];
-
-            appState.lots.forEach(lot => {
-                const risk = evaluateLotRisk(lot);
-                if (lot.currentMoisture > appState.settings.moistWarn) {
-                    alerts.push({ title: \`ความชื้นสูงเกินเกณฑ์มาตรฐาน\`, desc: \`Lot: \${lot.lotNumber} มีความชื้น \${lot.currentMoisture}% (กอง \${lot.location})\`, type: 'red' });
-                }
-                if (risk.days > appState.settings.ageMax) {
-                    alerts.push({ title: \`จัดเก็บนานเกินกำหนด\`, desc: \`Lot: \${lot.lotNumber} จัดเก็บมาแล้ว \${risk.days} วัน\`, type: 'amber' });
-                }
-            });
-
-            document.getElementById('alert-badge').innerText = alerts.length;
-            if (alerts.length > 0) document.getElementById('alert-badge').classList.remove('hidden');
-
-            if (alerts.length === 0) {
-                container.innerHTML = \`<p class="text-slate-400 text-center py-6">ไม่มีรายการแจ้งเตือนเตือนภัยในขณะนี้</p>\`;
-                return;
-            }
-
-            container.innerHTML = alerts.map(a => \`
-                <div class="p-4 rounded-lg border-l-4 \${a.type === 'red' ? 'border-red-500 bg-red-50' : 'border-amber-500 bg-amber-50'} flex items-start gap-3">
-                    <i data-lucide="alert-triangle" class="w-5 h-5 \${a.type === 'red' ? 'text-red-600' : 'text-amber-600'} shrink-0 mt-0.5"></i>
-                    <div>
-                        <h4 class="font-bold text-sm \${a.type === 'red' ? 'text-red-900' : 'text-amber-900'}">\${a.title}</h4>
-                        <p class="text-xs \${a.type === 'red' ? 'text-red-700' : 'text-amber-700'}">\${a.desc}</p>
-                    </div>
-                </div>
-            \`).join('');
-            lucide.createIcons();
-        }
-
-        function renderReports() {
-            document.getElementById('report-date').innerText = new Date().toLocaleDateString('th-TH');
-            const tbody = document.getElementById('report-table-body');
-            tbody.innerHTML = appState.lots.map(l => {
-                const r = evaluateLotRisk(l);
-                return \`
-                    <tr>
-                        <td class="border p-2 font-mono">\${l.lotNumber}</td>
-                        <td class="border p-2 text-center">\${l.transactionType || 'รับเข้า'}</td>
-                        <td class="border p-2">\${l.supplier}</td>
-                        <td class="border p-2">\${l.location}</td>
-                        <td class="border p-2 text-right">\${l.currentWeight.toLocaleString()}</td>
-                        <td class="border p-2 text-center">\${l.currentMoisture}%</td>
-                        <td class="border p-2 text-center">\${r.score}</td>
-                    </tr>
-                \`;
-            }).join('');
-        }
-
-        function saveSettings() {
-            appState.settings.moistNormal = parseFloat(document.getElementById('setting-moist-normal').value);
-            appState.settings.moistWarn = parseFloat(document.getElementById('setting-moist-warn').value);
-            appState.settings.ageWarn = parseInt(document.getElementById('setting-age-warn').value);
-            appState.settings.ageMax = parseInt(document.getElementById('setting-age-max').value);
-            saveData();
-            alert('บันทึกการตั้งค่าระบบเรียบร้อยแล้ว!');
-        }
-
-        function toggleDemoData() {
-            if (confirm('คุณต้องการโหลดข้อมูลจำลอง (Demo Data) เพื่อทดสอบระบบหรือไม่?')) {
-                appState.lots = [
-                    { lotNumber: 'CORN-20260909-001', transactionType: 'รับเข้า', product: 'ข้าวโพดเมล็ด', customerType: 'บริษัท CPF', receivedDate: '2026-09-01T09:00', supplier: 'บริษัท CPF', plate: '80-1111 สุโขทัย', weightIn: 11550, weightOut: 6000, netWeight: 5550, currentWeight: 5550, currentMoisture: 14.5, bucketPrice: 95, pricePerKg: 6.33, totalPrice: 35150, location: 'A01', remark: 'ข้าวโพดคุณภาพดี' },
-                    { lotNumber: 'CORN-20260909-002', transactionType: 'รับเข้า', product: 'ข้าวโพดฝัก', customerType: 'ลูกค้าทั่วไป', receivedDate: '2026-08-20T11:30', supplier: 'นายสมชาย', plate: '70-2222 สุโขทัย', weightIn: 22000, weightOut: 7000, netWeight: 15000, currentWeight: 15000, currentMoisture: 18.2, bucketPrice: 90, pricePerKg: 6.00, totalPrice: 90000, location: 'B01', remark: 'ชื้นสูง เฝ้าระวัง' }
-                ];
-                appState.weighingRecords = [
-                    { datetime: '2026-09-01T09:00', plate: '80-1111 สุโขทัย', supplier: 'บริษัท CPF', weightIn: 11550, weightOut: 6000, netWeight: 5550, lotNumber: 'CORN-20260909-001' },
-                    { datetime: '2026-08-20T11:30', plate: '70-2222 สุโขทัย', supplier: 'นายสมชาย', weightIn: 22000, weightOut: 7000, netWeight: 15000, lotNumber: 'CORN-20260909-002' }
-                ];
-                saveData();
-                renderDashboard();
-                alert('โหลดข้อมูลจำลองสำเร็จ!');
-            }
-        }
-
-        function resetData() {
-            if (confirm('คำเตือน: คุณต้องการล้างข้อมูลทั้งหมดใช่หรือไม่? ข้อมูลจะถูกลบถาวร')) {
-                localStorage.removeItem(STORAGE_KEY);
-                location.reload();
-            }
-        }
-
-        function logActivity(action) {
-            appState.activityLogs.unshift({
-                timestamp: new Date().toLocaleString('th-TH'),
-                user: appState.currentUserRole,
-                action: action
-            });
-        }
-
-        function handleGlobalSearch(query) {
-            if (!query) return;
-            console.log("Searching for:", query);
-        }
-
-        window.onload = initApp;
-    <\/script>
-</body>
-</html>`;
-
-        // Inject modified code into iframe
-        document.getElementById('app-iframe').srcdoc = originalHtmlCode;
-
-        // Device Switcher Logic
-        function switchDevice(type) {
-            const wrapper = document.getElementById('frame-wrapper');
-            const btnDesktop = document.getElementById('btn-desktop');
-            const btnMobile = document.getElementById('btn-mobile');
-            const infoText = document.getElementById('device-info-text');
-
-            if (type === 'mobile') {
-                wrapper.className = 'preview-frame mobile-shell bg-white overflow-hidden relative';
-                
-                btnMobile.className = 'flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition bg-amber-500 text-slate-950 shadow';
-                btnDesktop.className = 'flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition';
-                
-                infoText.innerText = 'โหมดปัจจุบัน: มือถือ Mobile Mockup (390px x 844px)';
-            } else {
-                wrapper.className = 'preview-frame desktop-shell bg-white overflow-hidden relative';
-                
-                btnDesktop.className = 'flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition bg-amber-500 text-slate-950 shadow';
-                btnMobile.className = 'flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition';
-                
-                infoText.innerText = 'โหมดปัจจุบัน: Desktop (100% Full Width)';
-            }
-        }
-
-        // Initialize Lucide Icons
-        lucide.createIcons();
-    </script>
+    <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700 gap-1">
+      <button data-dev="desktop" class="dev-btn px-3 py-2 rounded-lg text-xs font-semibold"><i data-lucide="monitor" class="w-4 h-4 inline"></i><span class="hidden sm:inline ml-1">Desktop</span></button>
+      <button data-dev="tablet"  class="dev-btn px-3 py-2 rounded-lg text-xs font-semibold"><i data-lucide="tablet" class="w-4 h-4 inline"></i><span class="hidden sm:inline ml-1">Tablet</span></button>
+      <button data-dev="mobile"  class="dev-btn px-3 py-2 rounded-lg text-xs font-semibold"><i data-lucide="smartphone" class="w-4 h-4 inline"></i><span class="hidden sm:inline ml-1">Mobile</span></button>
+    </div>
+    <div class="flex items-center gap-2 text-xs text-slate-400">
+      <span id="device-info-text" class="hidden lg:inline bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-700/50">Desktop (100%)</span>
+      <button onclick="previewReload()" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">รีโหลด</button>
+      <button onclick="exitPreview()" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold rounded-lg">เปิดเต็มจอ</button>
+    </div>
+  </header>
+  <main class="flex-1 bg-slate-950 p-4 md:p-6 flex items-center justify-center overflow-auto">
+    <div id="frame-wrapper" class="preview-frame desktop-shell bg-white overflow-hidden relative">
+      <iframe id="app-iframe" class="w-full h-full border-none" title="Smart Corn WMS"></iframe>
+      <div id="frame-fallback" class="hidden absolute inset-0 bg-white p-6 text-center flex flex-col items-center justify-center gap-3 text-slate-600">
+        <p class="text-sm">ไม่สามารถโหลดแอปในกรอบได้</p>
+        <button onclick="exitPreview()" class="px-4 py-2 bg-amber-500 text-slate-950 rounded-lg text-sm font-semibold">เปิดแบบเต็มจอแทน</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════════ APPLICATION ═══════════════ -->
+<div id="app-root" class="flex h-[100dvh] overflow-hidden">
+
+<div id="sidebar-overlay" onclick="closeDrawer()" class="hidden fixed inset-0 bg-slate-900/50 z-50 no-print"></div>
+
+<aside id="main-sidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col no-print shrink-0 shadow-lg relative z-20">
+  <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+    <div class="flex items-center gap-2 overflow-hidden">
+      <i data-lucide="wheat" class="text-amber-500 w-8 h-8 shrink-0"></i>
+      <div class="sidebar-header-text">
+        <h1 class="font-bold text-white text-lg leading-tight truncate">Smart Corn WMS</h1>
+        <span class="text-xs text-slate-400 truncate block">ระบบบริหารคลังลานข้าวโพด</span>
+      </div>
+    </div>
+    <button onclick="toggleSidebar()" aria-label="ย่อ/ขยายเมนู" class="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition">
+      <i data-lucide="panel-left-close" id="sidebar-toggle-icon" class="w-5 h-5"></i>
+    </button>
+  </div>
+
+  <div class="p-3 bg-slate-800/50 m-2 rounded-lg flex items-center gap-3 border border-slate-700/50 overflow-hidden">
+    <div class="w-10 h-10 rounded-full bg-amber-500 text-slate-900 font-bold flex items-center justify-center text-lg shrink-0" id="user-avatar">เจ้</div>
+    <div class="overflow-hidden user-info-text flex-1">
+      <p class="font-semibold text-white text-sm truncate" id="user-display-name">เจ้าของลาน</p>
+      <label for="role-selector" class="sr-only">เลือกสิทธิ์ผู้ใช้งาน</label>
+      <select id="role-selector" onchange="changeRole(this.value)" class="bg-slate-900 text-xs text-amber-400 border border-slate-700 rounded px-1 py-1 mt-1 focus:outline-none w-full">
+        <option>เจ้าของลาน</option><option>ผู้จัดการ</option><option>พนักงานคลัง</option>
+        <option>พนักงานชั่งน้ำหนัก</option><option>ผู้ตรวจสอบคุณภาพ</option>
+      </select>
+    </div>
+  </div>
+
+  <nav id="main-nav" class="flex-1 overflow-y-auto py-2 px-2 space-y-1 text-sm"></nav>
+
+  <div class="p-3 border-t border-slate-800 text-xs text-slate-500 text-center sidebar-footer">
+    <span id="online-dot" class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1"></span>Smart Corn WMS v2.1
+  </div>
+</aside>
+
+<main class="flex-1 flex flex-col overflow-hidden bg-slate-50 min-w-0">
+  <header id="app-header" class="bg-white border-b border-slate-200 px-3 md:px-6 py-2 flex items-center justify-between shrink-0 no-print gap-2">
+    <div class="flex items-center gap-2 flex-1 min-w-0 max-w-xl">
+      <button onclick="toggleSidebar()" aria-label="เปิดเมนู" class="p-2 text-slate-600 hover:bg-slate-100 rounded-lg shrink-0"><i data-lucide="menu" class="w-5 h-5"></i></button>
+      <div class="relative w-full">
+        <label for="global-search" class="sr-only">ค้นหา</label>
+        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+        <input type="text" id="global-search" autocomplete="off" oninput="onSearchInput(this.value)" onfocus="onSearchInput(this.value)"
+          placeholder="ค้นหา Lot / ทะเบียน / ผู้ขาย" class="w-full pl-9 pr-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+        <div id="search-results" class="hidden absolute z-40 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl max-h-80 overflow-y-auto"></div>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <button id="btn-preview" onclick="enterPreview()" title="ทดสอบการแสดงผลบนอุปกรณ์" class="px-3 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200 border border-slate-300"><i data-lucide="monitor-smartphone" class="w-4 h-4"></i></button>
+      <button id="btn-demo" onclick="loadDemoData()" class="px-3 py-2 bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg hover:bg-amber-200 border border-amber-300">⚡<span class="hidden sm:inline ml-1">ข้อมูลจำลอง</span></button>
+      <button id="btn-backup" onclick="exportBackup()" title="สำรองข้อมูล" class="px-3 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200 border border-slate-300"><i data-lucide="download" class="w-4 h-4"></i></button>
+      <button id="btn-reset" onclick="resetData()" class="px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg border border-red-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+    </div>
+  </header>
+
+  <div class="flex-1 overflow-y-auto p-3 md:p-6" id="main-container">
+
+  <!-- 1) DASHBOARD -->
+  <section id="view-dashboard" class="space-y-5">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">ภาพรวมคลังและลานข้าวโพด</h2>
+        <p class="text-sm text-slate-500">ข้อมูลคำนวณจากรายการจริงในระบบทั้งหมด</p></div>
+      <select id="dashboard-timeframe" onchange="renderDashboard()" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium">
+        <option value="today">วันนี้</option><option value="7days" selected>7 วันล่าสุด</option><option value="30days">30 วันล่าสุด</option>
+      </select>
+    </div>
+    <div id="empty-state-notice" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
+      <i data-lucide="inbox" class="w-12 h-12 text-amber-500 mx-auto mb-2"></i>
+      <h3 class="font-bold text-lg text-amber-900">ยังไม่มีข้อมูลในระบบ</h3>
+      <p class="text-slate-600 text-sm mb-4">เริ่มต้นโดยบันทึกการรับข้าวโพดล็อตแรก</p>
+      <button onclick="switchView('receiving')" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg shadow text-sm">+ บันทึกรับเข้า</button>
+    </div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-xs font-semibold text-slate-500">ปริมาณคงเหลือรวม</p>
+        <h3 class="text-xl md:text-2xl font-bold text-slate-800 mt-1" id="dash-total-stock">0 <span class="text-sm font-normal text-slate-500">ตัน</span></h3></div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-xs font-semibold text-slate-500">รับเข้าวันนี้</p>
+        <h3 class="text-xl md:text-2xl font-bold text-emerald-600 mt-1" id="dash-today-in">0 <span class="text-sm font-normal text-slate-500">ตัน</span></h3></div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-xs font-semibold text-slate-500">จ่ายออกวันนี้</p>
+        <h3 class="text-xl md:text-2xl font-bold text-blue-600 mt-1" id="dash-today-out">0 <span class="text-sm font-normal text-slate-500">ตัน</span></h3></div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-xs font-semibold text-slate-500">ความชื้นเฉลี่ย (ถ่วงน้ำหนัก)</p>
+        <h3 class="text-xl md:text-2xl font-bold text-slate-800 mt-1" id="dash-avg-moisture">0 <span class="text-sm font-normal text-slate-500">%</span></h3></div>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+      <div class="bg-white p-3 rounded-lg border text-center"><span class="text-xs text-slate-500 block">Lot ในช่วง</span><span class="text-lg font-bold" id="dash-count-lots">0</span></div>
+      <div class="bg-white p-3 rounded-lg border text-center"><span class="text-xs text-slate-500 block">รถ เข้า-ออก</span><span class="text-lg font-bold" id="dash-count-vehicles">0</span></div>
+      <div class="bg-white p-3 rounded-lg border text-center"><span class="text-xs text-amber-600 block">Lot เฝ้าระวัง</span><span class="text-lg font-bold text-amber-600" id="dash-warning-lots">0</span></div>
+      <div class="bg-white p-3 rounded-lg border text-center"><span class="text-xs text-red-600 block">Lot เสี่ยงสูง</span><span class="text-lg font-bold text-red-600" id="dash-risk-lots">0</span></div>
+      <div class="bg-white p-3 rounded-lg border text-center"><span class="text-xs text-slate-500 block">มูลค่าคงเหลือ</span><span class="text-base font-bold text-emerald-700" id="dash-est-value">0 ฿</span></div>
+      <div class="bg-white p-3 rounded-lg border text-center"><span class="text-xs text-slate-500 block">พื้นที่ถูกใช้</span><span class="text-lg font-bold text-indigo-600" id="dash-used-capacity">0%</span></div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div class="bg-white p-4 rounded-xl border shadow-sm">
+        <h4 class="font-bold mb-3 text-sm flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4 text-amber-500"></i> ปริมาณ เข้า-ออก จริง (ตัน)</h4>
+        <div class="h-60"><canvas id="chart-inout"></canvas></div></div>
+      <div class="bg-white p-4 rounded-xl border shadow-sm">
+        <h4 class="font-bold mb-3 text-sm flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-amber-500"></i> สัดส่วนสินค้าคงเหลือ (ตามน้ำหนัก)</h4>
+        <div class="h-60 flex justify-center"><canvas id="chart-quality"></canvas></div></div>
+    </div>
+  </section>
+
+  <!-- 2) RECEIVING -->
+  <section id="view-receiving" class="hidden space-y-5">
+    <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">บันทึกรับ-จ่ายข้าวโพด</h2>
+      <p class="text-sm text-slate-500">รับเข้าสร้าง Lot ใหม่ / จ่ายออกตัดสต็อกจาก Lot ต้นทางจริง</p></div>
+    <div class="bg-white rounded-xl border shadow-sm p-4 md:p-6">
+      <form id="form-receiving" novalidate class="space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div><label for="rec-type" class="block text-xs font-semibold text-slate-600 mb-1">1. ประเภทรายการ *</label>
+            <select id="rec-type" onchange="onRecTypeChange()" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold bg-amber-50">
+              <option value="รับเข้า">📥 รับเข้า (Inbound)</option><option value="จ่ายออก">📤 จ่ายออก (Outbound)</option></select></div>
+          <div><label for="rec-doc-no" class="block text-xs font-semibold text-slate-600 mb-1">เลขที่เอกสาร</label>
+            <input type="text" id="rec-doc-no" readonly class="w-full bg-slate-100 border rounded-lg px-3 py-2.5 text-sm font-mono font-bold text-slate-600"></div>
+          <div><label for="rec-datetime" class="block text-xs font-semibold text-slate-600 mb-1">วันที่และเวลา *</label>
+            <input type="datetime-local" id="rec-datetime" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"></div>
+        </div>
+        <div id="rec-outbound-box" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <label for="rec-source-lot" class="block text-xs font-semibold text-blue-900 mb-1">Lot ต้นทางที่ตัดออก *</label>
+          <select id="rec-source-lot" class="w-full border border-blue-300 rounded-lg px-3 py-2.5 text-sm bg-white"></select>
+          <p class="text-xs text-blue-700 mt-2">ระบบจะหักน้ำหนักสุทธิออกจาก Lot นี้ทันทีเมื่อบันทึก</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div><label for="rec-plate" class="block text-xs font-semibold text-slate-600 mb-1">2. ทะเบียนรถ *</label>
+            <input type="text" id="rec-plate" maxlength="30" placeholder="80-1234 สุโขทัย" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"></div>
+          <div><label for="rec-customer-type" class="block text-xs font-semibold text-slate-600 mb-1">3. ประเภทลูกค้า *</label>
+            <select id="rec-customer-type" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm">
+              <option>ลูกค้าทั่วไป</option><option>บริษัท CPF</option><option>โรงงานอาหารสัตว์</option></select></div>
+          <div><label for="rec-supplier" class="block text-xs font-semibold text-slate-600 mb-1">ชื่อผู้ขาย / ลูกค้า</label>
+            <input type="text" id="rec-supplier" maxlength="80" placeholder="ชื่อ-นามสกุล / บริษัท" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"></div>
+          <div id="rec-product-box"><label for="rec-product" class="block text-xs font-semibold text-slate-600 mb-1">4. สินค้า *</label>
+            <select id="rec-product" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"><option>ข้าวโพดเมล็ด</option><option>ข้าวโพดฝัก</option></select></div>
+        </div>
+        <div class="border-t pt-4 bg-slate-50 p-4 rounded-lg space-y-3">
+          <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2"><i data-lucide="scale" class="w-4 h-4 text-amber-600"></i> น้ำหนักและคุณภาพ</h3>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div id="rec-moisture-box"><label for="rec-moisture" class="block text-xs font-semibold text-slate-600 mb-1">5. ความชื้น (%) *</label>
+              <input type="number" id="rec-moisture" step="0.1" min="5" max="40" placeholder="15.5" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-semibold text-cyan-700"></div>
+            <div><label for="rec-weight-in" class="block text-xs font-semibold text-slate-600 mb-1">6. น้ำหนักรถเข้า (กก.) *</label>
+              <input type="number" id="rec-weight-in" step="1" min="0" placeholder="15000" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-semibold"></div>
+            <div><label for="rec-weight-out" class="block text-xs font-semibold text-slate-600 mb-1">7. น้ำหนักรถออก (กก.) *</label>
+              <input type="number" id="rec-weight-out" step="1" min="0" placeholder="5000" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-semibold"></div>
+            <div><label for="rec-weight-net" class="block text-xs font-semibold text-slate-600 mb-1">8. น้ำหนักสุทธิ (กก.)</label>
+              <input type="number" id="rec-weight-net" readonly class="w-full bg-emerald-100 border border-emerald-300 rounded-lg px-3 py-2.5 text-sm font-bold text-emerald-800"></div>
+          </div>
+          <p id="rec-weight-hint" class="text-xs text-slate-500"></p>
+        </div>
+        <div class="border border-amber-200 bg-amber-50/60 p-4 rounded-xl space-y-3">
+          <h3 class="font-bold text-amber-900 text-sm flex items-center gap-2"><i data-lucide="calculator" class="w-4 h-4"></i> 9. คำนวณราคา (1 ถัง = <span id="bucket-kg-label">15</span> กก.)</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div><label for="price-per-bucket" class="block text-xs font-semibold text-amber-800 mb-1">ราคาต่อถัง (บาท)</label>
+              <input type="number" id="price-per-bucket" step="0.01" min="0" placeholder="95" class="w-full border border-amber-300 rounded-lg px-3 py-2.5 text-sm font-bold bg-white"></div>
+            <div><label for="price-per-kg" class="block text-xs font-semibold text-amber-800 mb-1">ราคาต่อ กก.</label>
+              <input type="text" id="price-per-kg" readonly placeholder="0.00" class="w-full bg-amber-100/70 border border-amber-300 rounded-lg px-3 py-2.5 text-sm font-mono font-bold"></div>
+            <div><label for="total-price-display" class="block text-xs font-semibold text-amber-800 mb-1">จำนวนเงินสุทธิ (บาท)</label>
+              <input type="text" id="total-price-display" readonly placeholder="0.00" class="w-full bg-emerald-600 border border-emerald-700 rounded-lg px-3 py-2.5 text-base font-mono font-bold text-white"></div>
+          </div>
+          <p class="text-xs text-amber-700 italic">* (ราคาต่อถัง ÷ น้ำหนักต่อถัง) × น้ำหนักสุทธิ — ปัดทศนิยม 2 ตำแหน่งตอนบันทึก</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div id="rec-location-box"><label for="rec-location" class="block text-xs font-semibold text-slate-600 mb-1">ตำแหน่งจัดเก็บ (กอง/Zone) *</label>
+            <select id="rec-location" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"></select></div>
+          <div><label for="rec-remark" class="block text-xs font-semibold text-slate-600 mb-1">หมายเหตุ</label>
+            <input type="text" id="rec-remark" maxlength="200" placeholder="ข้อความเพิ่มเติม..." class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"></div>
+        </div>
+        <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
+          <button type="reset" class="px-5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg text-sm">ล้างฟอร์ม</button>
+          <button type="submit" id="rec-submit-btn" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm flex items-center justify-center gap-2 shadow">
+            <i data-lucide="save" class="w-4 h-4"></i> บันทึกเข้าระบบ</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- 3) WEIGHING -->
+  <section id="view-weighing" class="hidden space-y-5">
+    <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">สถานีชั่งน้ำหนัก (2 ขั้นตอน)</h2>
+      <p class="text-sm text-slate-500">ชั่งเข้า → ลง/ขึ้นสินค้า → ชั่งออก → ส่งต่อเป็นรายการรับ-จ่าย</p></div>
+    <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
+      <h3 class="font-bold text-slate-800 mb-3 text-sm">เปิดตั๋วชั่ง (ชั่งเข้า)</h3>
+      <form id="form-weigh-open" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+        <div><label for="wo-type" class="block text-xs font-semibold text-slate-600 mb-1">ประเภท</label>
+          <select id="wo-type" class="w-full border rounded-lg px-3 py-2.5 text-sm"><option>รับเข้า</option><option>จ่ายออก</option></select></div>
+        <div><label for="wo-plate" class="block text-xs font-semibold text-slate-600 mb-1">ทะเบียนรถ *</label>
+          <input type="text" id="wo-plate" maxlength="30" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>
+        <div><label for="wo-supplier" class="block text-xs font-semibold text-slate-600 mb-1">ผู้ขาย/ลูกค้า</label>
+          <input type="text" id="wo-supplier" maxlength="80" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>
+        <div><label for="wo-weight-in" class="block text-xs font-semibold text-slate-600 mb-1">น้ำหนักชั่งเข้า (กก.) *</label>
+          <input type="number" id="wo-weight-in" min="1" class="w-full border rounded-lg px-3 py-2.5 text-sm font-semibold"></div>
+        <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 rounded-lg text-sm">เปิดตั๋วชั่ง</button>
+      </form>
+    </div>
+    <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
+      <h3 class="font-bold text-slate-800 mb-3 text-sm">รายการตั๋วชั่ง</h3>
+      <div class="overflow-x-auto">
+        <table class="rtable w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-100 text-slate-700 uppercase text-xs font-bold">
+            <tr><th class="p-3">เลขตั๋ว</th><th class="p-3">เวลา</th><th class="p-3">ทะเบียน</th><th class="p-3">ผู้ขาย/ลูกค้า</th>
+            <th class="p-3 text-right">เข้า</th><th class="p-3 text-right">ออก</th><th class="p-3 text-right">สุทธิ</th>
+            <th class="p-3 text-center">สถานะ</th><th class="p-3 text-center">จัดการ</th></tr></thead>
+          <tbody id="table-weighing-body" class="divide-y divide-slate-200"></tbody>
+        </table>
+      </div>
+      <div id="weigh-pager" class="flex justify-between items-center pt-3 text-sm"></div>
+    </div>
+  </section>
+
+  <!-- 4) LOTS -->
+  <section id="view-lots" class="hidden space-y-5">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-3">
+      <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">จัดการ Lot ข้าวโพด</h2>
+        <p class="text-sm text-slate-500">ติดตามคุณภาพ อายุจัดเก็บ และ Risk Score</p></div>
+      <div class="flex gap-2">
+        <input type="text" id="lot-filter" oninput="lotPage=1;renderLotsTable()" placeholder="กรอง Lot/ผู้ขาย/กอง" class="border rounded-lg px-3 py-2.5 text-sm">
+        <select id="lot-sort" onchange="renderLotsTable()" class="border rounded-lg px-3 py-2.5 text-sm">
+          <option value="date_desc">ใหม่ → เก่า</option><option value="date_asc">เก่า → ใหม่ (FIFO)</option>
+          <option value="risk_desc">Risk สูง → ต่ำ</option><option value="weight_desc">คงเหลือมาก → น้อย</option></select>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="rtable w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-800 text-slate-200 uppercase text-xs font-bold">
+            <tr><th class="p-3">Lot</th><th class="p-3">สินค้า</th><th class="p-3">ผู้ขาย</th><th class="p-3">กอง</th>
+            <th class="p-3 text-right">รับเข้า</th><th class="p-3 text-right">คงเหลือ</th>
+            <th class="p-3 text-center">ชื้น</th><th class="p-3 text-center">Risk</th><th class="p-3 text-center">จัดการ</th></tr></thead>
+          <tbody id="table-lots-body" class="divide-y divide-slate-200"></tbody>
+        </table>
+      </div>
+      <div id="lot-pager" class="flex justify-between items-center p-3 text-sm border-t"></div>
+    </div>
+  </section>
+
+  <!-- 5) MAP -->
+  <section id="view-map" class="hidden space-y-5">
+    <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">แผนผังลานข้าวโพด</h2>
+      <p class="text-sm text-slate-500">สถานะกองตามระดับความเสี่ยงและความจุ</p></div>
+    <div class="flex flex-wrap items-center gap-3 md:gap-5 bg-white p-3 rounded-lg border text-xs">
+      <span class="font-bold">คำอธิบายสี:</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-300"></span> ว่าง</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> ปกติ</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500"></span> เฝ้าระวัง</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500"></span> เสี่ยงสูง</span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="map-grid-container"></div>
+  </section>
+
+  <!-- 6) MOISTURE -->
+  <section id="view-moisture" class="hidden space-y-5">
+    <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">บันทึกและตรวจวัดความชื้น</h2>
+      <p class="text-sm text-slate-500">ติดตามแนวโน้มการเสื่อมคุณภาพรายล็อต</p></div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div class="bg-white p-4 md:p-5 rounded-xl border shadow-sm">
+        <h3 class="font-bold mb-3">บันทึกค่าใหม่</h3>
+        <form id="form-moisture" class="space-y-3">
+          <div><label for="moist-lot-id" class="block text-xs font-semibold mb-1">Lot *</label><select id="moist-lot-id" class="w-full border rounded-lg px-3 py-2.5 text-sm"></select></div>
+          <div><label for="moist-val" class="block text-xs font-semibold mb-1">ความชื้น (%) *</label><input type="number" id="moist-val" step="0.1" min="5" max="40" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>
+          <div><label for="moist-inspector" class="block text-xs font-semibold mb-1">ผู้ตรวจวัด</label><input type="text" id="moist-inspector" maxlength="60" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>
+          <div><label for="moist-remark" class="block text-xs font-semibold mb-1">หมายเหตุ</label><input type="text" id="moist-remark" maxlength="150" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>
+          <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-3 rounded-lg text-sm">บันทึกค่าความชื้น</button>
+        </form>
+      </div>
+      <div class="lg:col-span-2 bg-white p-4 md:p-5 rounded-xl border shadow-sm">
+        <h3 class="font-bold mb-3">ประวัติการตรวจวัด</h3>
+        <div class="overflow-x-auto">
+          <table class="rtable w-full text-left text-sm">
+            <thead class="bg-slate-100 text-xs font-bold uppercase">
+              <tr><th class="p-2.5">วัน-เวลา</th><th class="p-2.5">Lot</th><th class="p-2.5 text-center">ชื้น</th>
+              <th class="p-2.5 text-center">ประเมิน</th><th class="p-2.5">ผู้ตรวจ</th></tr></thead>
+            <tbody id="table-moisture-history" class="divide-y"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7) ISSUE -->
+  <section id="view-issue" class="hidden space-y-5">
+    <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">ระบบเบิกจ่ายข้าวโพด</h2>
+      <p class="text-sm text-slate-500">แนะนำการจ่ายตาม FIFO (เก่าสุด) และ FEFO (เสี่ยงสุด)</p></div>
+    <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 md:p-5">
+      <h3 class="font-bold text-indigo-900 flex items-center gap-2 text-sm"><i data-lucide="lightbulb" class="w-5 h-5"></i> คำแนะนำการเบิกจ่าย</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3" id="recommendation-cards"></div>
+    </div>
+    <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
+      <h3 class="font-bold mb-3">แบบฟอร์มเบิกจ่าย</h3>
+      <form id="form-issue" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div><label for="issue-lot-id" class="block text-xs font-semibold mb-1">Lot ที่เบิก *</label><select id="issue-lot-id" onchange="updateIssueHint()" class="w-full border rounded-lg px-3 py-2.5 text-sm"></select></div>
+          <div><label for="issue-customer" class="block text-xs font-semibold mb-1">ลูกค้า/ปลายทาง *</label><input type="text" id="issue-customer" maxlength="80" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>
+          <div><label for="issue-plate" class="block text-xs font-semibold mb-1">ทะเบียนรถมารับ</label><input type="text" id="issue-plate" maxlength="30" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>
+          <div><label for="issue-weight" class="block text-xs font-semibold mb-1">จำนวน (กก.) *</label>
+            <input type="number" id="issue-weight" min="1" step="1" class="w-full border rounded-lg px-3 py-2.5 text-sm font-bold">
+            <p id="issue-hint" class="text-xs text-slate-500 mt-1"></p></div>
+          <div><label for="issue-operator" class="block text-xs font-semibold mb-1">ผู้ดำเนินการ</label><input type="text" id="issue-operator" maxlength="60" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>
+          <div><label for="issue-remark" class="block text-xs font-semibold mb-1">หมายเหตุ</label><input type="text" id="issue-remark" maxlength="150" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>
+        </div>
+        <div class="flex justify-end"><button type="submit" id="issue-submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg text-sm">ยืนยันการเบิกจ่าย</button></div>
+      </form>
+    </div>
+    <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
+      <h3 class="font-bold mb-3">ประวัติการเบิกจ่าย</h3>
+      <div class="overflow-x-auto">
+        <table class="rtable w-full text-left text-sm">
+          <thead class="bg-slate-100 text-xs font-bold uppercase">
+            <tr><th class="p-2.5">เลขที่</th><th class="p-2.5">เวลา</th><th class="p-2.5">Lot</th><th class="p-2.5">ลูกค้า</th>
+            <th class="p-2.5 text-right">น้ำหนัก</th><th class="p-2.5 text-center">สถานะ</th><th class="p-2.5 text-center">จัดการ</th></tr></thead>
+          <tbody id="table-issue-history" class="divide-y"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8) ALERTS -->
+  <section id="view-alerts" class="hidden space-y-5">
+    <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">ศูนย์แจ้งเตือนอัจฉริยะ</h2>
+      <p class="text-sm text-slate-500">ความชื้นสูง / เก็บนาน / พื้นที่ใกล้เต็ม / ตั๋วชั่งค้าง</p></div>
+    <div class="bg-white rounded-xl border shadow-sm p-4 space-y-3" id="alerts-container"></div>
+  </section>
+
+  <!-- 9) REPORTS -->
+  <section id="view-reports" class="hidden space-y-5">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">รายงานและส่งออก</h2>
+        <p class="text-sm text-slate-500">กรองช่วงวันที่ พิมพ์ และส่งออก CSV</p></div>
+      <div class="flex flex-wrap gap-2 no-print">
+        <button onclick="window.print()" class="px-4 py-2.5 bg-slate-800 text-white rounded-lg text-sm flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i> พิมพ์</button>
+        <button onclick="exportCSV()" class="px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm flex items-center gap-2"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> CSV/Excel</button>
+        <button onclick="exportBackup()" class="px-4 py-2.5 bg-slate-600 text-white rounded-lg text-sm">สำรอง JSON</button>
+        <label class="px-4 py-2.5 bg-slate-200 rounded-lg text-sm cursor-pointer">กู้คืน<input type="file" accept="application/json" class="hidden" onchange="importBackup(this)"></label>
+      </div>
+    </div>
+    <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 no-print">
+        <div><label for="rep-from" class="block text-xs font-semibold mb-1">ตั้งแต่วันที่</label><input type="date" id="rep-from" onchange="renderReports()" class="w-full border rounded-lg px-2 py-2.5 text-sm"></div>
+        <div><label for="rep-to" class="block text-xs font-semibold mb-1">ถึงวันที่</label><input type="date" id="rep-to" onchange="renderReports()" class="w-full border rounded-lg px-2 py-2.5 text-sm"></div>
+        <div><label for="rep-type" class="block text-xs font-semibold mb-1">ประเภท</label>
+          <select id="rep-type" onchange="renderReports()" class="w-full border rounded-lg px-2 py-2.5 text-sm">
+            <option value="stock">สต็อกคงเหลือรายล็อต</option><option value="in">รายการรับเข้า</option><option value="out">รายการจ่ายออก</option></select></div>
+        <div class="flex items-end"><button onclick="clearReportRange()" class="w-full bg-slate-200 rounded-lg py-2.5 text-sm">ล้างช่วงวันที่</button></div>
+      </div>
+      <h3 class="font-bold text-lg mb-3 text-center border-b pb-2" id="report-title">รายงานสรุปสถานะคลังสินค้าลานข้าวโพด</h3>
+      <div class="grid grid-cols-2 gap-3 text-sm mb-4">
+        <div><strong>วันที่ออกรายงาน:</strong> <span id="report-date"></span></div>
+        <div><strong>ผู้ออกรายงาน:</strong> <span id="report-author"></span></div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="rtable w-full text-left text-sm border-collapse border border-slate-300">
+          <thead id="report-table-head"></thead><tbody id="report-table-body"></tbody>
+          <tfoot id="report-table-foot" class="font-bold bg-slate-50"></tfoot>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10) SETTINGS -->
+  <section id="view-settings" class="hidden space-y-5">
+    <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">ตั้งค่าเกณฑ์ระบบ</h2>
+      <p class="text-sm text-slate-500">ทุกค่าถูกใช้คำนวณจริงทั้งระบบ</p></div>
+    <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm max-w-3xl space-y-4">
+      <h3 class="font-bold border-b pb-2">เกณฑ์ความชื้น (%)</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label for="setting-moist-normal" class="block text-xs font-semibold mb-1">ปกติ (ไม่เกิน %)</label><input type="number" id="setting-moist-normal" step="0.1" class="w-full border rounded-lg p-2.5 text-sm"></div>
+        <div><label for="setting-moist-warn" class="block text-xs font-semibold mb-1">เฝ้าระวัง (เกิน %)</label><input type="number" id="setting-moist-warn" step="0.1" class="w-full border rounded-lg p-2.5 text-sm"></div>
+      </div>
+      <h3 class="font-bold border-b pb-2 pt-2">ระยะเวลาจัดเก็บ (วัน)</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label for="setting-age-warn" class="block text-xs font-semibold mb-1">เริ่มเฝ้าระวัง</label><input type="number" id="setting-age-warn" class="w-full border rounded-lg p-2.5 text-sm"></div>
+        <div><label for="setting-age-max" class="block text-xs font-semibold mb-1">นานเกินกำหนด</label><input type="number" id="setting-age-max" class="w-full border rounded-lg p-2.5 text-sm"></div>
+      </div>
+      <h3 class="font-bold border-b pb-2 pt-2">หน่วยและความจุ</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div><label for="setting-bucket-kg" class="block text-xs font-semibold mb-1">น้ำหนักต่อถัง (กก.)</label><input type="number" id="setting-bucket-kg" step="0.1" min="1" class="w-full border rounded-lg p-2.5 text-sm"></div>
+        <div><label for="setting-capacity" class="block text-xs font-semibold mb-1">ความจุลานรวม (กก.)</label><input type="number" id="setting-capacity" min="1" class="w-full border rounded-lg p-2.5 text-sm"></div>
+        <div><label for="setting-cap-alert" class="block text-xs font-semibold mb-1">เตือนเมื่อใช้เกิน (%)</label><input type="number" id="setting-cap-alert" min="1" max="100" class="w-full border rounded-lg p-2.5 text-sm"></div>
+      </div>
+      <h3 class="font-bold border-b pb-2 pt-2">ความจุรายกอง (กก.)</h3>
+      <div id="zone-capacity-box" class="grid grid-cols-2 md:grid-cols-3 gap-3"></div>
+      <div class="pt-3 flex justify-end"><button onclick="saveSettings()" class="bg-emerald-600 text-white px-5 py-3 rounded-lg text-sm font-medium">บันทึกการตั้งค่า</button></div>
+    </div>
+    <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm max-w-3xl">
+      <h3 class="font-bold border-b pb-2 mb-3">ประวัติการใช้งาน (Audit Log — 500 รายการล่าสุด)</h3>
+      <div class="max-h-72 overflow-y-auto text-xs space-y-1" id="audit-log-box"></div>
+    </div>
+  </section>
+
+  </div>
+</main>
+</div>
+
+<div id="modal-root" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-[70] p-4 overflow-y-auto no-print" role="dialog" aria-modal="true">
+  <div class="min-h-full flex items-center justify-center"><div id="modal-box" class="bg-white rounded-xl shadow-2xl max-w-md w-full p-5 space-y-4"></div></div>
+</div>
+<div id="toast-root" class="fixed top-4 right-4 z-[80] space-y-2 no-print w-[min(92vw,22rem)]"></div>
+<div id="print-area"></div>
+
+<script>
+'use strict';
+/* ════════════════ 0) SELF SNAPSHOT (สำหรับ srcdoc fallback) ════════════════ */
+const SELF_HTML = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+const IS_PREVIEW = window.__WMS_MODE__ === 'preview';
+
+/* ════════════════ 1) PREVIEW SHELL ════════════════ */
+const SHELL = {desktop:'desktop-shell', tablet:'tablet-shell', mobile:'mobile-shell'};
+const INFO  = {desktop:'Desktop (100%)', tablet:'Tablet (820px)', mobile:'Mobile (390 x 844)'};
+function switchDevice(type){
+  const w = document.getElementById('frame-wrapper');
+  if (!w) return;
+  w.className = 'preview-frame ' + SHELL[type] + ' bg-white overflow-hidden relative';
+  document.getElementById('device-info-text').textContent = INFO[type];
+  document.querySelectorAll('.dev-btn').forEach(b=>{
+    const on = b.dataset.dev === type;
+    b.className = 'dev-btn px-3 py-2 rounded-lg text-xs font-semibold ' +
+      (on ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white');
+  });
+}
+function enterPreview(){ location.hash = 'preview'; location.reload(); }
+function exitPreview(){ location.hash = ''; location.reload(); }
+function previewReload(){ initPreviewFrame(); }
+function initPreviewFrame(){
+  const f = document.getElementById('app-iframe');
+  const fb = document.getElementById('frame-fallback');
+  fb.classList.add('hidden');
+  f.removeAttribute('srcdoc');
+  let handshake = false;
+  const onMsg = e => { if (e.data === 'WMS_READY'){ handshake = true; window.removeEventListener('message', onMsg); } };
+  window.addEventListener('message', onMsg);
+  // พยายามโหลดไฟล์ตัวเองก่อน (ได้ localStorage เต็มรูปแบบ)
+  f.src = location.href.split('#')[0] + '#app';
+  setTimeout(()=>{
+    if (handshake) return;
+    try { // fallback: ฝังสำเนาตัวเองแบบ srcdoc (ทำงานได้แม้เปิดจาก file://)
+      f.removeAttribute('src'); f.srcdoc = SELF_HTML;
+      setTimeout(()=>{ if(!handshake) fb.classList.remove('hidden'); }, 2500);
+    } catch(e){ fb.classList.remove('hidden'); }
+  }, 1500);
+}
+if (IS_PREVIEW){
+  document.querySelectorAll('.dev-btn').forEach(b=>b.onclick=()=>switchDevice(b.dataset.dev));
+  window.addEventListener('DOMContentLoaded', ()=>{
+    switchDevice('desktop'); initPreviewFrame();
+    if (window.lucide) lucide.createIcons();
+  });
+}
+
+/* ════════════════ 2) APPLICATION ════════════════ */
+const STORAGE_KEY = 'SMART_CORN_WMS_DB_V2';
+const SCHEMA_VERSION = 2;
+const DEFAULT_STATE = {
+  version: SCHEMA_VERSION, currentUserRole: 'เจ้าของลาน',
+  settings: { moistNormal:15.0, moistWarn:17.0, ageWarn:14, ageMax:30,
+    bucketKg:15, yardCapacityKg:500000, capAlertPct:85,
+    zones:[{code:'A01',capacityKg:100000},{code:'A02',capacityKg:100000},{code:'B01',capacityKg:100000},
+           {code:'B02',capacityKg:80000},{code:'C01',capacityKg:70000},{code:'D01',capacityKg:50000}] },
+  counters:{}, lots:[], weighingRecords:[], moistureRecords:[], issueRecords:[], activityLogs:[]
+};
+let appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+/* ---------- utils ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const round2 = n => Math.round(((Number(n)||0) + Number.EPSILON) * 100) / 100;
+const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
+const nf = (n,d=0) => (Number(n)||0).toLocaleString('th-TH',{minimumFractionDigits:d,maximumFractionDigits:d});
+const uid = p => p + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+function toLocalInput(d){ return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16); }
+function nowLocalInput(){ return toLocalInput(new Date()); }
+const dayKey = iso => String(iso||'').slice(0,10);
+function fmtDT(iso){ if(!iso) return '-'; const d=new Date(iso); return isNaN(d)?esc(iso):d.toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}); }
+function fmtD(iso){ if(!iso) return '-'; const d=new Date(iso); return isNaN(d)?esc(iso):d.toLocaleDateString('th-TH',{dateStyle:'medium'}); }
+
+/* ---------- toast / modal ---------- */
+function toast(msg, type='ok', ms=3500){
+  const c = {ok:'bg-emerald-600', error:'bg-red-600', warn:'bg-amber-500', info:'bg-slate-800'};
+  const el = document.createElement('div');
+  el.className = `toast-in ${c[type]||c.info} text-white text-sm px-4 py-3 rounded-lg shadow-lg`;
+  el.setAttribute('role','status'); el.textContent = msg;
+  $('toast-root').appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, ms);
+}
+let lastFocus = null;
+function openModal(html, onOpen){
+  lastFocus = document.activeElement;
+  $('modal-box').innerHTML = html;
+  $('modal-root').classList.remove('hidden');
+  document.body.classList.add('drawer-lock');
+  if (window.lucide) lucide.createIcons();
+  const f = $('modal-box').querySelector('input,select,textarea,button'); if (f) f.focus();
+  if (onOpen) onOpen();
+}
+function closeModal(){
+  $('modal-root').classList.add('hidden'); $('modal-box').innerHTML='';
+  document.body.classList.remove('drawer-lock');
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
+}
+document.addEventListener('keydown', e => {
+  if (IS_PREVIEW) return;
+  if (e.key === 'Escape'){ if(!$('modal-root').classList.contains('hidden')) closeModal(); else closeDrawer(); }
+  if (e.key === 'Tab' && !$('modal-root').classList.contains('hidden')){
+    const f = $('modal-box').querySelectorAll('a[href],button:not([disabled]),input,select,textarea');
+    if(!f.length) return;
+    const first=f[0], last=f[f.length-1];
+    if (e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+  }
+});
+function uiConfirm(message, {danger=false, okText='ยืนยัน', requireText=null}={}){
+  return new Promise(res=>{
+    openModal(`<h3 class="font-bold text-lg">ยืนยันการทำรายการ</h3>
+      <p class="text-sm text-slate-600 whitespace-pre-line">${esc(message)}</p>
+      ${requireText?`<div><p class="text-xs text-slate-500 mb-1">พิมพ์ <b>${esc(requireText)}</b> เพื่อยืนยัน</p>
+      <input id="confirm-text" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>`:''}
+      <div class="flex gap-2 pt-2">
+        <button id="cf-cancel" class="flex-1 bg-slate-200 py-2.5 rounded-lg text-sm">ยกเลิก</button>
+        <button id="cf-ok" class="flex-1 ${danger?'bg-red-600':'bg-emerald-600'} text-white py-2.5 rounded-lg text-sm font-medium">${esc(okText)}</button>
+      </div>`);
+    $('cf-cancel').onclick = ()=>{ closeModal(); res(false); };
+    $('cf-ok').onclick = ()=>{
+      if (requireText && $('confirm-text').value.trim() !== requireText){ toast('ข้อความยืนยันไม่ถูกต้อง','error'); return; }
+      closeModal(); res(true); };
+  });
+}
+function uiPrompt(label, {placeholder='', required=true}={}){
+  return new Promise(res=>{
+    openModal(`<h3 class="font-bold text-lg">${esc(label)}</h3>
+      <input id="prompt-input" placeholder="${esc(placeholder)}" class="w-full border rounded-lg px-3 py-2.5 text-sm">
+      <div class="flex gap-2 pt-2"><button id="pm-cancel" class="flex-1 bg-slate-200 py-2.5 rounded-lg text-sm">ยกเลิก</button>
+      <button id="pm-ok" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm">ตกลง</button></div>`);
+    $('pm-cancel').onclick = ()=>{ closeModal(); res(null); };
+    $('pm-ok').onclick = ()=>{ const v=$('prompt-input').value.trim();
+      if(required && !v){ toast('กรุณากรอกข้อมูล','warn'); return; } closeModal(); res(v); };
+  });
+}
+
+/* ---------- storage ---------- */
+function loadData(){
+  let raw=null;
+  try { raw = localStorage.getItem(STORAGE_KEY); }
+  catch(e){ toast('เบราว์เซอร์ปิดพื้นที่จัดเก็บ ข้อมูลจะไม่ถูกบันทึก','error',8000); return; }
+  if (!raw) return;
+  try {
+    const p = JSON.parse(raw);
+    appState = { ...JSON.parse(JSON.stringify(DEFAULT_STATE)), ...p,
+      settings:{ ...DEFAULT_STATE.settings, ...(p.settings||{}),
+        zones: Array.isArray(p.settings?.zones)&&p.settings.zones.length ? p.settings.zones : DEFAULT_STATE.settings.zones },
+      counters: p.counters&&typeof p.counters==='object' ? p.counters : {},
+      lots: Array.isArray(p.lots)?p.lots:[], weighingRecords: Array.isArray(p.weighingRecords)?p.weighingRecords:[],
+      moistureRecords: Array.isArray(p.moistureRecords)?p.moistureRecords:[],
+      issueRecords: Array.isArray(p.issueRecords)?p.issueRecords:[],
+      activityLogs: Array.isArray(p.activityLogs)?p.activityLogs:[] };
+    migrate();
+  } catch(e){
+    try { localStorage.setItem(STORAGE_KEY+'_CORRUPT_'+Date.now(), raw); } catch(_){}
+    appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    toast('ข้อมูลเดิมเสียหาย ระบบเริ่มใหม่ (สำรองไฟล์เสียไว้แล้ว)','error',8000);
+  }
+}
+function migrate(){
+  appState.lots.forEach(l=>{ l.id ||= uid('LOT'); l.status ||= 'active'; l.docNo ||= l.lotNumber;
+    l.initialMoisture ??= l.currentMoisture; l.currentWeight = num(l.currentWeight); l.pricePerKg = round2(l.pricePerKg); });
+  appState.issueRecords.forEach(r=>{ r.id ||= uid('ISS'); r.status ||= 'active'; });
+  appState.weighingRecords.forEach(w=>{ w.id ||= uid('WT'); w.status ||= 'done'; w.docNo ||= w.lotNumber||w.id; });
+  appState.version = SCHEMA_VERSION;
+}
+function saveData(){
+  appState.activityLogs = appState.activityLogs.slice(0,500);
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); }
+  catch(e){ toast('บันทึกไม่สำเร็จ: พื้นที่จัดเก็บเต็ม กรุณาส่งออกข้อมูลแล้วล้างรายการเก่า','error',9000); return false; }
+  refreshBadges();
+  if (currentView === 'dashboard') renderDashboard();
+  return true;
+}
+function logActivity(action){ appState.activityLogs.unshift({ ts:new Date().toISOString(), user:appState.currentUserRole, action }); }
+
+/* ---------- doc no ---------- */
+function docExists(d){ return appState.lots.some(l=>l.docNo===d)||appState.issueRecords.some(i=>i.docNo===d)||appState.weighingRecords.some(w=>w.docNo===d); }
+function peekDocNo(prefix){
+  const k = dayKey(nowLocalInput()).replace(/-/g,'');
+  let n = (appState.counters[prefix+k]||0)+1, doc;
+  do { doc = `${prefix}-${k}-${String(n).padStart(3,'0')}`; n++; } while (docExists(doc));
+  return doc;
+}
+function commitDocNo(doc){ const p=doc.split('-'); const key=p[0]+p[1]; appState.counters[key]=Math.max(appState.counters[key]||0, parseInt(p[2],10)); }
+
+/* ---------- risk ---------- */
+function daysStored(iso){ const d=new Date(iso); return isNaN(d)?0:Math.max(0,Math.floor((Date.now()-d.getTime())/86400000)); }
+function evaluateLotRisk(lot){
+  const s=appState.settings, days=daysStored(lot.receivedDate), m=num(lot.currentMoisture);
+  let score=0;
+  if (m>s.moistWarn) score+=50; else if (m>s.moistNormal) score+=25;
+  if (days>s.ageMax) score+=40; else if (days>s.ageWarn) score+=20;
+  score=Math.min(score,100);
+  let status='ปกติ', badgeClass='bg-emerald-100 text-emerald-800';
+  if (score>60){ status='เสี่ยงสูง'; badgeClass='bg-red-100 text-red-800'; }
+  else if (score>30){ status='เฝ้าระวัง'; badgeClass='bg-amber-100 text-amber-800'; }
+  return { score, status, badgeClass, days };
+}
+const activeLots    = () => appState.lots.filter(l=>l.status!=='void');
+const availableLots = () => activeLots().filter(l=>num(l.currentWeight)>0);
+
+/* ---------- roles ---------- */
+const NAV_ITEMS = [['dashboard','layout-dashboard','Dashboard'],['receiving','arrow-left-right','บันทึกรับ-จ่าย'],
+  ['weighing','scale','สถานีชั่งน้ำหนัก'],['lots','boxes','จัดการ Lot'],['map','map','แผนผังลาน'],
+  ['moisture','droplets','ตรวจความชื้น'],['issue','arrow-up-right','เบิกจ่าย (FIFO/FEFO)'],
+  ['alerts','bell','ศูนย์แจ้งเตือน'],['reports','file-text','รายงานและส่งออก'],['settings','settings','ตั้งค่าระบบ']];
+const ROLES = {
+  'เจ้าของลาน':{views:'*',perms:{settings:1,void:1,demo:1,reset:1,edit:1,backup:1}},
+  'ผู้จัดการ':{views:'*',perms:{settings:1,void:1,demo:0,reset:0,edit:1,backup:1}},
+  'พนักงานคลัง':{views:['dashboard','receiving','lots','map','issue','alerts'],perms:{edit:1}},
+  'พนักงานชั่งน้ำหนัก':{views:['dashboard','weighing','receiving'],perms:{}},
+  'ผู้ตรวจสอบคุณภาพ':{views:['dashboard','moisture','lots','alerts','reports'],perms:{}}
+};
+const can = p => !!(ROLES[appState.currentUserRole]?.perms?.[p]);
+function allowedViews(){ const r=ROLES[appState.currentUserRole]; return (!r||r.views==='*') ? NAV_ITEMS.map(i=>i[0]) : r.views; }
+function renderNav(){
+  const allow = allowedViews();
+  $('main-nav').innerHTML = NAV_ITEMS.filter(i=>allow.includes(i[0])).map(([id,icon,label])=>`
+    <button onclick="switchView('${id}')" id="nav-${id}" title="${esc(label)}"
+      class="w-full flex items-center justify-between gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition">
+      <span class="flex items-center gap-3 overflow-hidden"><i data-lucide="${icon}" class="w-5 h-5 shrink-0"></i>
+      <span class="sidebar-text truncate">${esc(label)}</span></span>
+      ${id==='alerts'?'<span id="alert-badge" class="hidden bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold sidebar-text">0</span>':''}
+    </button>`).join('');
+  $('btn-demo').classList.toggle('hidden', !can('demo'));
+  $('btn-reset').classList.toggle('hidden', !can('reset'));
+  $('btn-backup').classList.toggle('hidden', !can('backup'));
+  if (window.lucide) lucide.createIcons();
+}
+function changeRole(role){
+  appState.currentUserRole = role;
+  $('user-display-name').textContent = role;
+  $('user-avatar').textContent = role.substring(0,2);
+  logActivity('เปลี่ยนสิทธิ์ผู้ใช้งานเป็น: '+role);
+  saveData(); renderNav();
+  const allow = allowedViews();
+  switchView(allow.includes(currentView) ? currentView : allow[0]);
+}
+
+/* ---------- view switch ---------- */
+let currentView = 'dashboard';
+function switchView(viewId){
+  if (!allowedViews().includes(viewId)){ toast('สิทธิ์ของคุณไม่สามารถเข้าถึงเมนูนี้','warn'); return; }
+  currentView = viewId;
+  NAV_ITEMS.forEach(([v])=>{ $('view-'+v)?.classList.add('hidden'); $('nav-'+v)?.classList.remove('sidebar-active'); });
+  $('view-'+viewId)?.classList.remove('hidden');
+  $('nav-'+viewId)?.classList.add('sidebar-active');
+  $('main-container').scrollTop = 0;
+  closeDrawer();
+  ({dashboard:renderDashboard, weighing:renderWeighingTable, lots:renderLotsTable, map:renderWarehouseMap,
+    moisture:renderMoistureView, issue:renderIssueView, alerts:renderAlertsCenter, reports:renderReports,
+    settings:renderSettings, receiving:prepareReceivingForm})[viewId]?.();
+  if (window.lucide) lucide.createIcons();
+}
+const isMobile = () => window.matchMedia('(max-width:767px)').matches;
+function toggleSidebar(){
+  const sb = $('main-sidebar');
+  if (isMobile()){
+    const open = sb.classList.toggle('drawer-open');
+    $('sidebar-overlay').classList.toggle('hidden', !open);
+    document.body.classList.toggle('drawer-lock', open);
+  } else {
+    sb.classList.toggle('sidebar-collapsed');
+    $('sidebar-toggle-icon')?.setAttribute('data-lucide', sb.classList.contains('sidebar-collapsed')?'panel-left-open':'panel-left-close');
+    if (window.lucide) lucide.createIcons();
+  }
+}
+function closeDrawer(){
+  $('main-sidebar').classList.remove('drawer-open');
+  $('sidebar-overlay').classList.add('hidden');
+  document.body.classList.remove('drawer-lock');
+}
+window.addEventListener('resize', ()=>{ if(!IS_PREVIEW && !isMobile()) closeDrawer(); });
+
+/* ---------- receiving ---------- */
+function zoneOptions(sel){ return appState.settings.zones.map(z=>`<option value="${esc(z.code)}" ${sel===z.code?'selected':''}>กอง ${esc(z.code)}</option>`).join(''); }
+function prepareReceivingForm(){
+  $('rec-datetime').value = nowLocalInput();
+  $('rec-datetime').max = nowLocalInput();
+  $('rec-location').innerHTML = '<option value="">-- เลือกกอง --</option>' + zoneOptions();
+  $('bucket-kg-label').textContent = appState.settings.bucketKg;
+  onRecTypeChange();
+}
+function onRecTypeChange(){
+  const out = $('rec-type').value === 'จ่ายออก';
+  $('rec-doc-no').value = peekDocNo(out?'OUT':'CORN');
+  $('rec-outbound-box').classList.toggle('hidden', !out);
+  $('rec-location-box').classList.toggle('hidden', out);
+  $('rec-moisture-box').classList.toggle('hidden', out);
+  $('rec-product-box').classList.toggle('hidden', out);
+  $('rec-weight-hint').textContent = out
+    ? 'จ่ายออก: รถเข้ามาเปล่า → ออกพร้อมสินค้า จึงต้อง น้ำหนักออก > น้ำหนักเข้า'
+    : 'รับเข้า: รถเข้ามาพร้อมสินค้า → ออกเปล่า จึงต้อง น้ำหนักเข้า > น้ำหนักออก';
+  if (out) refreshSourceLotSelect();
+  calcNetWeight();
+}
+function refreshSourceLotSelect(){
+  const lots = availableLots();
+  $('rec-source-lot').innerHTML = lots.length
+    ? lots.map(l=>`<option value="${esc(l.id)}">${esc(l.lotNumber)} — ${esc(l.product)} — คงเหลือ ${nf(l.currentWeight)} กก. (กอง ${esc(l.location)})</option>`).join('')
+    : '<option value="">-- ไม่มีสินค้าคงเหลือ --</option>';
+}
+function calcNetWeight(){
+  const out = $('rec-type').value === 'จ่ายออก';
+  const wIn = num($('rec-weight-in').value), wOut = num($('rec-weight-out').value);
+  const net = out ? (wOut-wIn) : (wIn-wOut);
+  $('rec-weight-net').value = net>0 ? Math.round(net) : 0;
+  const bad = (wIn>0 && wOut>0 && net<=0);
+  $('rec-weight-net').classList.toggle('bg-red-100', bad);
+  $('rec-weight-net').classList.toggle('bg-emerald-100', !bad);
+  calculatePrice();
+}
+function calculatePrice(){
+  const net = num($('rec-weight-net').value), bucket = num($('price-per-bucket').value);
+  const kg = appState.settings.bucketKg || 15;
+  if (bucket>0){ const perKg = round2(bucket/kg);
+    $('price-per-kg').value = perKg.toFixed(2);
+    $('total-price-display').value = nf(round2(net*perKg),2)+' ฿';
+  } else { $('price-per-kg').value='0.00'; $('total-price-display').value='0.00 ฿'; }
+}
+let submitting = false;
+async function handleReceivingSubmit(e){
+  e.preventDefault();
+  if (submitting) return;
+  const btn=$('rec-submit-btn'), type=$('rec-type').value, out=type==='จ่ายออก';
+  const dt=$('rec-datetime').value, net=num($('rec-weight-net').value), plate=$('rec-plate').value.trim();
+  if (!dt) return toast('กรุณาระบุวันที่และเวลา','warn');
+  if (new Date(dt) > new Date(Date.now()+60000)) return toast('ห้ามบันทึกวันที่ในอนาคต','warn');
+  if (!plate) return toast('กรุณากรอกทะเบียนรถ','warn');
+  if (net<=0) return toast(out?'จ่ายออก: น้ำหนักออกต้องมากกว่าน้ำหนักเข้า':'รับเข้า: น้ำหนักเข้าต้องมากกว่าน้ำหนักออก','error',5000);
+
+  submitting=true; btn.disabled=true;
+  try {
+    const bucket=num($('price-per-bucket').value);
+    const perKg = bucket>0 ? round2(bucket/(appState.settings.bucketKg||15)) : 0;
+    const total = round2(net*perKg), docNo = $('rec-doc-no').value;
+
+    if (out){
+      const lot = appState.lots.find(l=>l.id === $('rec-source-lot').value);
+      if (!lot) { toast('กรุณาเลือก Lot ต้นทาง','warn'); return; }
+      if (net > num(lot.currentWeight)) { toast(`เบิกเกินคงเหลือ: Lot นี้เหลือ ${nf(lot.currentWeight)} กก.`,'error',6000); return; }
+      lot.currentWeight = round2(num(lot.currentWeight)-net);
+      appState.issueRecords.unshift({ id:uid('ISS'), docNo, datetime:dt, lotId:lot.id, lotNumber:lot.lotNumber,
+        customer:$('rec-supplier').value.trim()||$('rec-customer-type').value, plate, weight:net,
+        operator:appState.currentUserRole, remark:$('rec-remark').value.trim(), pricePerKg:perKg, totalPrice:total, status:'active' });
+      appState.weighingRecords.unshift({ id:uid('WT'), docNo, type:'จ่ายออก', plate, supplier:$('rec-supplier').value.trim(),
+        weightIn:num($('rec-weight-in').value), weightOut:num($('rec-weight-out').value), netWeight:net,
+        datetimeIn:dt, datetimeOut:dt, status:'done', refNo:docNo });
+      logActivity(`จ่ายออก ${docNo} จาก ${lot.lotNumber} จำนวน ${nf(net)} กก.`);
+    } else {
+      const moist = num($('rec-moisture').value);
+      if (moist<5 || moist>40) { toast('ความชื้นต้องอยู่ระหว่าง 5–40%','warn'); return; }
+      if (!$('rec-location').value) { toast('กรุณาเลือกตำแหน่งจัดเก็บ','warn'); return; }
+      const zone = appState.settings.zones.find(z=>z.code===$('rec-location').value);
+      const used = zoneUsed(zone.code);
+      if (zone.capacityKg && used+net > zone.capacityKg){
+        const ok = await uiConfirm(`กอง ${zone.code} จะเกินความจุ (${nf(used+net)} / ${nf(zone.capacityKg)} กก.)\nยืนยันบันทึกต่อหรือไม่?`,{danger:true});
+        if (!ok) return;
+      }
+      appState.lots.unshift({ id:uid('LOT'), lotNumber:docNo, docNo, status:'active', transactionType:'รับเข้า',
+        receivedDate:dt, plate, customerType:$('rec-customer-type').value,
+        supplier:$('rec-supplier').value.trim()||$('rec-customer-type').value, product:$('rec-product').value,
+        initialMoisture:moist, currentMoisture:moist, weightIn:num($('rec-weight-in').value),
+        weightOut:num($('rec-weight-out').value), netWeight:net, currentWeight:net,
+        bucketPrice:bucket, pricePerKg:perKg, totalPrice:total,
+        location:$('rec-location').value, remark:$('rec-remark').value.trim() });
+      appState.weighingRecords.unshift({ id:uid('WT'), docNo, type:'รับเข้า', plate, supplier:$('rec-supplier').value.trim(),
+        weightIn:num($('rec-weight-in').value), weightOut:num($('rec-weight-out').value), netWeight:net,
+        datetimeIn:dt, datetimeOut:dt, status:'done', refNo:docNo });
+      logActivity(`รับเข้า ${docNo} จำนวน ${nf(net)} กก. มูลค่า ${nf(total,2)} บาท`);
+    }
+    commitDocNo(docNo);
+    if (!saveData()) return;
+    toast(`บันทึก ${type} สำเร็จ: ${docNo} (${nf(net)} กก. / ${nf(total,2)} บาท)`,'ok',5000);
+    $('form-receiving').reset(); prepareReceivingForm();
+    switchView(out?'issue':'lots');
+  } finally { submitting=false; btn.disabled=false; }
+}
+
+/* ---------- dashboard ---------- */
+let chartInOut=null, chartQuality=null;
+function timeframeRange(){
+  const tf=$('dashboard-timeframe').value;
+  const end=new Date(); end.setHours(23,59,59,999);
+  const start=new Date(); start.setHours(0,0,0,0);
+  if (tf==='7days') start.setDate(start.getDate()-6);
+  if (tf==='30days') start.setDate(start.getDate()-29);
+  return { start, end, days: tf==='today'?1:(tf==='7days'?7:30) };
+}
+function zoneUsed(code){ return activeLots().filter(l=>l.location===code).reduce((a,b)=>a+num(b.currentWeight),0); }
+function renderDashboard(){
+  const lots = activeLots();
+  $('empty-state-notice').classList.toggle('hidden', lots.length>0);
+  const { start, end, days } = timeframeRange();
+  const inRange = iso => { const d=new Date(iso); return !isNaN(d) && d>=start && d<=end; };
+  const todayK = dayKey(nowLocalInput());
+  const totalStock = lots.reduce((a,l)=>a+num(l.currentWeight),0);
+  const inToday = lots.filter(l=>dayKey(l.receivedDate)===todayK).reduce((a,l)=>a+num(l.netWeight),0);
+  const outToday = appState.issueRecords.filter(r=>r.status!=='void'&&dayKey(r.datetime)===todayK).reduce((a,r)=>a+num(r.weight),0);
+  const wSum = totalStock;
+  const avgMoist = wSum>0 ? lots.reduce((a,l)=>a+num(l.currentMoisture)*num(l.currentWeight),0)/wSum : 0;
+  const estValue = round2(lots.reduce((a,l)=>a+num(l.currentWeight)*num(l.pricePerKg),0));
+  const capPct = appState.settings.yardCapacityKg>0 ? Math.min(100,totalStock/appState.settings.yardCapacityKg*100) : 0;
+  let warn=0, risk=0;
+  lots.forEach(l=>{ const s=evaluateLotRisk(l).score; if(s>60) risk++; else if(s>30) warn++; });
+  $('dash-total-stock').innerHTML  = `${nf(totalStock/1000,2)} <span class="text-sm font-normal text-slate-500">ตัน</span>`;
+  $('dash-today-in').innerHTML     = `${nf(inToday/1000,2)} <span class="text-sm font-normal text-slate-500">ตัน</span>`;
+  $('dash-today-out').innerHTML    = `${nf(outToday/1000,2)} <span class="text-sm font-normal text-slate-500">ตัน</span>`;
+  $('dash-avg-moisture').innerHTML = `${nf(avgMoist,1)} <span class="text-sm font-normal text-slate-500">%</span>`;
+  $('dash-count-lots').textContent     = lots.filter(l=>inRange(l.receivedDate)).length;
+  $('dash-count-vehicles').textContent = appState.weighingRecords.filter(w=>w.status!=='void'&&inRange(w.datetimeIn)).length;
+  $('dash-warning-lots').textContent   = warn;
+  $('dash-risk-lots').textContent      = risk;
+  $('dash-est-value').textContent      = nf(estValue,0)+' ฿';
+  $('dash-used-capacity').textContent  = capPct.toFixed(0)+'%';
+  renderCharts(days);
+}
+function renderCharts(days){
+  if (typeof Chart === 'undefined') return;
+  const labels=[], inData=[], outData=[];
+  for (let i=days-1;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const k=dayKey(toLocalInput(d));
+    labels.push(d.toLocaleDateString('th-TH',{day:'2-digit',month:'short'}));
+    inData.push(round2(activeLots().filter(l=>dayKey(l.receivedDate)===k).reduce((a,l)=>a+num(l.netWeight),0)/1000));
+    outData.push(round2(appState.issueRecords.filter(r=>r.status!=='void'&&dayKey(r.datetime)===k).reduce((a,r)=>a+num(r.weight),0)/1000));
+  }
+  if (!chartInOut){
+    chartInOut = new Chart($('chart-inout'),{type:'bar',
+      data:{labels,datasets:[{label:'รับเข้า (ตัน)',data:inData,backgroundColor:'#10b981'},
+        {label:'จ่ายออก (ตัน)',data:outData,backgroundColor:'#3b82f6'}]},
+      options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}});
+  } else { chartInOut.data.labels=labels; chartInOut.data.datasets[0].data=inData;
+           chartInOut.data.datasets[1].data=outData; chartInOut.update(); }
+  const seed = activeLots().filter(l=>l.product==='ข้าวโพดเมล็ด').reduce((a,l)=>a+num(l.currentWeight),0);
+  const cob  = activeLots().filter(l=>l.product==='ข้าวโพดฝัก').reduce((a,l)=>a+num(l.currentWeight),0);
+  if (!chartQuality){
+    chartQuality = new Chart($('chart-quality'),{type:'doughnut',
+      data:{labels:['ข้าวโพดเมล็ด','ข้าวโพดฝัก'],datasets:[{data:[seed,cob],backgroundColor:['#f59e0b','#10b981']}]},
+      options:{responsive:true,maintainAspectRatio:false}});
+  } else { chartQuality.data.datasets[0].data=[seed,cob]; chartQuality.update(); }
+}
+
+/* ---------- weighing ---------- */
+let weighPage=1; const PAGE=25;
+function handleWeighOpen(e){
+  e.preventDefault();
+  const plate=$('wo-plate').value.trim(), wIn=num($('wo-weight-in').value);
+  if (!plate) return toast('กรุณากรอกทะเบียนรถ','warn');
+  if (wIn<=0) return toast('น้ำหนักชั่งเข้าต้องมากกว่า 0','warn');
+  const docNo = peekDocNo('WT');
+  appState.weighingRecords.unshift({ id:uid('WT'), docNo, type:$('wo-type').value, plate,
+    supplier:$('wo-supplier').value.trim(), weightIn:wIn, weightOut:null, netWeight:null,
+    datetimeIn:nowLocalInput(), datetimeOut:null, status:'pending', refNo:null });
+  commitDocNo(docNo);
+  logActivity(`เปิดตั๋วชั่ง ${docNo} ทะเบียน ${plate} (${nf(wIn)} กก.)`);
+  saveData(); $('form-weigh-open').reset();
+  toast(`เปิดตั๋วชั่ง ${docNo} แล้ว — รอชั่งออก`,'ok'); renderWeighingTable();
+}
+async function completeWeigh(id){
+  const w = appState.weighingRecords.find(x=>x.id===id); if(!w) return;
+  const v = await uiPrompt(`ชั่งออก — ตั๋ว ${w.docNo} (ชั่งเข้า ${nf(w.weightIn)} กก.)`,{placeholder:'น้ำหนักชั่งออก (กก.)'});
+  if (v===null) return;
+  const wOut = num(v);
+  if (wOut<=0) return toast('น้ำหนักไม่ถูกต้อง','error');
+  const net = w.type==='จ่ายออก' ? wOut-w.weightIn : w.weightIn-wOut;
+  if (net<=0) return toast(w.type==='จ่ายออก'?'จ่ายออก: น้ำหนักออกต้องมากกว่าเข้า':'รับเข้า: น้ำหนักเข้าต้องมากกว่าออก','error',5000);
+  w.weightOut=wOut; w.netWeight=Math.round(net); w.datetimeOut=nowLocalInput(); w.status='done';
+  logActivity(`ปิดตั๋วชั่ง ${w.docNo} สุทธิ ${nf(w.netWeight)} กก.`);
+  saveData(); renderWeighingTable();
+  toast('ปิดตั๋วชั่งเรียบร้อย กดปุ่ม "สร้างรายการ" เพื่อบันทึกเข้าสต็อก','ok',5000);
+}
+function ticketToTransaction(id){
+  const w = appState.weighingRecords.find(x=>x.id===id); if(!w||w.status!=='done') return;
+  switchView('receiving');
+  $('rec-type').value = w.type; onRecTypeChange();
+  $('rec-plate').value = w.plate; $('rec-supplier').value = w.supplier||'';
+  $('rec-weight-in').value = w.weightIn; $('rec-weight-out').value = w.weightOut;
+  $('rec-datetime').value = w.datetimeOut || nowLocalInput();
+  calcNetWeight();
+  toast(`ดึงข้อมูลจากตั๋ว ${w.docNo} แล้ว กรุณากรอกความชื้น/กอง/ราคา`,'info',6000);
+}
+async function voidWeigh(id){
+  if (!can('void')) return toast('สิทธิ์ของคุณไม่สามารถยกเลิกเอกสาร','warn');
+  const reason = await uiPrompt('เหตุผลการยกเลิกตั๋วชั่ง'); if(!reason) return;
+  const w = appState.weighingRecords.find(x=>x.id===id);
+  w.status='void'; w.voidReason=reason;
+  logActivity(`ยกเลิกตั๋วชั่ง ${w.docNo}: ${reason}`);
+  saveData(); renderWeighingTable(); toast('ยกเลิกตั๋วชั่งแล้ว','ok');
+}
+function pagerHTML(page,total,varName,fn){
+  return `<button onclick="${varName}=Math.max(1,${varName}-1);${fn}()" class="px-3 py-2 bg-slate-100 rounded-lg" ${page<=1?'disabled':''}>ก่อนหน้า</button>
+    <span class="text-slate-500">หน้า ${page} / ${total}</span>
+    <button onclick="${varName}=Math.min(${total},${varName}+1);${fn}()" class="px-3 py-2 bg-slate-100 rounded-lg" ${page>=total?'disabled':''}>ถัดไป</button>`;
+}
+function renderWeighingTable(){
+  const rows = appState.weighingRecords;
+  const total = Math.max(1, Math.ceil(rows.length/PAGE));
+  weighPage = Math.min(weighPage,total);
+  const slice = rows.slice((weighPage-1)*PAGE, weighPage*PAGE);
+  const tb = $('table-weighing-body');
+  if (!rows.length){ tb.innerHTML=`<tr><td colspan="9" class="p-4 text-center text-slate-400">ยังไม่มีตั๋วชั่ง</td></tr>`; $('weigh-pager').innerHTML=''; return; }
+  tb.innerHTML = slice.map(w=>{
+    const st = w.status==='pending' ? '<span class="px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-800 font-bold">รอชั่งออก</span>'
+      : w.status==='void' ? '<span class="px-2 py-0.5 rounded text-xs bg-slate-200 text-slate-600 font-bold">ยกเลิก</span>'
+      : '<span class="px-2 py-0.5 rounded text-xs bg-emerald-100 text-emerald-800 font-bold">สมบูรณ์</span>';
+    return `<tr class="hover:bg-slate-50 ${w.status==='void'?'opacity-50':''}">
+      <td class="p-3 font-mono font-bold text-amber-700" data-label="เลขตั๋ว">${esc(w.docNo)}</td>
+      <td class="p-3 text-xs" data-label="เวลา">${fmtDT(w.datetimeIn)}</td>
+      <td class="p-3 font-bold" data-label="ทะเบียน">${esc(w.plate)}</td>
+      <td class="p-3" data-label="ผู้ขาย/ลูกค้า">${esc(w.supplier||'-')}</td>
+      <td class="p-3 text-right font-mono" data-label="เข้า">${nf(w.weightIn)}</td>
+      <td class="p-3 text-right font-mono" data-label="ออก">${w.weightOut==null?'-':nf(w.weightOut)}</td>
+      <td class="p-3 text-right font-mono font-bold text-emerald-700" data-label="สุทธิ">${w.netWeight==null?'-':nf(w.netWeight)}</td>
+      <td class="p-3 text-center" data-label="สถานะ">${st}</td>
+      <td class="p-3 text-center" data-label="จัดการ"><div class="flex gap-1 justify-end md:justify-center flex-wrap">
+        ${w.status==='pending'?`<button onclick="completeWeigh('${w.id}')" class="btn-xs px-2 py-1.5 bg-amber-500 text-white rounded text-xs">ชั่งออก</button>`:''}
+        ${w.status==='done'&&!w.refNo?`<button onclick="ticketToTransaction('${w.id}')" class="btn-xs px-2 py-1.5 bg-emerald-600 text-white rounded text-xs">สร้างรายการ</button>`:''}
+        ${w.status!=='void'?`<button onclick="printTicket('${w.id}')" class="btn-xs px-2 py-1.5 bg-slate-800 text-white rounded text-xs">พิมพ์ตั๋ว</button>`:''}
+        ${w.status!=='void'&&can('void')?`<button onclick="voidWeigh('${w.id}')" class="btn-xs px-2 py-1.5 bg-red-100 text-red-700 rounded text-xs">ยกเลิก</button>`:''}
+      </div></td></tr>`;
+  }).join('');
+  $('weigh-pager').innerHTML = pagerHTML(weighPage,total,'weighPage','renderWeighingTable');
+}
+function printTicket(id){
+  const w = appState.weighingRecords.find(x=>x.id===id); if(!w) return;
+  const cell='border:1px solid #333;padding:8px';
+  $('print-area').innerHTML = `<div style="padding:24px;font-family:Sarabun,sans-serif;max-width:700px;margin:auto">
+    <h2 style="text-align:center;margin:0">ตั๋วชั่งน้ำหนัก / WEIGH TICKET</h2>
+    <p style="text-align:center;margin:4px 0 16px">Smart Corn WMS</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px">
+      <tr><td style="${cell}"><b>เลขที่ตั๋ว</b></td><td style="${cell}">${esc(w.docNo)}</td><td style="${cell}"><b>ประเภท</b></td><td style="${cell}">${esc(w.type)}</td></tr>
+      <tr><td style="${cell}"><b>ทะเบียนรถ</b></td><td style="${cell}">${esc(w.plate)}</td><td style="${cell}"><b>ผู้ขาย/ลูกค้า</b></td><td style="${cell}">${esc(w.supplier||'-')}</td></tr>
+      <tr><td style="${cell}"><b>เวลาชั่งเข้า</b></td><td style="${cell}">${fmtDT(w.datetimeIn)}</td><td style="${cell}"><b>เวลาชั่งออก</b></td><td style="${cell}">${fmtDT(w.datetimeOut)}</td></tr>
+      <tr><td style="${cell}"><b>น้ำหนักเข้า</b></td><td style="${cell}">${nf(w.weightIn)} กก.</td><td style="${cell}"><b>น้ำหนักออก</b></td><td style="${cell}">${w.weightOut==null?'-':nf(w.weightOut)+' กก.'}</td></tr>
+      <tr><td style="${cell}"><b>น้ำหนักสุทธิ</b></td><td colspan="3" style="${cell};font-size:20px"><b>${w.netWeight==null?'-':nf(w.netWeight)+' กก.'}</b></td></tr>
+    </table>
+    <div style="display:flex;justify-content:space-between;margin-top:64px;font-size:14px">
+      <div style="text-align:center">......................................<br>พนักงานชั่ง</div>
+      <div style="text-align:center">......................................<br>ผู้ขับขี่</div>
+    </div></div>`;
+  document.body.classList.add('print-ticket'); window.print();
+}
+window.addEventListener('afterprint', ()=>{ document.body.classList.remove('print-ticket'); const p=$('print-area'); if(p) p.innerHTML=''; });
+
+/* ---------- lots ---------- */
+let lotPage=1;
+function renderLotsTable(){
+  const q = ($('lot-filter').value||'').toLowerCase().trim();
+  let rows = appState.lots.filter(l=>!q || [l.lotNumber,l.supplier,l.location,l.product,l.plate].some(v=>String(v||'').toLowerCase().includes(q)));
+  const sort = $('lot-sort').value;
+  rows.sort((a,b)=>{
+    if (sort==='date_asc') return new Date(a.receivedDate)-new Date(b.receivedDate);
+    if (sort==='risk_desc') return evaluateLotRisk(b).score-evaluateLotRisk(a).score;
+    if (sort==='weight_desc') return num(b.currentWeight)-num(a.currentWeight);
+    return new Date(b.receivedDate)-new Date(a.receivedDate);
+  });
+  const total = Math.max(1,Math.ceil(rows.length/PAGE));
+  lotPage = Math.min(lotPage,total);
+  const slice = rows.slice((lotPage-1)*PAGE, lotPage*PAGE);
+  const tb = $('table-lots-body');
+  if (!rows.length){ tb.innerHTML=`<tr><td colspan="9" class="p-4 text-center text-slate-400">ไม่พบข้อมูล Lot</td></tr>`; $('lot-pager').innerHTML=''; return; }
+  tb.innerHTML = slice.map(lot=>{
+    const r = evaluateLotRisk(lot), voided = lot.status==='void';
+    return `<tr class="hover:bg-slate-50 ${voided?'opacity-50 line-through':''}">
+      <td class="p-3 font-mono font-bold text-amber-700" data-label="Lot">${esc(lot.lotNumber)}</td>
+      <td class="p-3" data-label="สินค้า">${esc(lot.product)}</td>
+      <td class="p-3" data-label="ผู้ขาย">${esc(lot.supplier)} <span class="text-xs text-slate-400">(${esc(lot.customerType)})</span></td>
+      <td class="p-3" data-label="กอง"><span class="px-2 py-0.5 bg-slate-100 rounded border text-xs font-bold">${esc(lot.location)}</span></td>
+      <td class="p-3 text-right" data-label="รับเข้า">${nf(lot.netWeight)}</td>
+      <td class="p-3 text-right font-bold" data-label="คงเหลือ">${nf(lot.currentWeight)}</td>
+      <td class="p-3 text-center font-semibold text-cyan-700" data-label="ชื้น">${nf(lot.currentMoisture,1)}%</td>
+      <td class="p-3 text-center" data-label="Risk"><span class="px-2 py-0.5 rounded text-xs ${r.badgeClass} font-bold">${r.score} (${r.status}) · ${r.days} วัน</span></td>
+      <td class="p-3 text-center" data-label="จัดการ"><div class="flex gap-1 justify-end md:justify-center flex-wrap">
+        <button onclick="openQRModal('${lot.id}')" class="btn-xs px-2 py-1.5 bg-slate-800 text-white rounded text-xs">QR</button>
+        ${!voided&&can('edit')?`<button onclick="openLotEdit('${lot.id}')" class="btn-xs px-2 py-1.5 bg-amber-500 text-white rounded text-xs">แก้ไข</button>`:''}
+        ${!voided&&can('void')?`<button onclick="voidLot('${lot.id}')" class="btn-xs px-2 py-1.5 bg-red-100 text-red-700 rounded text-xs">ยกเลิก</button>`:''}
+      </div></td></tr>`;
+  }).join('');
+  $('lot-pager').innerHTML = pagerHTML(lotPage,total,'lotPage','renderLotsTable');
+}
+function openLotEdit(id){
+  const lot = appState.lots.find(l=>l.id===id); if(!lot) return;
+  const issued = num(lot.netWeight)-num(lot.currentWeight);
+  openModal(`<h3 class="font-bold text-lg">แก้ไข Lot ${esc(lot.lotNumber)}</h3>
+    <p class="text-xs text-slate-500">เบิกออกไปแล้ว ${nf(issued)} กก. ${issued>0?'(ล็อกการแก้น้ำหนัก)':''}</p>
+    <div class="space-y-3 text-sm">
+      <div><label class="block text-xs font-semibold mb-1">ผู้ขาย/ลูกค้า</label><input id="ed-supplier" maxlength="80" class="w-full border rounded-lg px-3 py-2.5" value="${esc(lot.supplier)}"></div>
+      <div><label class="block text-xs font-semibold mb-1">ทะเบียนรถ</label><input id="ed-plate" maxlength="30" class="w-full border rounded-lg px-3 py-2.5" value="${esc(lot.plate)}"></div>
+      <div><label class="block text-xs font-semibold mb-1">ตำแหน่งจัดเก็บ</label><select id="ed-location" class="w-full border rounded-lg px-3 py-2.5">${zoneOptions(lot.location)}</select></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="block text-xs font-semibold mb-1">ความชื้น (%)</label><input id="ed-moist" type="number" step="0.1" min="5" max="40" class="w-full border rounded-lg px-3 py-2.5" value="${num(lot.currentMoisture)}"></div>
+        <div><label class="block text-xs font-semibold mb-1">ราคา/ถัง</label><input id="ed-bucket" type="number" step="0.01" min="0" class="w-full border rounded-lg px-3 py-2.5" value="${num(lot.bucketPrice)}"></div>
+      </div>
+      <div><label class="block text-xs font-semibold mb-1">น้ำหนักสุทธิ (กก.)</label><input id="ed-net" type="number" min="1" class="w-full border rounded-lg px-3 py-2.5" value="${num(lot.netWeight)}" ${issued>0?'disabled':''}></div>
+      <div><label class="block text-xs font-semibold mb-1">หมายเหตุ</label><input id="ed-remark" maxlength="200" class="w-full border rounded-lg px-3 py-2.5" value="${esc(lot.remark||'')}"></div>
+      <div><label class="block text-xs font-semibold mb-1">เหตุผลการแก้ไข *</label><input id="ed-reason" maxlength="120" class="w-full border rounded-lg px-3 py-2.5" placeholder="เช่น คีย์ทะเบียนผิด"></div>
+    </div>
+    <div class="flex gap-2 pt-2"><button onclick="closeModal()" class="flex-1 bg-slate-200 py-2.5 rounded-lg text-sm">ยกเลิก</button>
+    <button onclick="saveLotEdit('${lot.id}')" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm">บันทึก</button></div>`);
+}
+function saveLotEdit(id){
+  const lot = appState.lots.find(l=>l.id===id);
+  const reason = $('ed-reason').value.trim();
+  if (!reason) return toast('กรุณาระบุเหตุผลการแก้ไข','warn');
+  const before = JSON.stringify({s:lot.supplier,l:lot.location,m:lot.currentMoisture,n:lot.netWeight});
+  lot.supplier = $('ed-supplier').value.trim()||lot.supplier;
+  lot.plate = $('ed-plate').value.trim();
+  lot.location = $('ed-location').value;
+  lot.currentMoisture = num($('ed-moist').value);
+  lot.bucketPrice = num($('ed-bucket').value);
+  lot.pricePerKg = lot.bucketPrice>0 ? round2(lot.bucketPrice/(appState.settings.bucketKg||15)) : 0;
+  if (!$('ed-net').disabled){
+    const newNet = num($('ed-net').value);
+    if (newNet>0){ lot.currentWeight = round2(num(lot.currentWeight)+(newNet-num(lot.netWeight))); lot.netWeight = newNet; }
+  }
+  lot.totalPrice = round2(num(lot.netWeight)*num(lot.pricePerKg));
+  lot.remark = $('ed-remark').value.trim();
+  logActivity(`แก้ไข ${lot.lotNumber} (${reason}) จาก ${before}`);
+  saveData(); closeModal(); renderLotsTable(); toast('บันทึกการแก้ไขแล้ว','ok');
+}
+async function voidLot(id){
+  const lot = appState.lots.find(l=>l.id===id);
+  if (num(lot.currentWeight)!==num(lot.netWeight)) return toast('Lot นี้ถูกเบิกออกบางส่วนแล้ว ต้องยกเลิกใบเบิกก่อน','error',6000);
+  const reason = await uiPrompt(`เหตุผลการยกเลิก ${lot.lotNumber}`); if(!reason) return;
+  lot.status='void'; lot.voidReason=reason; lot.currentWeight=0;
+  logActivity(`ยกเลิก Lot ${lot.lotNumber}: ${reason}`);
+  saveData(); renderLotsTable(); toast('ยกเลิก Lot แล้ว','ok');
+}
+function openQRModal(id){
+  const lot = appState.lots.find(l=>l.id===id); if(!lot) return;
+  const r = evaluateLotRisk(lot);
+  openModal(`<div class="flex items-center justify-between border-b pb-3">
+      <h3 class="font-bold text-lg">รายละเอียด Lot</h3>
+      <button onclick="closeModal()" aria-label="ปิด" class="p-2 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+    <div class="flex flex-col items-center py-2">
+      <div id="qrcode-container" class="p-3 bg-white border rounded-lg"></div>
+      <p class="font-mono font-bold text-lg mt-2">${esc(lot.lotNumber)}</p></div>
+    <div class="text-xs bg-slate-50 p-4 rounded-lg border grid grid-cols-2 gap-1.5">
+      <div><b>สินค้า:</b> ${esc(lot.product)}</div><div><b>ผู้ขาย:</b> ${esc(lot.supplier)}</div>
+      <div><b>ทะเบียน:</b> ${esc(lot.plate)}</div><div><b>กอง:</b> ${esc(lot.location)}</div>
+      <div><b>รับเข้า:</b> ${nf(lot.netWeight)} กก.</div><div><b>คงเหลือ:</b> ${nf(lot.currentWeight)} กก.</div>
+      <div><b>ความชื้น:</b> ${nf(lot.currentMoisture,1)}%</div><div><b>อายุเก็บ:</b> ${r.days} วัน</div>
+      <div><b>ราคา/ถัง:</b> ${nf(lot.bucketPrice,2)} ฿</div><div><b>มูลค่ารับเข้า:</b> ${nf(lot.totalPrice,2)} ฿</div>
+      <div class="col-span-2"><b>Risk:</b> ${r.score} (${r.status})</div>
+      <div class="col-span-2"><b>หมายเหตุ:</b> ${esc(lot.remark||'-')}</div></div>
+    <div class="flex gap-2"><button onclick="closeModal()" class="flex-1 bg-slate-200 py-2.5 rounded-lg text-sm">ปิด</button></div>`,
+    ()=>{ if (typeof QRCode!=='undefined') new QRCode($('qrcode-container'),{text:lot.lotNumber,width:140,height:140,correctLevel:QRCode.CorrectLevel.H}); });
+}
+
+/* ---------- map ---------- */
+function renderWarehouseMap(){
+  $('map-grid-container').innerHTML = appState.settings.zones.map(z=>{
+    const lots = activeLots().filter(l=>l.location===z.code && num(l.currentWeight)>0);
+    const used = lots.reduce((a,l)=>a+num(l.currentWeight),0);
+    const pct = z.capacityKg>0 ? Math.min(100,used/z.capacityKg*100) : 0;
+    const maxRisk = lots.reduce((m,l)=>Math.max(m,evaluateLotRisk(l).score),0);
+    let color='border-slate-300 bg-white', badge='<span class="px-2 py-0.5 rounded text-xs bg-slate-200 text-slate-600">ว่าง</span>';
+    if (lots.length){
+      if (maxRisk>60){ color='border-red-500 bg-red-50/50'; badge='<span class="px-2 py-0.5 rounded text-xs bg-red-500 text-white font-bold">เสี่ยงสูง</span>'; }
+      else if (maxRisk>30){ color='border-amber-500 bg-amber-50/50'; badge='<span class="px-2 py-0.5 rounded text-xs bg-amber-500 text-white font-bold">เฝ้าระวัง</span>'; }
+      else { color='border-emerald-500 bg-emerald-50/50'; badge='<span class="px-2 py-0.5 rounded text-xs bg-emerald-500 text-white font-bold">ปกติ</span>'; }
+    }
+    return `<div class="border-2 ${color} rounded-xl p-4 shadow-sm space-y-3">
+      <div class="flex justify-between items-center border-b pb-2"><h3 class="font-bold text-lg">กอง ${esc(z.code)}</h3>${badge}</div>
+      <p class="text-sm">คงเหลือ <b>${nf(used/1000,2)} ตัน</b> / ความจุ ${nf(z.capacityKg/1000,1)} ตัน</p>
+      <div class="w-full bg-slate-200 rounded-full h-2.5"><div class="h-2.5 rounded-full ${pct>90?'bg-red-500':pct>70?'bg-amber-500':'bg-emerald-500'}" style="width:${pct}%"></div></div>
+      <p class="text-xs text-slate-500">ใช้พื้นที่ ${pct.toFixed(0)}% · ${lots.length} Lot</p>
+      <div class="pt-2 border-t text-xs text-slate-500">${lots.map(l=>`• ${esc(l.lotNumber)} (${esc(l.product)} ${nf(l.currentMoisture,1)}%)`).join('<br>')||'ไม่มีสินค้า'}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- moisture ---------- */
+function renderMoistureView(){
+  const lots = activeLots();
+  $('moist-lot-id').innerHTML = lots.length
+    ? lots.map(l=>`<option value="${esc(l.id)}">${esc(l.lotNumber)} (กอง ${esc(l.location)} — ชื้นล่าสุด ${nf(l.currentMoisture,1)}%)</option>`).join('')
+    : '<option value="">-- ยังไม่มี Lot --</option>';
+  const tb = $('table-moisture-history');
+  if (!appState.moistureRecords.length){ tb.innerHTML=`<tr><td colspan="5" class="p-4 text-center text-slate-400">ยังไม่มีประวัติ</td></tr>`; return; }
+  tb.innerHTML = appState.moistureRecords.slice(0,100).map(m=>{
+    const high = num(m.val) > appState.settings.moistWarn;
+    return `<tr class="hover:bg-slate-50">
+      <td class="p-2.5 text-xs" data-label="วัน-เวลา">${fmtDT(m.datetime)}</td>
+      <td class="p-2.5 font-mono font-bold text-amber-700" data-label="Lot">${esc(m.lotNumber)}</td>
+      <td class="p-2.5 text-center font-bold text-cyan-700" data-label="ชื้น">${nf(m.val,1)}%</td>
+      <td class="p-2.5 text-center" data-label="ประเมิน"><span class="px-2 py-0.5 rounded text-xs font-bold ${high?'bg-red-100 text-red-800':'bg-emerald-100 text-emerald-800'}">${high?'ความชื้นสูง':'ปกติ'}</span></td>
+      <td class="p-2.5 text-xs" data-label="ผู้ตรวจ">${esc(m.inspector)}</td></tr>`;
+  }).join('');
+}
+function handleMoistureSubmit(e){
+  e.preventDefault();
+  const lot = appState.lots.find(l=>l.id===$('moist-lot-id').value);
+  if (!lot) return toast('กรุณาเลือก Lot','warn');
+  const v = num($('moist-val').value);
+  if (v<5||v>40) return toast('ค่าความชื้นต้องอยู่ระหว่าง 5–40%','warn');
+  lot.currentMoisture = v;
+  appState.moistureRecords.unshift({ id:uid('MO'), datetime:new Date().toISOString(), lotId:lot.id,
+    lotNumber:lot.lotNumber, val:v, inspector:$('moist-inspector').value.trim()||appState.currentUserRole,
+    remark:$('moist-remark').value.trim() });
+  logActivity(`อัปเดตความชื้น ${lot.lotNumber} = ${v}%`);
+  saveData(); $('form-moisture').reset(); renderMoistureView(); toast('บันทึกค่าความชื้นแล้ว','ok');
+}
+
+/* ---------- issue ---------- */
+function updateIssueHint(){
+  const lot = availableLots().find(l=>l.id===$('issue-lot-id').value);
+  $('issue-hint').textContent = lot ? `คงเหลือสูงสุด ${nf(lot.currentWeight)} กก.` : '';
+  if (lot) $('issue-weight').max = lot.currentWeight;
+}
+function renderIssueView(){
+  const lots = availableLots();
+  $('issue-lot-id').innerHTML = lots.length
+    ? lots.map(l=>`<option value="${esc(l.id)}">${esc(l.lotNumber)} [เหลือ ${nf(l.currentWeight)} กก. | ชื้น ${nf(l.currentMoisture,1)}%]</option>`).join('')
+    : '<option value="">-- ไม่มีสินค้าคงเหลือ --</option>';
+  updateIssueHint();
+  const box = $('recommendation-cards');
+  if (!lots.length){ box.innerHTML = `<p class="text-sm text-slate-500">ไม่มีสินค้าคงเหลือสำหรับเบิกจ่าย</p>`; }
+  else {
+    const fifo = [...lots].sort((a,b)=>new Date(a.receivedDate)-new Date(b.receivedDate))[0];
+    const fefo = [...lots].sort((a,b)=>evaluateLotRisk(b).score-evaluateLotRisk(a).score)[0];
+    box.innerHTML = `<div class="bg-white p-3 rounded-lg border shadow-sm">
+        <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-bold rounded">FIFO (เก่าสุด)</span>
+        <h4 class="font-bold mt-1">${esc(fifo.lotNumber)}</h4>
+        <p class="text-xs text-slate-500">รับเข้า ${fmtD(fifo.receivedDate)} (${daysStored(fifo.receivedDate)} วัน) · เหลือ ${nf(fifo.currentWeight)} กก.</p>
+        <button onclick="pickLot('${fifo.id}')" class="mt-2 text-xs bg-blue-600 text-white px-3 py-2 rounded">เลือก Lot นี้</button></div>
+      <div class="bg-white p-3 rounded-lg border shadow-sm">
+        <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded">FEFO (เสี่ยงสุด)</span>
+        <h4 class="font-bold mt-1">${esc(fefo.lotNumber)}</h4>
+        <p class="text-xs text-slate-500">ชื้น ${nf(fefo.currentMoisture,1)}% · Risk ${evaluateLotRisk(fefo).score} · เหลือ ${nf(fefo.currentWeight)} กก.</p>
+        <button onclick="pickLot('${fefo.id}')" class="mt-2 text-xs bg-amber-600 text-white px-3 py-2 rounded">เลือก Lot นี้</button></div>`;
+  }
+  const tb = $('table-issue-history');
+  if (!appState.issueRecords.length){ tb.innerHTML=`<tr><td colspan="7" class="p-4 text-center text-slate-400">ยังไม่มีการเบิกจ่าย</td></tr>`; return; }
+  tb.innerHTML = appState.issueRecords.slice(0,100).map(r=>`
+    <tr class="hover:bg-slate-50 ${r.status==='void'?'opacity-50 line-through':''}">
+      <td class="p-2.5 font-mono" data-label="เลขที่">${esc(r.docNo||'-')}</td>
+      <td class="p-2.5 text-xs" data-label="เวลา">${fmtDT(r.datetime)}</td>
+      <td class="p-2.5 font-mono font-bold text-amber-700" data-label="Lot">${esc(r.lotNumber)}</td>
+      <td class="p-2.5" data-label="ลูกค้า">${esc(r.customer)}</td>
+      <td class="p-2.5 text-right font-bold" data-label="น้ำหนัก">${nf(r.weight)}</td>
+      <td class="p-2.5 text-center" data-label="สถานะ">${r.status==='void'?'ยกเลิก':'ปกติ'}</td>
+      <td class="p-2.5 text-center" data-label="จัดการ">${r.status!=='void'&&can('void')?`<button onclick="voidIssue('${r.id}')" class="btn-xs px-2 py-1.5 bg-red-100 text-red-700 rounded text-xs">ยกเลิก</button>`:'-'}</td>
+    </tr>`).join('');
+}
+function pickLot(id){ $('issue-lot-id').value=id; updateIssueHint(); $('issue-weight').focus(); }
+function handleIssueSubmit(e){
+  e.preventDefault();
+  if (submitting) return;
+  const btn=$('issue-submit');
+  const lot = appState.lots.find(l=>l.id===$('issue-lot-id').value);
+  const w = num($('issue-weight').value), customer = $('issue-customer').value.trim();
+  if (!lot) return toast('กรุณาเลือก Lot','warn');
+  if (!customer) return toast('กรุณาระบุลูกค้า/ปลายทาง','warn');
+  if (w<=0) return toast('จำนวนต้องมากกว่า 0','warn');
+  if (w>num(lot.currentWeight)) return toast(`เบิกเกินคงเหลือ (เหลือ ${nf(lot.currentWeight)} กก.)`,'error',6000);
+  submitting=true; btn.disabled=true;
+  try {
+    const docNo = peekDocNo('OUT');
+    lot.currentWeight = round2(num(lot.currentWeight)-w);
+    appState.issueRecords.unshift({ id:uid('ISS'), docNo, datetime:new Date().toISOString(), lotId:lot.id,
+      lotNumber:lot.lotNumber, customer, plate:$('issue-plate').value.trim(), weight:w,
+      operator:$('issue-operator').value.trim()||appState.currentUserRole, remark:$('issue-remark').value.trim(),
+      pricePerKg:num(lot.pricePerKg), totalPrice:round2(w*num(lot.pricePerKg)), status:'active' });
+    commitDocNo(docNo);
+    logActivity(`เบิกจ่าย ${docNo} จาก ${lot.lotNumber} ${nf(w)} กก. → ${customer}`);
+    saveData(); $('form-issue').reset(); renderIssueView();
+    toast(`บันทึกการเบิกจ่ายสำเร็จ (${docNo})`,'ok');
+  } finally { submitting=false; btn.disabled=false; }
+}
+async function voidIssue(id){
+  const r = appState.issueRecords.find(x=>x.id===id); if(!r) return;
+  const reason = await uiPrompt(`เหตุผลการยกเลิกใบเบิก ${r.docNo}`); if(!reason) return;
+  const lot = appState.lots.find(l=>l.id===r.lotId);
+  if (lot) lot.currentWeight = round2(num(lot.currentWeight)+num(r.weight));
+  r.status='void'; r.voidReason=reason;
+  logActivity(`ยกเลิกใบเบิก ${r.docNo} คืนสต็อก ${nf(r.weight)} กก.: ${reason}`);
+  saveData(); renderIssueView(); toast('ยกเลิกใบเบิกและคืนสต็อกแล้ว','ok');
+}
+
+/* ---------- alerts ---------- */
+function buildAlerts(){
+  const s = appState.settings, out=[];
+  activeLots().filter(l=>num(l.currentWeight)>0).forEach(lot=>{
+    const r = evaluateLotRisk(lot);
+    if (num(lot.currentMoisture)>s.moistWarn)
+      out.push({t:'red',title:'ความชื้นสูงเกินเกณฑ์',desc:`${lot.lotNumber} ชื้น ${nf(lot.currentMoisture,1)}% (กอง ${lot.location})`});
+    if (r.days>s.ageMax)
+      out.push({t:'amber',title:'จัดเก็บนานเกินกำหนด',desc:`${lot.lotNumber} เก็บมาแล้ว ${r.days} วัน`});
+  });
+  s.zones.forEach(z=>{
+    const used = zoneUsed(z.code);
+    if (z.capacityKg>0 && used/z.capacityKg*100 >= s.capAlertPct)
+      out.push({t:'amber',title:'พื้นที่กองใกล้เต็ม',desc:`กอง ${z.code} ใช้ไปแล้ว ${(used/z.capacityKg*100).toFixed(0)}%`});
+  });
+  const totalStock = activeLots().reduce((a,l)=>a+num(l.currentWeight),0);
+  if (s.yardCapacityKg>0 && totalStock/s.yardCapacityKg*100 >= s.capAlertPct)
+    out.push({t:'red',title:'ความจุลานรวมใกล้เต็ม',desc:`ใช้ไปแล้ว ${(totalStock/s.yardCapacityKg*100).toFixed(0)}% ของความจุทั้งหมด`});
+  appState.weighingRecords.filter(w=>w.status==='pending').forEach(w=>{
+    if ((Date.now()-new Date(w.datetimeIn))/3600000 > 6)
+      out.push({t:'amber',title:'ตั๋วชั่งค้างเกิน 6 ชั่วโมง',desc:`${w.docNo} ทะเบียน ${w.plate} ยังไม่ชั่งออก`});
+  });
+  return out;
+}
+function refreshBadges(){
+  const n = buildAlerts().length, b = $('alert-badge');
+  if (!b) return;
+  b.textContent = n; b.classList.toggle('hidden', n===0);
+}
+function renderAlertsCenter(){
+  const alerts = buildAlerts(); refreshBadges();
+  $('alerts-container').innerHTML = alerts.length
+    ? alerts.map(a=>`<div class="p-4 rounded-lg border-l-4 ${a.t==='red'?'border-red-500 bg-red-50':'border-amber-500 bg-amber-50'} flex items-start gap-3">
+        <i data-lucide="alert-triangle" class="w-5 h-5 ${a.t==='red'?'text-red-600':'text-amber-600'} shrink-0 mt-0.5"></i>
+        <div><h4 class="font-bold text-sm ${a.t==='red'?'text-red-900':'text-amber-900'}">${esc(a.title)}</h4>
+        <p class="text-xs ${a.t==='red'?'text-red-700':'text-amber-700'}">${esc(a.desc)}</p></div></div>`).join('')
+    : `<p class="text-slate-400 text-center py-8">ไม่มีการแจ้งเตือนในขณะนี้</p>`;
+  if (window.lucide) lucide.createIcons();
+}
+
+/* ---------- reports / export ---------- */
+function reportRows(){
+  const from=$('rep-from').value, to=$('rep-to').value, type=$('rep-type').value;
+  const inRange = iso => (!from || dayKey(iso)>=from) && (!to || dayKey(iso)<=to);
+  if (type==='in')
+    return { head:['เลขที่','วันที่','ผู้ขาย','สินค้า','กอง','น้ำหนัก (กก.)','ชื้น (%)','มูลค่า (บาท)'],
+      rows: activeLots().filter(l=>inRange(l.receivedDate)).map(l=>[l.lotNumber,fmtD(l.receivedDate),l.supplier,l.product,l.location,num(l.netWeight),num(l.currentMoisture),num(l.totalPrice)]),
+      sumIdx:[5,7] };
+  if (type==='out')
+    return { head:['เลขที่','วันที่','Lot','ลูกค้า','ทะเบียน','น้ำหนัก (กก.)','มูลค่า (บาท)'],
+      rows: appState.issueRecords.filter(r=>r.status!=='void'&&inRange(r.datetime)).map(r=>[r.docNo,fmtD(r.datetime),r.lotNumber,r.customer,r.plate||'-',num(r.weight),num(r.totalPrice)]),
+      sumIdx:[5,6] };
+  return { head:['Lot','วันที่รับ','ผู้ขาย','กอง','คงเหลือ (กก.)','ชื้น (%)','อายุ (วัน)','Risk','มูลค่า (บาท)'],
+    rows: activeLots().filter(l=>num(l.currentWeight)>0&&inRange(l.receivedDate)).map(l=>{
+      const r = evaluateLotRisk(l);
+      return [l.lotNumber,fmtD(l.receivedDate),l.supplier,l.location,num(l.currentWeight),num(l.currentMoisture),r.days,r.score,round2(num(l.currentWeight)*num(l.pricePerKg))];
+    }), sumIdx:[4,8] };
+}
+function renderReports(){
+  $('report-date').textContent = new Date().toLocaleDateString('th-TH',{dateStyle:'long'});
+  $('report-author').textContent = appState.currentUserRole;
+  const t = $('rep-type').value;
+  $('report-title').textContent = t==='in'?'รายงานรายการรับเข้า':t==='out'?'รายงานรายการจ่ายออก':'รายงานสต็อกคงเหลือรายล็อต';
+  const { head, rows, sumIdx } = reportRows();
+  $('report-table-head').innerHTML = `<tr class="bg-slate-100">${head.map(h=>`<th class="border border-slate-300 p-2 text-xs">${esc(h)}</th>`).join('')}</tr>`;
+  $('report-table-body').innerHTML = rows.length
+    ? rows.map(r=>`<tr>${r.map((c,i)=>`<td class="border border-slate-300 p-2 ${typeof c==='number'?'text-right':''}" data-label="${esc(head[i])}">${typeof c==='number'?nf(c, i===sumIdx[1]?2:0):esc(c)}</td>`).join('')}</tr>`).join('')
+    : `<tr><td colspan="${head.length}" class="border p-4 text-center text-slate-400">ไม่มีข้อมูลในช่วงที่เลือก</td></tr>`;
+  const sums = sumIdx.map(i=>rows.reduce((a,r)=>a+(Number(r[i])||0),0));
+  $('report-table-foot').innerHTML = rows.length
+    ? `<tr>${head.map((h,i)=>{ if(i===0) return `<td class="border p-2">รวม ${rows.length} รายการ</td>`;
+        const k = sumIdx.indexOf(i); return `<td class="border p-2 text-right">${k>=0?nf(sums[k], k===1?2:0):''}</td>`; }).join('')}</tr>` : '';
+}
+function clearReportRange(){ $('rep-from').value=''; $('rep-to').value=''; renderReports(); }
+function exportCSV(){
+  const { head, rows } = reportRows();
+  const csv = [head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  downloadBlob('\uFEFF'+csv, `SmartCornWMS_${$('rep-type').value}_${dayKey(nowLocalInput())}.csv`, 'text/csv;charset=utf-8');
+  toast('ส่งออก CSV แล้ว (เปิดด้วย Excel ได้ทันที)','ok');
+}
+function exportBackup(){
+  downloadBlob(JSON.stringify(appState,null,2), `SmartCornWMS_Backup_${dayKey(nowLocalInput())}.json`, 'application/json');
+  toast('สำรองข้อมูลเรียบร้อย','ok');
+}
+async function importBackup(input){
+  const file = input.files?.[0]; input.value='';
+  if (!file) return;
+  if (!await uiConfirm('การกู้คืนจะเขียนทับข้อมูลปัจจุบันทั้งหมด ยืนยันหรือไม่?',{danger:true,requireText:'กู้คืน'})) return;
+  try {
+    const p = JSON.parse(await file.text());
+    if (!p || !Array.isArray(p.lots)) throw new Error('bad');
+    appState = { ...JSON.parse(JSON.stringify(DEFAULT_STATE)), ...p, settings:{...DEFAULT_STATE.settings,...(p.settings||{})} };
+    migrate(); saveData(); renderNav(); switchView('dashboard'); toast('กู้คืนข้อมูลสำเร็จ','ok');
+  } catch(e){ toast('ไฟล์สำรองไม่ถูกต้อง','error'); }
+}
+function downloadBlob(content, filename, mime){
+  const url = URL.createObjectURL(new Blob([content],{type:mime}));
+  const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+/* ---------- settings ---------- */
+function renderSettings(){
+  const s = appState.settings;
+  $('setting-moist-normal').value=s.moistNormal; $('setting-moist-warn').value=s.moistWarn;
+  $('setting-age-warn').value=s.ageWarn; $('setting-age-max').value=s.ageMax;
+  $('setting-bucket-kg').value=s.bucketKg; $('setting-capacity').value=s.yardCapacityKg; $('setting-cap-alert').value=s.capAlertPct;
+  $('zone-capacity-box').innerHTML = s.zones.map((z,i)=>`<div><label class="block text-xs font-semibold mb-1">กอง ${esc(z.code)}</label>
+    <input type="number" min="0" data-zone="${i}" value="${num(z.capacityKg)}" class="w-full border rounded-lg p-2.5 text-sm"></div>`).join('');
+  $('audit-log-box').innerHTML = appState.activityLogs.length
+    ? appState.activityLogs.map(l=>`<div class="border-b pb-1"><span class="text-slate-400">${fmtDT(l.ts)}</span> <b class="text-slate-700">[${esc(l.user)}]</b> ${esc(l.action)}</div>`).join('')
+    : '<p class="text-slate-400">ยังไม่มีประวัติ</p>';
+  const editable = can('settings');
+  $('view-settings').querySelectorAll('input,button').forEach(el=>el.disabled = !editable);
+}
+function saveSettings(){
+  if (!can('settings')) return toast('สิทธิ์ของคุณไม่สามารถแก้ไขการตั้งค่า','warn');
+  const g = (id,min,max,def)=>{ const v=num($(id).value); return (v>=min&&v<=max)?v:def; };
+  const s = appState.settings;
+  s.moistNormal = g('setting-moist-normal',5,40,s.moistNormal);
+  s.moistWarn   = g('setting-moist-warn',5,40,s.moistWarn);
+  if (s.moistWarn <= s.moistNormal) return toast('เกณฑ์เฝ้าระวังต้องมากกว่าเกณฑ์ปกติ','error');
+  s.ageWarn = g('setting-age-warn',1,365,s.ageWarn);
+  s.ageMax  = g('setting-age-max',1,365,s.ageMax);
+  if (s.ageMax <= s.ageWarn) return toast('วันเกินกำหนดต้องมากกว่าวันเฝ้าระวัง','error');
+  s.bucketKg = g('setting-bucket-kg',1,100,s.bucketKg);
+  s.yardCapacityKg = g('setting-capacity',1,100000000,s.yardCapacityKg);
+  s.capAlertPct = g('setting-cap-alert',1,100,s.capAlertPct);
+  $('zone-capacity-box').querySelectorAll('input[data-zone]').forEach(inp=>{ s.zones[+inp.dataset.zone].capacityKg = num(inp.value); });
+  logActivity('บันทึกการตั้งค่าระบบ');
+  saveData(); renderSettings(); toast('บันทึกการตั้งค่าแล้ว','ok');
+}
+
+/* ---------- search ---------- */
+let searchTimer=null;
+function onSearchInput(q){ clearTimeout(searchTimer); searchTimer=setTimeout(()=>doSearch(q.trim().toLowerCase()),200); }
+function doSearch(q){
+  const box=$('search-results');
+  if (q.length<2){ box.classList.add('hidden'); return; }
+  const hit = s => String(s||'').toLowerCase().includes(q);
+  const res=[];
+  appState.lots.filter(l=>hit(l.lotNumber)||hit(l.supplier)||hit(l.plate)||hit(l.location))
+    .slice(0,8).forEach(l=>res.push({icon:'boxes',title:l.lotNumber,sub:`${l.supplier} · กอง ${l.location} · เหลือ ${nf(l.currentWeight)} กก.`,act:`openQRModal('${l.id}')`}));
+  appState.weighingRecords.filter(w=>hit(w.docNo)||hit(w.plate)||hit(w.supplier))
+    .slice(0,5).forEach(w=>res.push({icon:'scale',title:w.docNo,sub:`ตั๋วชั่ง · ${w.plate} · ${w.status==='pending'?'รอชั่งออก':'สมบูรณ์'}`,act:`switchView('weighing')`}));
+  appState.issueRecords.filter(r=>hit(r.docNo)||hit(r.customer)||hit(r.lotNumber))
+    .slice(0,5).forEach(r=>res.push({icon:'arrow-up-right',title:r.docNo,sub:`เบิกจ่าย · ${r.customer} · ${nf(r.weight)} กก.`,act:`switchView('issue')`}));
+  box.innerHTML = res.length
+    ? res.map(r=>`<button onclick="${r.act};document.getElementById('search-results').classList.add('hidden')"
+        class="w-full text-left px-3 py-2.5 hover:bg-slate-50 border-b flex items-start gap-2">
+        <i data-lucide="${r.icon}" class="w-4 h-4 mt-0.5 text-amber-600 shrink-0"></i>
+        <span><b class="text-sm">${esc(r.title)}</b><br><span class="text-xs text-slate-500">${esc(r.sub)}</span></span></button>`).join('')
+    : `<p class="p-3 text-sm text-slate-400">ไม่พบผลลัพธ์สำหรับ "${esc(q)}"</p>`;
+  box.classList.remove('hidden');
+  if (window.lucide) lucide.createIcons();
+}
+document.addEventListener('click', e=>{
+  if (IS_PREVIEW) return;
+  if (!e.target.closest('#global-search') && !e.target.closest('#search-results'))
+    $('search-results')?.classList.add('hidden');
+});
+
+/* ---------- demo / reset ---------- */
+async function loadDemoData(){
+  if (!can('demo')) return toast('สิทธิ์ของคุณไม่สามารถโหลดข้อมูลจำลอง','warn');
+  if (appState.lots.length){
+    if (!await uiConfirm('มีข้อมูลจริงอยู่ในระบบแล้ว การโหลดข้อมูลจำลองจะเขียนทับทั้งหมด',{danger:true,requireText:'ทับข้อมูล'})) return;
+  } else if (!await uiConfirm('โหลดข้อมูลจำลองเพื่อทดสอบระบบ?')) return;
+  const d = n => { const x=new Date(); x.setDate(x.getDate()-n); return toLocalInput(x); };
+  appState.lots = [
+    {id:uid('LOT'),lotNumber:'CORN-DEMO-001',docNo:'CORN-DEMO-001',status:'active',transactionType:'รับเข้า',
+     product:'ข้าวโพดเมล็ด',customerType:'บริษัท CPF',receivedDate:d(3),supplier:'บริษัท CPF',plate:'80-1111 สุโขทัย',
+     weightIn:11550,weightOut:6000,netWeight:5550,currentWeight:5550,initialMoisture:14.5,currentMoisture:14.5,
+     bucketPrice:95,pricePerKg:6.33,totalPrice:35131.5,location:'A01',remark:'คุณภาพดี'},
+    {id:uid('LOT'),lotNumber:'CORN-DEMO-002',docNo:'CORN-DEMO-002',status:'active',transactionType:'รับเข้า',
+     product:'ข้าวโพดฝัก',customerType:'ลูกค้าทั่วไป',receivedDate:d(35),supplier:'นายสมชาย',plate:'70-2222 สุโขทัย',
+     weightIn:22000,weightOut:7000,netWeight:15000,currentWeight:12000,initialMoisture:18.2,currentMoisture:18.2,
+     bucketPrice:90,pricePerKg:6.00,totalPrice:90000,location:'B01',remark:'ชื้นสูง เฝ้าระวัง'}
+  ];
+  appState.weighingRecords = appState.lots.map(l=>({id:uid('WT'),docNo:'WT-'+l.lotNumber,type:'รับเข้า',plate:l.plate,
+    supplier:l.supplier,weightIn:l.weightIn,weightOut:l.weightOut,netWeight:l.netWeight,
+    datetimeIn:l.receivedDate,datetimeOut:l.receivedDate,status:'done',refNo:l.docNo}));
+  appState.issueRecords = [{id:uid('ISS'),docNo:'OUT-DEMO-001',datetime:d(1),lotId:appState.lots[1].id,
+    lotNumber:'CORN-DEMO-002',customer:'โรงงานอาหารสัตว์ A',plate:'70-9999',weight:3000,
+    operator:'พนักงานคลัง',pricePerKg:6,totalPrice:18000,status:'active'}];
+  appState.moistureRecords = [];
+  logActivity('โหลดข้อมูลจำลอง');
+  saveData(); switchView('dashboard'); toast('โหลดข้อมูลจำลองแล้ว','ok');
+}
+async function resetData(){
+  if (!can('reset')) return toast('สิทธิ์ของคุณไม่สามารถล้างข้อมูล','warn');
+  if (!await uiConfirm('ข้อมูลทั้งหมดจะถูกลบถาวรและกู้คืนไม่ได้\nแนะนำให้กดสำรอง JSON ก่อน',{danger:true,requireText:'ลบทั้งหมด'})) return;
+  try { localStorage.removeItem(STORAGE_KEY); } catch(_){}
+  location.reload();
+}
+
+/* ---------- init ---------- */
+function bindEvents(){
+  $('form-receiving').addEventListener('submit', handleReceivingSubmit);
+  $('form-receiving').addEventListener('reset', ()=>setTimeout(prepareReceivingForm,0));
+  ['rec-weight-in','rec-weight-out'].forEach(id=>$(id).addEventListener('input', calcNetWeight));
+  $('price-per-bucket').addEventListener('input', calculatePrice);
+  $('form-weigh-open').addEventListener('submit', handleWeighOpen);
+  $('form-moisture').addEventListener('submit', handleMoistureSubmit);
+  $('form-issue').addEventListener('submit', handleIssueSubmit);
+  window.addEventListener('online',  ()=>$('online-dot').className='inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1');
+  window.addEventListener('offline', ()=>{ $('online-dot').className='inline-block w-2 h-2 rounded-full bg-red-500 mr-1';
+    toast('ออฟไลน์: ข้อมูลยังบันทึกลงเครื่องได้ตามปกติ','warn'); });
+  window.addEventListener('storage', e=>{
+    if (e.key === STORAGE_KEY){ loadData(); refreshBadges(); toast('ข้อมูลถูกอัปเดตจากแท็บอื่น','info'); switchView(currentView); }
+  });
+}
+function checkLibs(){
+  const miss=[];
+  if (typeof Chart==='undefined') miss.push('Chart.js (กราฟ)');
+  if (typeof QRCode==='undefined') miss.push('QRCode (คิวอาร์)');
+  if (typeof lucide==='undefined') miss.push('Lucide (ไอคอน)');
+  if (miss.length) toast('โหลดไลบรารีไม่ครบ: '+miss.join(', ')+' — ระบบยังใช้งานส่วนอื่นได้','warn',9000);
+}
+function initApp(){
+  let inIframe=false; try { inIframe = window.self!==window.top; } catch(e){ inIframe=true; }
+  if (inIframe) $('btn-preview').classList.add('hidden');
+  loadData();
+  $('role-selector').value = appState.currentUserRole;
+  $('user-display-name').textContent = appState.currentUserRole;
+  $('user-avatar').textContent = appState.currentUserRole.substring(0,2);
+  renderNav(); bindEvents(); checkLibs();
+  prepareReceivingForm(); refreshBadges();
+  switchView(allowedViews()[0]);
+  if (window.lucide) lucide.createIcons();
+  try { if (inIframe) parent.postMessage('WMS_READY','*'); } catch(e){}
+}
+if (!IS_PREVIEW) window.addEventListener('DOMContentLoaded', initApp);
+</script>
 </body>
 </html>

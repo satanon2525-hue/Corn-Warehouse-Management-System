@@ -3,45 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบบริหารจัดการคลังสินค้าและลานข้าวโพด (Smart Corn WMS)</title>
-    <!-- Tailwind CSS for Responsive UI & Utility Styling -->
+    <title>Mockup - Smart Corn WMS (Desktop / Mobile Preview)</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js for Dynamic Dashboard Analytics -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        * { font-family: 'Sarabun', sans-serif; }
+
+        /* Frame Transitions */
+        .preview-frame {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Mobile Shell Styles */
+        .mobile-shell {
+            width: 390px;
+            height: 844px;
+            border-radius: 48px;
+            border: 12px solid #1e293b;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 2px #334155;
+            position: relative;
+        }
+
+        /* Mobile Notch / Dynamic Island */
+        .mobile-shell::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 28px;
+            background-color: #1e293b;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+            z-index: 50;
+        }
+
+        /* Desktop Shell Styles */
+        .desktop-shell {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 h-screen flex flex-col overflow-hidden">
+
+    <!-- TOP CONTROLLER BAR -->
+    <header class="bg-slate-800 border-b border-slate-700 h-16 px-6 flex items-center justify-between shrink-0 z-10 shadow-md">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-amber-500 rounded-lg text-slate-900 font-bold">
+                <i data-lucide="smartphone-charging" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-white text-base leading-tight">Smart Corn WMS - Responsive Preview Tester</h1>
+                <p class="text-xs text-slate-400">ระบบจำลองการแสดงผลบนอุปกรณ์ (Mockup Viewer)</p>
+            </div>
+        </div>
+
+        <!-- DEVICE SWITCHING BUTTONS -->
+        <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700 gap-1">
+            <button id="btn-desktop" onclick="switchDevice('desktop')" class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition bg-amber-500 text-slate-950 shadow">
+                <i data-lucide="monitor" class="w-4 h-4"></i>
+                <span>คอมพิวเตอร์ (Desktop)</span>
+            </button>
+            <button id="btn-mobile" onclick="switchDevice('mobile')" class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
+                <i data-lucide="smartphone" class="w-4 h-4"></i>
+                <span>มือถือ (Mobile)</span>
+            </button>
+        </div>
+
+        <!-- DEVICE INFO BADGE -->
+        <div class="hidden md:flex items-center gap-2 text-xs text-slate-400 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-700/50">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="device-info-text">โหมดปัจจุบัน: Desktop (100% Full Width)</span>
+        </div>
+    </header>
+
+    <!-- PREVIEW AREA CONTAINER -->
+    <main class="flex-1 bg-slate-950 p-4 md:p-6 flex items-center justify-center overflow-auto relative">
+        
+        <!-- IFRAME HOLDER FRAME -->
+        <div id="frame-wrapper" class="preview-frame desktop-shell bg-white overflow-hidden relative">
+            <iframe id="app-iframe" class="w-full h-full border-none" title="Smart Corn WMS App"></iframe>
+        </div>
+
+    </main>
+
+    <!-- EMBEDDED APPLICATION CODE -->
+    <script>
+        const originalHtmlCode = `<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบริหารจัดการคลังสินค้าและลานข้าวโพด (Smart Corn WMS)</title>
+    <!-- Tailwind CSS for Responsive UI & Utility Styling -->
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <!-- Chart.js for Dynamic Dashboard Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"><\/script>
     <!-- QRCode.js Library for QR Code Generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
         * { font-family: 'Sarabun', sans-serif; }
         .sidebar-active { background-color: #1e293b; color: #38bdf8; border-right: 4px solid #38bdf8; }
+        .bottom-nav-active { color: #f59e0b; font-weight: bold; }
         @media print {
             .no-print { display: none !important; }
             .print-only { display: block !important; }
         }
+        /* Custom Transition for Collapsible Sidebar */
+        aside { transition: width 0.3s ease, transform 0.3s ease; }
+        .sidebar-collapsed .sidebar-text { display: none !important; }
+        .sidebar-collapsed { width: 5rem !important; }
+        .sidebar-collapsed .sidebar-header-text { display: none !important; }
+        .sidebar-collapsed .user-info-text { display: none !important; }
+        .sidebar-collapsed .sidebar-footer { display: none !important; }
+        .sidebar-collapsed nav button { justify-content: center; padding-left: 0; padding-right: 0; }
+        
+        /* Mobile Overlay Sidebar Adjustment */
+        @media (max-width: 767px) {
+            #main-sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                z-index: 50;
+                transform: translateX(-100%);
+            }
+            #main-sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            .sidebar-collapsed {
+                width: 16rem !important;
+            }
+            .sidebar-collapsed .sidebar-text,
+            .sidebar-collapsed .sidebar-header-text,
+            .sidebar-collapsed .user-info-text,
+            .sidebar-collapsed .sidebar-footer {
+                display: block !important;
+            }
+            .sidebar-collapsed nav button {
+                justify-content: flex-start !important;
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+            }
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 flex h-screen overflow-hidden">
+<body class="bg-slate-100 text-slate-800 flex flex-col md:flex-row h-screen overflow-hidden">
 
-    <!-- SIDEBAR NAVIGATION -->
-    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col no-print shrink-0 shadow-lg">
+    <!-- MOBILE OVERLAY BACKDROP -->
+    <div id="sidebar-backdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/60 z-40 hidden md:hidden"></div>
+
+    <!-- SIDEBAR NAVIGATION (Desktop & Drawer Mobile) -->
+    <aside id="main-sidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col no-print shrink-0 shadow-lg relative z-50 h-full">
         <div class="p-4 border-b border-slate-800 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <i data-lucide="wheat" class="text-amber-500 w-8 h-8"></i>
-                <div>
-                    <h1 class="font-bold text-white text-lg leading-tight">Smart Corn WMS</h1>
-                    <span class="text-xs text-slate-400">ระบบบริหารคลังลานข้าวโพด</span>
+            <div class="flex items-center gap-2 overflow-hidden">
+                <i data-lucide="wheat" class="text-amber-500 w-8 h-8 shrink-0"></i>
+                <div class="sidebar-header-text">
+                    <h1 class="font-bold text-white text-lg leading-tight truncate">Smart Corn WMS</h1>
+                    <span class="text-xs text-slate-400 truncate block">ระบบบริหารคลังลานข้าวโพด</span>
                 </div>
             </div>
+            <!-- Sidebar Collapse Toggle Button -->
+            <button onclick="toggleSidebar()" class="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition">
+                <i data-lucide="panel-left-close" id="sidebar-toggle-icon" class="w-5 h-5"></i>
+            </button>
         </div>
 
         <!-- User Info / Role Indicator -->
-        <div class="p-3 bg-slate-800/50 m-2 rounded-lg flex items-center gap-3 border border-slate-700/50">
-            <div class="w-10 h-10 rounded-full bg-amber-500 text-slate-900 font-bold flex items-center justify-center text-lg" id="user-avatar">
+        <div class="p-3 bg-slate-800/50 m-2 rounded-lg flex items-center gap-3 border border-slate-700/50 overflow-hidden">
+            <div class="w-10 h-10 rounded-full bg-amber-500 text-slate-900 font-bold flex items-center justify-center text-lg shrink-0" id="user-avatar">
                 เจ้า
             </div>
-            <div class="overflow-hidden">
+            <div class="overflow-hidden user-info-text">
                 <p class="font-semibold text-white text-sm truncate" id="user-display-name">เจ้าของลาน (Owner)</p>
                 <select id="role-selector" onchange="changeRole(this.value)" class="bg-slate-900 text-xs text-amber-400 border border-slate-700 rounded px-1 py-0.5 mt-1 focus:outline-none w-full">
                     <option value="เจ้าของลาน">เจ้าของลาน</option>
@@ -53,76 +197,79 @@
             </div>
         </div>
 
-        <!-- Main Navigation Links -->
+        <!-- Main Navigation Links (Desktop/Drawer) -->
         <nav class="flex-1 overflow-y-auto py-2 px-2 space-y-1 text-sm">
-            <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition sidebar-active">
-                <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
+            <button onclick="switchView('dashboard')" id="nav-dashboard" title="Dashboard" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition sidebar-active">
+                <i data-lucide="layout-dashboard" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">Dashboard</span>
             </button>
-            <button onclick="switchView('receiving')" id="nav-receiving" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="arrow-left-right" class="w-5 h-5"></i> บันทึกรับ-จ่ายข้าวโพด
+            <button onclick="switchView('receiving')" id="nav-receiving" title="บันทึกรับ-จ่ายข้าวโพด" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
+                <i data-lucide="arrow-left-right" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">บันทึกรับ-จ่ายข้าวโพด</span>
             </button>
-            <button onclick="switchView('weighing')" id="nav-weighing" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="scale" class="w-5 h-5"></i> ระบบชั่งน้ำหนัก
+            <button onclick="switchView('weighing')" id="nav-weighing" title="ระบบชั่งน้ำหนัก" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
+                <i data-lucide="scale" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">ระบบชั่งน้ำหนัก</span>
             </button>
-            <button onclick="switchView('lots')" id="nav-lots" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="boxes" class="w-5 h-5"></i> จัดการ Lot ข้าวโพด
+            <button onclick="switchView('lots')" id="nav-lots" title="จัดการ Lot ข้าวโพด" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
+                <i data-lucide="boxes" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">จัดการ Lot ข้าวโพด</span>
             </button>
-            <button onclick="switchView('map')" id="nav-map" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="map" class="w-5 h-5"></i> แผนผังลานข้าวโพด (Map)
+            <button onclick="switchView('map')" id="nav-map" title="แผนผังลานข้าวโพด (Map)" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
+                <i data-lucide="map" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">แผนผังลานข้าวโพด (Map)</span>
             </button>
-            <button onclick="switchView('moisture')" id="nav-moisture" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="droplets" class="w-5 h-5"></i> ตรวจบันทึกความชื้น
+            <button onclick="switchView('moisture')" id="nav-moisture" title="ตรวจบันทึกความชื้น" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
+                <i data-lucide="droplets" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">ตรวจบันทึกความชื้น</span>
             </button>
-            <button onclick="switchView('issue')" id="nav-issue" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="arrow-up-right" class="w-5 h-5"></i> เบิกจ่ายสินค้า (FIFO/FEFO)
+            <button onclick="switchView('issue')" id="nav-issue" title="เบิกจ่ายสินค้า (FIFO/FEFO)" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
+                <i data-lucide="arrow-up-right" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">เบิกจ่ายสินค้า (FIFO/FEFO)</span>
             </button>
-            <button onclick="switchView('alerts')" id="nav-alerts" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <div class="flex items-center gap-3">
-                    <i data-lucide="bell" class="w-5 h-5"></i> ศูนย์แจ้งเตือน
+            <button onclick="switchView('alerts')" id="nav-alerts" title="ศูนย์แจ้งเตือน" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <i data-lucide="bell" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">ศูนย์แจ้งเตือน</span>
                 </div>
-                <span id="alert-badge" class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold hidden">0</span>
+                <span id="alert-badge" class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold hidden sidebar-text">0</span>
             </button>
-            <button onclick="switchView('reports')" id="nav-reports" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="file-text" class="w-5 h-5"></i> รายงานและส่งออก
+            <button onclick="switchView('reports')" id="nav-reports" title="รายงานและส่งออก" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
+                <i data-lucide="file-text" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">รายงานและส่งออก</span>
             </button>
-            <button onclick="switchView('settings')" id="nav-settings" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="settings" class="w-5 h-5"></i> ตั้งค่าเกณฑ์ระบบ
+            <button onclick="switchView('settings')" id="nav-settings" title="ตั้งค่าเกณฑ์ระบบ" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition">
+                <i data-lucide="settings" class="w-5 h-5 shrink-0"></i> <span class="sidebar-text truncate">ตั้งค่าเกณฑ์ระบบ</span>
             </button>
         </nav>
 
-        <div class="p-3 border-t border-slate-800 text-xs text-slate-500 text-center">
-            Smart Corn WMS v1.0 Standard Edition
+        <div class="p-3 border-t border-slate-800 text-xs text-slate-500 text-center sidebar-footer">
+            Smart Corn WMS v1.0
         </div>
     </aside>
 
     <!-- MAIN CONTENT AREA -->
-    <main class="flex-1 flex flex-col overflow-hidden bg-slate-50">
+    <main class="flex-1 flex flex-col overflow-hidden bg-slate-50 relative pb-16 md:pb-0">
         <!-- TOP NAVBAR -->
-        <header class="bg-white border-b border-slate-200 h-16 px-6 flex items-center justify-between shrink-0 no-print">
-            <div class="flex items-center gap-4 flex-1 max-w-xl">
+        <header class="bg-white border-b border-slate-200 h-16 px-4 md:px-6 flex items-center justify-between shrink-0 no-print gap-3">
+            <div class="flex items-center gap-3 flex-1 max-w-xl">
+                <!-- Mobile Menu / Toggle Button (Shows on mobile) -->
+                <button onclick="toggleSidebar()" class="p-2 text-slate-600 hover:bg-slate-100 rounded-lg shrink-0">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
                 <div class="relative w-full">
                     <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="global-search" oninput="handleGlobalSearch(this.value)" placeholder="ค้นหา Lot Number, ทะเบียนรถ, ผู้ขาย, ตำแหน่งจัดเก็บ..." class="w-full pl-9 pr-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+                    <input type="text" id="global-search" oninput="handleGlobalSearch(this.value)" placeholder="ค้นหา Lot Number, ทะเบียนรถ..." class="w-full pl-9 pr-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
                 </div>
             </div>
 
-            <div class="flex items-center gap-3">
-                <button onclick="toggleDemoData()" class="px-3 py-1.5 bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg hover:bg-amber-200 transition border border-amber-300">
-                    ⚡ โหมดข้อมูลจำลอง (Demo Mode)
+            <div class="flex items-center gap-2 md:gap-3 shrink-0">
+                <button onclick="toggleDemoData()" class="px-2.5 py-1.5 bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg hover:bg-amber-200 transition border border-amber-300">
+                    ⚡ <span class="hidden sm:inline">โหมดข้อมูลจำลอง</span> (Demo)
                 </button>
-                <div class="h-6 w-px bg-slate-200"></div>
-                <button onclick="resetData()" class="text-xs text-red-500 hover:text-red-700 underline">
-                    ล้างข้อมูลทั้งหมด
+                <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
+                <button onclick="resetData()" class="text-xs text-red-500 hover:text-red-700 underline hidden sm:inline">
+                    ล้างข้อมูล
                 </button>
             </div>
         </header>
 
         <!-- VIEW PANELS CONTAINER -->
-        <div class="flex-1 overflow-y-auto p-6" id="main-container">
+        <div class="flex-1 overflow-y-auto p-4 md:p-6" id="main-container">
 
             <!-- ================= VIEW 1: DASHBOARD ================= -->
             <section id="view-dashboard" class="space-y-6">
-                <!-- Filter Bar & Quick Stats -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h2 class="text-2xl font-bold text-slate-800">ภาพรวมคลังและลานข้าวโพด</h2>
@@ -137,7 +284,6 @@
                     </div>
                 </div>
 
-                <!-- EMPTY STATE WARNING IF NO DATA -->
                 <div id="empty-state-notice" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
                     <i data-lucide="inbox" class="w-12 h-12 text-amber-500 mx-auto mb-2"></i>
                     <h3 class="font-bold text-lg text-amber-900">ยังไม่มีข้อมูลในระบบ</h3>
@@ -147,7 +293,6 @@
                     </button>
                 </div>
 
-                <!-- CARDS GRID -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
                         <div>
@@ -182,7 +327,6 @@
                     </div>
                 </div>
 
-                <!-- SECONDARY CARDS GRID -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                     <div class="bg-white p-3.5 rounded-lg border border-slate-200 shadow-sm text-center">
                         <span class="text-xs text-slate-500 block">จำนวน Lot ทั้งหมด</span>
@@ -210,7 +354,6 @@
                     </div>
                 </div>
 
-                <!-- CHARTS ROW -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                         <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -227,7 +370,7 @@
                 </div>
             </section>
 
-            <!-- ================= VIEW 2: RECEIVING / RECORD FORM ================= -->
+            <!-- ================= VIEW 2: RECEIVING ================= -->
             <section id="view-receiving" class="hidden space-y-6">
                 <div class="flex items-center justify-between">
                     <div>
@@ -238,8 +381,6 @@
 
                 <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                     <form id="form-receiving" onsubmit="handleReceivingSubmit(event)" class="space-y-6">
-                        
-                        <!-- 1. ประเภทรายการ & ข้อมูลทั่วไป -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">1. ประเภทรายการ *</label>
@@ -258,7 +399,6 @@
                             </div>
                         </div>
 
-                        <!-- 2. ทะเบียนรถ & ประเภทลูกค้า & สินค้า -->
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">2. ทะเบียนรถ *</label>
@@ -284,7 +424,6 @@
                             </div>
                         </div>
 
-                        <!-- 5, 6, 7, 8. ตรวจสอบความชื้น & ชั่งน้ำหนัก & คำนวณอัตโนมัติ -->
                         <div class="border-t border-slate-200 pt-4 bg-slate-50 p-4 rounded-lg space-y-4">
                             <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2">
                                 <i data-lucide="scale" class="w-4 h-4 text-amber-600"></i> ตรวจสอบคุณภาพและน้ำหนัก
@@ -310,7 +449,6 @@
                             </div>
                         </div>
 
-                        <!-- 9. เครื่องช่วยคิดคำนวณราคาต่อถัง -->
                         <div class="border border-amber-200 bg-amber-50/60 p-4 rounded-xl space-y-3">
                             <div class="flex items-center justify-between">
                                 <h3 class="font-bold text-amber-900 text-sm flex items-center gap-2">
@@ -337,7 +475,6 @@
                             </p>
                         </div>
 
-                        <!-- ตำแหน่งจัดเก็บ & หมายเหตุ -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">ตำแหน่งจัดเก็บ (กอง/Zone) *</label>
@@ -357,7 +494,6 @@
                             </div>
                         </div>
 
-                        <!-- Submit Buttons -->
                         <div class="flex justify-end gap-3 pt-4 border-t border-slate-200">
                             <button type="reset" onclick="resetFormCalculations()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg text-sm">ล้างข้อมูล</button>
                             <button type="submit" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm flex items-center gap-2 shadow-md transition">
@@ -392,7 +528,6 @@
                                 </tr>
                             </thead>
                             <tbody id="table-weighing-body" class="divide-y divide-slate-200">
-                                <!-- Dynamic Render -->
                             </tbody>
                         </table>
                     </div>
@@ -425,7 +560,6 @@
                                 </tr>
                             </thead>
                             <tbody id="table-lots-body" class="divide-y divide-slate-200">
-                                <!-- Dynamic Render -->
                             </tbody>
                         </table>
                     </div>
@@ -439,8 +573,7 @@
                     <p class="text-sm text-slate-500">แสดงสถานะกองข้าวโพดในแต่ละ Zone ตามระดับความเสี่ยง</p>
                 </div>
 
-                <!-- Legend Indicator -->
-                <div class="flex items-center gap-6 bg-white p-3 rounded-lg border border-slate-200 text-xs">
+                <div class="flex flex-wrap items-center gap-4 md:gap-6 bg-white p-3 rounded-lg border border-slate-200 text-xs">
                     <span class="font-bold text-slate-700">คำอธิบายสี:</span>
                     <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-300"></span> ว่าง (Empty)</span>
                     <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> ปกติ (Normal)</span>
@@ -448,9 +581,7 @@
                     <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500"></span> มีความเสี่ยงสูง (High Risk)</span>
                 </div>
 
-                <!-- Interactive Grid Map -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="map-grid-container">
-                    <!-- Dynamic Interactive Map Piles Rendered Here -->
                 </div>
             </section>
 
@@ -468,7 +599,6 @@
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">เลือก Lot Number *</label>
                                 <select id="moist-lot-id" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                                    <!-- Dynamic Options -->
                                 </select>
                             </div>
                             <div>
@@ -503,7 +633,6 @@
                                     </tr>
                                 </thead>
                                 <tbody id="table-moisture-history" class="divide-y divide-slate-200">
-                                    <!-- Dynamic Render -->
                                 </tbody>
                             </table>
                         </div>
@@ -518,17 +647,14 @@
                     <p class="text-sm text-slate-500">ระบบแนะนำการจ่ายตามหลัก FIFO (เก่าสุด) และ FEFO (เสี่ยงสุด)</p>
                 </div>
 
-                <!-- SMART RECOMMENDATION BANNER -->
                 <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-5">
                     <h3 class="font-bold text-indigo-900 flex items-center gap-2 text-base">
                         <i data-lucide="lightbulb" class="w-5 h-5 text-indigo-600"></i> ข้อแนะนำการเบิกจ่ายสินค้า (Smart Recommendation)
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3" id="recommendation-cards">
-                        <!-- Dynamic Recommendations -->
                     </div>
                 </div>
 
-                <!-- ISSUE FORM -->
                 <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                     <h3 class="font-bold text-slate-800 mb-4">แบบฟอร์มการบันทึกเบิกจ่าย</h3>
                     <form id="form-issue" onsubmit="handleIssueSubmit(event)" class="space-y-4">
@@ -536,7 +662,6 @@
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">เลือก Lot ที่ต้องการเบิก *</label>
                                 <select id="issue-lot-id" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                                    <!-- Dynamic Lot Options -->
                                 </select>
                             </div>
                             <div>
@@ -577,7 +702,6 @@
                 </div>
 
                 <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3" id="alerts-container">
-                    <!-- Dynamic Alerts List -->
                 </div>
             </section>
 
@@ -613,7 +737,6 @@
                                 </tr>
                             </thead>
                             <tbody id="report-table-body">
-                                <!-- Dynamic Render -->
                             </tbody>
                         </table>
                     </div>
@@ -661,10 +784,54 @@
             </section>
 
         </div>
+
+        <!-- BOTTOM NAVIGATION BAR (Mobile Only) -->
+        <nav id="bottom-navigation" class="md:hidden absolute bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 text-slate-400 flex items-center overflow-x-auto py-2 px-1 z-30 no-print shadow-lg space-x-1">
+            <button onclick="switchView('dashboard')" id="bnav-dashboard" class="flex flex-col items-center justify-center min-w-[4.2rem] py-1 text-[10px] bottom-nav-active">
+                <i data-lucide="layout-dashboard" class="w-5 h-5 mb-0.5"></i>
+                <span class="truncate">Dashboard</span>
+            </button>
+            <button onclick="switchView('receiving')" id="bnav-receiving" class="flex flex-col items-center justify-center min-w-[4.2rem] py-1 text-[10px]">
+                <i data-lucide="arrow-left-right" class="w-5 h-5 mb-0.5"></i>
+                <span class="truncate">รับ-จ่าย</span>
+            </button>
+            <button onclick="switchView('weighing')" id="bnav-weighing" class="flex flex-col items-center justify-center min-w-[4.2rem] py-1 text-[10px]">
+                <i data-lucide="scale" class="w-5 h-5 mb-0.5"></i>
+                <span class="truncate">ชั่งน้ำหนัก</span>
+            </button>
+            <button onclick="switchView('lots')" id="bnav-lots" class="flex flex-col items-center justify-center min-w-[4.2rem] py-1 text-[10px]">
+                <i data-lucide="boxes" class="w-5 h-5 mb-0.5"></i>
+                <span class="truncate">Lot สินค้า</span>
+            </button>
+            <button onclick="switchView('map')" id="bnav-map" class="flex flex-col items-center justify-center min-w-[4.2rem] py-1 text-[10px]">
+                <i data-lucide="map" class="w-5 h-5 mb-0.5"></i>
+                <span class="truncate">ผังลาน</span>
+            </button>
+            <button onclick="switchView('moisture')" id="bnav-moisture" class="flex flex-col items-center justify-center min-w-[4.2rem] py-1 text-[10px]">
+                <i data-lucide="droplets" class="w-5 h-5 mb-0.5"></i>
+                <span class="truncate">ความชื้น</span>
+            </button>
+            <button onclick="switchView('issue')" id="bnav-issue" class="flex flex-col items-center justify-center min-w-[4.2rem] py-1 text-[10px]">
+                <i data-lucide="arrow-up-right" class="w-5 h-5 mb-0.5"></i>
+                <span class="truncate">เบิกจ่าย</span>
+            </button>
+            <button onclick="switchView('alerts')" id="bnav-alerts" class="flex flex-col items-center justify-center min-w-[4.2rem] py-1 text-[10px] relative">
+                <i data-lucide="bell" class="w-5 h-5 mb-0.5"></i>
+                <span class="truncate">แจ้งเตือน</span>
+            </button>
+            <button onclick="switchView('reports')" id="bnav-reports" class="flex flex-col items-center justify-center min-w-[4.2rem] py-1 text-[10px]">
+                <i data-lucide="file-text" class="w-5 h-5 mb-0.5"></i>
+                <span class="truncate">รายงาน</span>
+            </button>
+            <button onclick="switchView('settings')" id="bnav-settings" class="flex flex-col items-center justify-center min-w-[4.2rem] py-1 text-[10px]">
+                <i data-lucide="settings" class="w-5 h-5 mb-0.5"></i>
+                <span class="truncate">ตั้งค่า</span>
+            </button>
+        </nav>
     </main>
 
     <!-- MODAL FOR QR CODE & LOT DETAIL -->
-    <div id="modal-qr" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50">
+    <div id="modal-qr" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
             <div class="flex items-center justify-between border-b pb-3">
                 <h3 class="font-bold text-slate-800 text-lg">รายละเอียด Lot & QR Code</h3>
@@ -675,7 +842,6 @@
                 <p class="font-mono font-bold text-lg text-slate-800 mt-2" id="modal-lot-number">CORN-XXXX</p>
             </div>
             <div class="text-xs space-y-2 bg-slate-50 p-4 rounded-lg border border-slate-200" id="modal-lot-info">
-                <!-- Dynamic Info -->
             </div>
             <div class="flex gap-2 pt-2">
                 <button onclick="window.print()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-2 rounded-lg font-medium">พิมพ์ QR Code / รายละเอียด</button>
@@ -686,9 +852,6 @@
 
     <!-- MAIN JAVASCRIPT LOGIC ARCHITECTURE -->
     <script>
-        // =========================================================================
-        // 1. DATA STRUCTURES & LOCALSTORAGE DATABASE API INITIALIZATION
-        // =========================================================================
         const STORAGE_KEY = 'SMART_CORN_WMS_DB';
 
         let appState = {
@@ -700,6 +863,28 @@
             issueRecords: [],
             activityLogs: []
         };
+
+        // SIDEBAR TOGGLE LOGIC FOR MOBILE & DESKTOP
+        function toggleSidebar() {
+            const sidebar = document.getElementById('main-sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            const icon = document.getElementById('sidebar-toggle-icon');
+
+            if (window.innerWidth < 768) {
+                // Mobile overlay behavior
+                sidebar.classList.toggle('mobile-open');
+                if (backdrop) backdrop.classList.toggle('hidden');
+            } else {
+                // Desktop collapse behavior
+                sidebar.classList.toggle('sidebar-collapsed');
+                if(sidebar.classList.contains('sidebar-collapsed')) {
+                    if(icon) icon.setAttribute('data-lucide', 'panel-left-open');
+                } else {
+                    if(icon) icon.setAttribute('data-lucide', 'panel-left-close');
+                }
+            }
+            lucide.createIcons();
+        }
 
         // Initialize App & Storage
         function initApp() {
@@ -721,39 +906,43 @@
             renderDashboard();
         }
 
-        // =========================================================================
-        // 2. ROLE & PERMISSION MANAGEMENT
-        // =========================================================================
         function changeRole(role) {
             appState.currentUserRole = role;
-            document.getElementById('user-display-name').innerText = `${role}`;
+            document.getElementById('user-display-name').innerText = \`\${role}\`;
             document.getElementById('user-avatar').innerText = role.substring(0, 2);
-            logActivity(`เปลี่ยนสิทธิ์ผู้ใช้งานเป็น: ${role}`);
+            logActivity(\`เปลี่ยนสิทธิ์ผู้ใช้งานเป็น: \${role}\`);
             
-            // Toggle view visibility based on role limits
             if (role === 'พนักงานชั่งน้ำหนัก') switchView('weighing');
             else if (role === 'ผู้ตรวจสอบคุณภาพ') switchView('moisture');
             else switchView('dashboard');
         }
 
-        // =========================================================================
-        // 3. NAVIGATION & VIEW SWITCHING
-        // =========================================================================
         function switchView(viewId) {
             const views = ['dashboard', 'receiving', 'weighing', 'lots', 'map', 'moisture', 'issue', 'alerts', 'reports', 'settings'];
             views.forEach(v => {
-                const el = document.getElementById(`view-${v}`);
-                const nav = document.getElementById(`nav-${v}`);
+                const el = document.getElementById(\`view-\${v}\`);
+                const nav = document.getElementById(\`nav-\${v}\`);
+                const bnav = document.getElementById(\`bnav-\${v}\`);
                 if (el) el.classList.add('hidden');
                 if (nav) nav.classList.remove('sidebar-active');
+                if (bnav) bnav.classList.remove('bottom-nav-active');
             });
 
-            const activeView = document.getElementById(`view-${viewId}`);
-            const activeNav = document.getElementById(`nav-${viewId}`);
+            const activeView = document.getElementById(\`view-\${viewId}\`);
+            const activeNav = document.getElementById(\`nav-\${viewId}\`);
+            const activeBnav = document.getElementById(\`bnav-\${viewId}\`);
             if (activeView) activeView.classList.remove('hidden');
             if (activeNav) activeNav.classList.add('sidebar-active');
+            if (activeBnav) activeBnav.classList.add('bottom-nav-active');
 
-            // View-specific renders
+            // Close mobile sidebar drawer if open
+            const sidebar = document.getElementById('main-sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            if (sidebar.classList.contains('mobile-open')) {
+                sidebar.classList.remove('mobile-open');
+                if (backdrop) backdrop.classList.add('hidden');
+            }
+
             if (viewId === 'dashboard') renderDashboard();
             if (viewId === 'weighing') renderWeighingTable();
             if (viewId === 'lots') renderLotsTable();
@@ -766,9 +955,6 @@
             lucide.createIcons();
         }
 
-        // =========================================================================
-        // 4. SMART ALGORITHMS: RISK SCORE & QUALITY EVALUATION
-        // =========================================================================
         function calculateDaysStored(dateString) {
             const received = new Date(dateString);
             const today = new Date();
@@ -781,11 +967,9 @@
             const days = calculateDaysStored(lot.receivedDate);
             const moist = lot.currentMoisture;
 
-            // Moisture Score (Max 50)
             if (moist > appState.settings.moistWarn) score += 50;
             else if (moist > appState.settings.moistNormal) score += 25;
 
-            // Storage Duration Score (Max 40)
             if (days > appState.settings.ageMax) score += 40;
             else if (days > appState.settings.ageWarn) score += 20;
 
@@ -799,18 +983,14 @@
             return { score, status, badgeClass, days };
         }
 
-        // =========================================================================
-        // 5. RECORD FORM & PRICE CALCULATOR LOGIC
-        // =========================================================================
         function updateDocNo() {
             const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
             const count = appState.lots.length + 1;
-            const docNo = `CORN-${today}-${String(count).padStart(3, '0')}`;
+            const docNo = \`CORN-\${today}-\${String(count).padStart(3, '0')}\`;
             document.getElementById('rec-doc-no').value = docNo;
             document.getElementById('rec-datetime').value = new Date().toISOString().slice(0, 16);
         }
 
-        // คำนวณน้ำหนักสุทธิอัตโนมัติ (น้ำหนักเข้า - น้ำหนักออก)
         function calcNetWeight() {
             const wIn = parseFloat(document.getElementById('rec-weight-in').value) || 0;
             const wOut = parseFloat(document.getElementById('rec-weight-out').value) || 0;
@@ -819,7 +999,6 @@
             calculatePrice();
         }
 
-        // คำนวณราคาต่อถัง และราคาสุจธิ (1 ถัง = 15 กก.)
         function calculatePrice() {
             const netWeight = parseFloat(document.getElementById('rec-weight-net').value) || 0;
             const bucketPrice = parseFloat(document.getElementById('price-per-bucket').value) || 0;
@@ -887,9 +1066,9 @@
                 lotNumber: newLot.lotNumber
             });
 
-            logActivity(`บันทึกรายการ [${transactionType}] Lot: ${newLot.lotNumber} ปริมาณ ${newLot.netWeight} กก. มูลค่า ${totalPrice.toLocaleString()} บาท`);
+            logActivity(\`บันทึกรายการ [\${transactionType}] Lot: \${newLot.lotNumber} ปริมาณ \${newLot.netWeight} กก. มูลค่า \${totalPrice.toLocaleString()} บาท\`);
             saveData();
-            alert(`บันทึกสำเร็จ! ทำรายการ [${transactionType}] หมายเลข Lot: ${newLot.lotNumber}\nราคารวมทั้งสิ้น: ${totalPrice.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท`);
+            alert(\`บันทึกสำเร็จ! ทำรายการ [\${transactionType}] หมายเลข Lot: \${newLot.lotNumber}\\nราคารวมทั้งสิ้น: \${totalPrice.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท\`);
             
             document.getElementById('form-receiving').reset();
             resetFormCalculations();
@@ -897,9 +1076,6 @@
             switchView('lots');
         }
 
-        // =========================================================================
-        // 6. DASHBOARD & ANALYTICS RENDER
-        // =========================================================================
         let chartInOutInstance = null;
         let chartQualityInstance = null;
 
@@ -927,15 +1103,15 @@
             const avgMoist = appState.lots.length > 0 ? (totalMoist / appState.lots.length).toFixed(1) : 0;
             const estValue = (totalStock * 11.5).toLocaleString();
 
-            document.getElementById('dash-total-stock').innerHTML = `${(totalStock / 1000).toFixed(2)} <span class="text-sm font-normal text-slate-500">ตัน</span>`;
-            document.getElementById('dash-today-in').innerHTML = `${(totalStock / 1000).toFixed(2)} <span class="text-sm font-normal text-slate-500">ตัน</span>`;
-            document.getElementById('dash-avg-moisture').innerHTML = `${avgMoist} <span class="text-sm font-normal text-slate-500">%</span>`;
+            document.getElementById('dash-total-stock').innerHTML = \`\${(totalStock / 1000).toFixed(2)} <span class="text-sm font-normal text-slate-500">ตัน</span>\`;
+            document.getElementById('dash-today-in').innerHTML = \`\${(totalStock / 1000).toFixed(2)} <span class="text-sm font-normal text-slate-500">ตัน</span>\`;
+            document.getElementById('dash-avg-moisture').innerHTML = \`\${avgMoist} <span class="text-sm font-normal text-slate-500">%</span>\`;
             document.getElementById('dash-count-lots').innerText = appState.lots.length;
             document.getElementById('dash-count-vehicles').innerText = appState.weighingRecords.length;
             document.getElementById('dash-warning-lots').innerText = warningCount;
             document.getElementById('dash-risk-lots').innerText = riskCount;
-            document.getElementById('dash-est-value').innerText = `${estValue} ฿`;
-            document.getElementById('dash-used-capacity').innerText = `${Math.min(100, (totalStock / 500000 * 100)).toFixed(0)}%`;
+            document.getElementById('dash-est-value').innerText = \`\${estValue} ฿\`;
+            document.getElementById('dash-used-capacity').innerText = \`\${Math.min(100, (totalStock / 500000 * 100)).toFixed(0)}%\`;
 
             renderCharts();
         }
@@ -975,9 +1151,6 @@
             });
         }
 
-        // =========================================================================
-        // 7. WAREHOUSE MAP RENDER
-        // =========================================================================
         function renderWarehouseMap() {
             const container = document.getElementById('map-grid-container');
             const locations = ['A01', 'A02', 'B01', 'B02', 'C01', 'D01'];
@@ -1009,53 +1182,50 @@
                     }
                 }
 
-                html += `
-                    <div class="border-2 ${statusColor} rounded-xl p-5 shadow-sm space-y-3">
+                html += \`
+                    <div class="border-2 \${statusColor} rounded-xl p-5 shadow-sm space-y-3">
                         <div class="flex justify-between items-center border-b pb-2">
-                            <h3 class="font-bold text-lg text-slate-800">กองจัดเก็บ ${loc}</h3>
-                            ${badge}
+                            <h3 class="font-bold text-lg text-slate-800">กองจัดเก็บ \${loc}</h3>
+                            \${badge}
                         </div>
                         <div class="space-y-1 text-sm">
-                            <p class="text-slate-600">ปริมาณคงเหลือ: <strong class="text-slate-800">${(totalLocWeight/1000).toFixed(2)} ตัน</strong></p>
-                            <p class="text-slate-600">จำนวน Lot: <strong class="text-slate-800">${lotsInLoc.length} Lot</strong></p>
+                            <p class="text-slate-600">ปริมาณคงเหลือ: <strong class="text-slate-800">\${(totalLocWeight/1000).toFixed(2)} ตัน</strong></p>
+                            <p class="text-slate-600">จำนวน Lot: <strong class="text-slate-800">\${lotsInLoc.length} Lot</strong></p>
                         </div>
                         <div class="pt-2 border-t text-xs text-slate-500">
-                            ${lotsInLoc.map(l => `• ${l.lotNumber} (${l.product} - ${l.currentMoisture}%)`).join('<br>') || 'ไม่มีสินค้า'}
+                            \${lotsInLoc.map(l => \`• \${l.lotNumber} (\${l.product} - \${l.currentMoisture}%)\`).join('<br>') || 'ไม่มีสินค้า'}
                         </div>
                     </div>
-                `;
+                \`;
             });
             container.innerHTML = html;
         }
 
-        // =========================================================================
-        // 8. LOT MANAGEMENT TABLE RENDER & QR CODE
-        // =========================================================================
         function renderLotsTable() {
             const tbody = document.getElementById('table-lots-body');
             if (appState.lots.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-slate-400">ยังไม่มีข้อมูล Lot ข้าวโพด</td></tr>`;
+                tbody.innerHTML = \`<tr><td colspan="9" class="p-4 text-center text-slate-400">ยังไม่มีข้อมูล Lot ข้าวโพด</td></tr>\`;
                 return;
             }
 
             tbody.innerHTML = appState.lots.map(lot => {
                 const risk = evaluateLotRisk(lot);
                 const isTypeIn = lot.transactionType === 'รับเข้า';
-                return `
+                return \`
                     <tr class="hover:bg-slate-50">
-                        <td class="p-3 font-mono font-bold text-amber-700">${lot.lotNumber}</td>
-                        <td class="p-3"><span class="px-2 py-0.5 rounded text-xs font-bold ${isTypeIn ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">${lot.transactionType || 'รับเข้า'}</span></td>
-                        <td class="p-3 font-medium text-slate-800">${lot.product || 'ข้าวโพดเมล็ด'}</td>
-                        <td class="p-3 font-medium text-slate-800">${lot.supplier} <span class="text-xs text-slate-400">(${lot.customerType || 'ลูกค้าทั่วไป'})</span></td>
-                        <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 rounded border text-xs font-bold">${lot.location}</span></td>
-                        <td class="p-3 text-right font-bold">${lot.currentWeight.toLocaleString()}</td>
-                        <td class="p-3 text-center font-semibold text-cyan-700">${lot.currentMoisture}%</td>
-                        <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-xs ${risk.badgeClass} font-bold">${risk.score} (${risk.status})</span></td>
+                        <td class="p-3 font-mono font-bold text-amber-700">\${lot.lotNumber}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded text-xs font-bold \${isTypeIn ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">\${lot.transactionType || 'รับเข้า'}</span></td>
+                        <td class="p-3 font-medium text-slate-800">\${lot.product || 'ข้าวโพดเมล็ด'}</td>
+                        <td class="p-3 font-medium text-slate-800">\${lot.supplier} <span class="text-xs text-slate-400">(\${lot.customerType || 'ลูกค้าทั่วไป'})</span></td>
+                        <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 rounded border text-xs font-bold">\${lot.location}</span></td>
+                        <td class="p-3 text-right font-bold">\${lot.currentWeight.toLocaleString()}</td>
+                        <td class="p-3 text-center font-semibold text-cyan-700">\${lot.currentMoisture}%</td>
+                        <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-xs \${risk.badgeClass} font-bold">\${risk.score} (\${risk.status})</span></td>
                         <td class="p-3 text-center">
-                            <button onclick="openQRModal('${lot.lotNumber}')" class="px-2 py-1 bg-slate-800 text-white rounded text-xs hover:bg-slate-700">QR / Detail</button>
+                            <button onclick="openQRModal('\${lot.lotNumber}')" class="px-2 py-1 bg-slate-800 text-white rounded text-xs hover:bg-slate-700">QR / Detail</button>
                         </td>
                     </tr>
-                `;
+                \`;
             }).join('');
         }
 
@@ -1064,22 +1234,21 @@
             if (!lot) return;
 
             document.getElementById('modal-lot-number').innerText = lot.lotNumber;
-            const risk = evaluateLotRisk(lot);
 
-            document.getElementById('modal-lot-info').innerHTML = `
+            document.getElementById('modal-lot-info').innerHTML = \`
                 <div class="grid grid-cols-2 gap-1">
-                    <div><strong>ประเภทรายการ:</strong> ${lot.transactionType || 'รับเข้า'}</div>
-                    <div><strong>สินค้า:</strong> ${lot.product || 'ข้าวโพดเมล็ด'}</div>
-                    <div><strong>ลูกค้า/ผู้ขาย:</strong> ${lot.supplier}</div>
-                    <div><strong>ประเภทลูกค้า:</strong> ${lot.customerType || 'ลูกค้าทั่วไป'}</div>
-                    <div><strong>ทะเบียนรถ:</strong> ${lot.plate}</div>
-                    <div><strong>ตำแหน่งจัดเก็บ:</strong> ${lot.location}</div>
-                    <div><strong>น้ำหนักสุทธิ:</strong> ${lot.netWeight.toLocaleString()} กก.</div>
-                    <div><strong>ความชื้น:</strong> ${lot.currentMoisture}%</div>
-                    <div><strong>ราคา/ถัง:</strong> ${lot.bucketPrice || 0} บาท</div>
-                    <div><strong>จำนวนเงินรวม:</strong> ${(lot.totalPrice || 0).toLocaleString()} บาท</div>
+                    <div><strong>ประเภทรายการ:</strong> \${lot.transactionType || 'รับเข้า'}</div>
+                    <div><strong>สินค้า:</strong> \${lot.product || 'ข้าวโพดเมล็ด'}</div>
+                    <div><strong>ลูกค้า/ผู้ขาย:</strong> \${lot.supplier}</div>
+                    <div><strong>ประเภทลูกค้า:</strong> \${lot.customerType || 'ลูกค้าทั่วไป'}</div>
+                    <div><strong>ทะเบียนรถ:</strong> \${lot.plate}</div>
+                    <div><strong>ตำแหน่งจัดเก็บ:</strong> \${lot.location}</div>
+                    <div><strong>น้ำหนักสุทธิ:</strong> \${lot.netWeight.toLocaleString()} กก.</div>
+                    <div><strong>ความชื้น:</strong> \${lot.currentMoisture}%</div>
+                    <div><strong>ราคา/ถัง:</strong> \${lot.bucketPrice || 0} บาท</div>
+                    <div><strong>จำนวนเงินรวม:</strong> \${(lot.totalPrice || 0).toLocaleString()} บาท</div>
                 </div>
-            `;
+            \`;
 
             const qrContainer = document.getElementById('qrcode-container');
             qrContainer.innerHTML = '';
@@ -1096,28 +1265,25 @@
             document.getElementById('modal-qr').classList.add('hidden');
         }
 
-        // =========================================================================
-        // 9. MOISTURE CONTROL MODULE
-        // =========================================================================
         function renderMoistureView() {
             const select = document.getElementById('moist-lot-id');
-            select.innerHTML = appState.lots.map(l => `<option value="${l.lotNumber}">${l.lotNumber} (${l.location} - ชื้นเดิม ${l.currentMoisture}%)</option>`).join('');
+            select.innerHTML = appState.lots.map(l => \`<option value="\${l.lotNumber}">\${l.lotNumber} (\${l.location} - ชื้นเดิม \${l.currentMoisture}%)</option>\`).join('');
 
             const tbody = document.getElementById('table-moisture-history');
             if (appState.moistureRecords.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">ยังไม่มีประวัติการตรวจวัด</td></tr>`;
+                tbody.innerHTML = \`<tr><td colspan="5" class="p-4 text-center text-slate-400">ยังไม่มีประวัติการตรวจวัด</td></tr>\`;
                 return;
             }
 
-            tbody.innerHTML = appState.moistureRecords.map(m => `
+            tbody.innerHTML = appState.moistureRecords.map(m => \`
                 <tr class="hover:bg-slate-50">
-                    <td class="p-2.5 text-xs">${m.datetime}</td>
-                    <td class="p-2.5 font-mono font-bold text-amber-700">${m.lotNumber}</td>
-                    <td class="p-2.5 text-center font-bold text-cyan-700">${m.val}%</td>
-                    <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded text-xs ${m.val > appState.settings.moistWarn ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'} font-bold">${m.val > appState.settings.moistWarn ? 'ความชื้นสูง' : 'ปกติ'}</span></td>
-                    <td class="p-2.5 text-xs">${m.inspector}</td>
+                    <td class="p-2.5 text-xs">\${m.datetime}</td>
+                    <td class="p-2.5 font-mono font-bold text-amber-700">\${m.lotNumber}</td>
+                    <td class="p-2.5 text-center font-bold text-cyan-700">\${m.val}%</td>
+                    <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded text-xs \${m.val > appState.settings.moistWarn ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'} font-bold">\${m.val > appState.settings.moistWarn ? 'ความชื้นสูง' : 'ปกติ'}</span></td>
+                    <td class="p-2.5 text-xs">\${m.inspector}</td>
                 </tr>
-            `).join('');
+            \`).join('');
         }
 
         function handleMoistureSubmit(e) {
@@ -1138,41 +1304,38 @@
                 inspector: inspector
             });
 
-            logActivity(`อัปเดตค่าความชื้น Lot: ${lotNo} เป็น ${moistVal}%`);
+            logActivity(\`อัปเดตค่าความชื้น Lot: \${lotNo} เป็น \${moistVal}%\`);
             saveData();
             alert('อัปเดตความชื้นสำเร็จ!');
             renderMoistureView();
         }
 
-        // =========================================================================
-        // 10. FIFO / FEFO ISSUE MODULE
-        // =========================================================================
         function renderIssueView() {
             const select = document.getElementById('issue-lot-id');
             const availableLots = appState.lots.filter(l => l.currentWeight > 0);
-            select.innerHTML = availableLots.map(l => `<option value="${l.lotNumber}">${l.lotNumber} [คงเหลือ: ${l.currentWeight.toLocaleString()} กก. | ชื้น: ${l.currentMoisture}%]</option>`).join('');
+            select.innerHTML = availableLots.map(l => \`<option value="\${l.lotNumber}">\${l.lotNumber} [คงเหลือ: \${l.currentWeight.toLocaleString()} กก. | ชื้น: \${l.currentMoisture}%]</option>\`).join('');
 
             const recoContainer = document.getElementById('recommendation-cards');
             if (availableLots.length === 0) {
-                recoContainer.innerHTML = `<p class="text-sm text-slate-500">ไม่มีสินค้าคงเหลือสำหรับเบิกจ่าย</p>`;
+                recoContainer.innerHTML = \`<p class="text-sm text-slate-500">ไม่มีสินค้าคงเหลือสำหรับเบิกจ่าย</p>\`;
                 return;
             }
 
             const fifoLot = [...availableLots].sort((a,b) => new Date(a.receivedDate) - new Date(b.receivedDate))[0];
             const fefoLot = [...availableLots].sort((a,b) => evaluateLotRisk(b).score - evaluateLotRisk(a).score)[0];
 
-            recoContainer.innerHTML = `
+            recoContainer.innerHTML = \`
                 <div class="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
                     <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-bold rounded">จ่ายตาม FIFO (เก่าสุด)</span>
-                    <h4 class="font-bold text-slate-800 mt-1">${fifoLot.lotNumber}</h4>
-                    <p class="text-xs text-slate-500">จัดเก็บเมื่อ: ${fifoLot.receivedDate.split('T')[0]} (${calculateDaysStored(fifoLot.receivedDate)} วันมาแล้ว)</p>
+                    <h4 class="font-bold text-slate-800 mt-1">\${fifoLot.lotNumber}</h4>
+                    <p class="text-xs text-slate-500">จัดเก็บเมื่อ: \${fifoLot.receivedDate.split('T')[0]} (\${calculateDaysStored(fifoLot.receivedDate)} วันมาแล้ว)</p>
                 </div>
                 <div class="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
                     <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded">จ่ายตาม FEFO (เสี่ยงสูงสุด)</span>
-                    <h4 class="font-bold text-slate-800 mt-1">${fefoLot.lotNumber}</h4>
-                    <p class="text-xs text-slate-500">ความชื้น: ${fefoLot.currentMoisture}% | Risk Score: ${evaluateLotRisk(fefoLot).score}</p>
+                    <h4 class="font-bold text-slate-800 mt-1">\${fefoLot.lotNumber}</h4>
+                    <p class="text-xs text-slate-500">ความชื้น: \${fefoLot.currentMoisture}% | Risk Score: \${evaluateLotRisk(fefoLot).score}</p>
                 </div>
-            `;
+            \`;
         }
 
         function handleIssueSubmit(e) {
@@ -1195,28 +1358,25 @@
                 operator: document.getElementById('issue-operator').value
             });
 
-            logActivity(`เบิกจ่ายสินค้าจาก Lot: ${lotNo} ปริมาณ ${issueWeight} กก.`);
+            logActivity(\`เบิกจ่ายสินค้าจาก Lot: \${lotNo} ปริมาณ \${issueWeight} กก.\`);
             saveData();
             alert('บันทึกการเบิกจ่ายสำเร็จ!');
             renderIssueView();
         }
 
-        // =========================================================================
-        // 11. WEIGHING TABLE & ALERTS CENTER
-        // =========================================================================
         function renderWeighingTable() {
             const tbody = document.getElementById('table-weighing-body');
-            tbody.innerHTML = appState.weighingRecords.map(w => `
+            tbody.innerHTML = appState.weighingRecords.map(w => \`
                 <tr class="hover:bg-slate-50">
-                    <td class="p-3 text-xs">${w.datetime.replace('T', ' ')}</td>
-                    <td class="p-3 font-bold text-slate-800">${w.plate}</td>
-                    <td class="p-3">${w.supplier}</td>
-                    <td class="p-3 text-right font-mono">${w.weightIn.toLocaleString()}</td>
-                    <td class="p-3 text-right font-mono">${w.weightOut.toLocaleString()}</td>
-                    <td class="p-3 text-right font-mono font-bold text-emerald-700">${w.netWeight.toLocaleString()}</td>
+                    <td class="p-3 text-xs">\${w.datetime.replace('T', ' ')}</td>
+                    <td class="p-3 font-bold text-slate-800">\${w.plate}</td>
+                    <td class="p-3">\${w.supplier}</td>
+                    <td class="p-3 text-right font-mono">\${w.weightIn.toLocaleString()}</td>
+                    <td class="p-3 text-right font-mono">\${w.weightOut.toLocaleString()}</td>
+                    <td class="p-3 text-right font-mono font-bold text-emerald-700">\${w.netWeight.toLocaleString()}</td>
                     <td class="p-3 text-center"><button onclick="window.print()" class="text-xs bg-slate-100 hover:bg-slate-200 p-1 rounded">ตั๋วชั่ง</button></td>
                 </tr>
-            `).join('');
+            \`).join('');
         }
 
         function renderAlertsCenter() {
@@ -1226,10 +1386,10 @@
             appState.lots.forEach(lot => {
                 const risk = evaluateLotRisk(lot);
                 if (lot.currentMoisture > appState.settings.moistWarn) {
-                    alerts.push({ title: `ความชื้นสูงเกินเกณฑ์มาตรฐาน`, desc: `Lot: ${lot.lotNumber} มีความชื้น ${lot.currentMoisture}% (กอง ${lot.location})`, type: 'red' });
+                    alerts.push({ title: \`ความชื้นสูงเกินเกณฑ์มาตรฐาน\`, desc: \`Lot: \${lot.lotNumber} มีความชื้น \${lot.currentMoisture}% (กอง \${lot.location})\`, type: 'red' });
                 }
                 if (risk.days > appState.settings.ageMax) {
-                    alerts.push({ title: `จัดเก็บนานเกินกำหนด`, desc: `Lot: ${lot.lotNumber} จัดเก็บมาแล้ว ${risk.days} วัน`, type: 'amber' });
+                    alerts.push({ title: \`จัดเก็บนานเกินกำหนด\`, desc: \`Lot: \${lot.lotNumber} จัดเก็บมาแล้ว \${risk.days} วัน\`, type: 'amber' });
                 }
             });
 
@@ -1237,41 +1397,38 @@
             if (alerts.length > 0) document.getElementById('alert-badge').classList.remove('hidden');
 
             if (alerts.length === 0) {
-                container.innerHTML = `<p class="text-slate-400 text-center py-6">ไม่มีรายการแจ้งเตือนเตือนภัยในขณะนี้</p>`;
+                container.innerHTML = \`<p class="text-slate-400 text-center py-6">ไม่มีรายการแจ้งเตือนเตือนภัยในขณะนี้</p>\`;
                 return;
             }
 
-            container.innerHTML = alerts.map(a => `
-                <div class="p-4 rounded-lg border-l-4 ${a.type === 'red' ? 'border-red-500 bg-red-50' : 'border-amber-500 bg-amber-50'} flex items-start gap-3">
-                    <i data-lucide="alert-triangle" class="w-5 h-5 ${a.type === 'red' ? 'text-red-600' : 'text-amber-600'} shrink-0 mt-0.5"></i>
+            container.innerHTML = alerts.map(a => \`
+                <div class="p-4 rounded-lg border-l-4 \${a.type === 'red' ? 'border-red-500 bg-red-50' : 'border-amber-500 bg-amber-50'} flex items-start gap-3">
+                    <i data-lucide="alert-triangle" class="w-5 h-5 \${a.type === 'red' ? 'text-red-600' : 'text-amber-600'} shrink-0 mt-0.5"></i>
                     <div>
-                        <h4 class="font-bold text-sm ${a.type === 'red' ? 'text-red-900' : 'text-amber-900'}">${a.title}</h4>
-                        <p class="text-xs ${a.type === 'red' ? 'text-red-700' : 'text-amber-700'}">${a.desc}</p>
+                        <h4 class="font-bold text-sm \${a.type === 'red' ? 'text-red-900' : 'text-amber-900'}">\${a.title}</h4>
+                        <p class="text-xs \${a.type === 'red' ? 'text-red-700' : 'text-amber-700'}">\${a.desc}</p>
                     </div>
                 </div>
-            `).join('');
+            \`).join('');
             lucide.createIcons();
         }
 
-        // =========================================================================
-        // 12. REPORTS & SETTINGS MODULE
-        // =========================================================================
         function renderReports() {
             document.getElementById('report-date').innerText = new Date().toLocaleDateString('th-TH');
             const tbody = document.getElementById('report-table-body');
             tbody.innerHTML = appState.lots.map(l => {
                 const r = evaluateLotRisk(l);
-                return `
+                return \`
                     <tr>
-                        <td class="border p-2 font-mono">${l.lotNumber}</td>
-                        <td class="border p-2 text-center">${l.transactionType || 'รับเข้า'}</td>
-                        <td class="border p-2">${l.supplier}</td>
-                        <td class="border p-2">${l.location}</td>
-                        <td class="border p-2 text-right">${l.currentWeight.toLocaleString()}</td>
-                        <td class="border p-2 text-center">${l.currentMoisture}%</td>
-                        <td class="border p-2 text-center">${r.score}</td>
+                        <td class="border p-2 font-mono">\${l.lotNumber}</td>
+                        <td class="border p-2 text-center">\${l.transactionType || 'รับเข้า'}</td>
+                        <td class="border p-2">\${l.supplier}</td>
+                        <td class="border p-2">\${l.location}</td>
+                        <td class="border p-2 text-right">\${l.currentWeight.toLocaleString()}</td>
+                        <td class="border p-2 text-center">\${l.currentMoisture}%</td>
+                        <td class="border p-2 text-center">\${r.score}</td>
                     </tr>
-                `;
+                \`;
             }).join('');
         }
 
@@ -1284,9 +1441,6 @@
             alert('บันทึกการตั้งค่าระบบเรียบร้อยแล้ว!');
         }
 
-        // =========================================================================
-        // 13. DEMO DATA GENERATOR & RESET UTILS
-        // =========================================================================
         function toggleDemoData() {
             if (confirm('คุณต้องการโหลดข้อมูลจำลอง (Demo Data) เพื่อทดสอบระบบหรือไม่?')) {
                 appState.lots = [
@@ -1323,8 +1477,40 @@
             console.log("Searching for:", query);
         }
 
-        // Initialize on load
         window.onload = initApp;
+    <\/script>
+</body>
+</html>`;
+
+        // Inject modified code into iframe
+        document.getElementById('app-iframe').srcdoc = originalHtmlCode;
+
+        // Device Switcher Logic
+        function switchDevice(type) {
+            const wrapper = document.getElementById('frame-wrapper');
+            const btnDesktop = document.getElementById('btn-desktop');
+            const btnMobile = document.getElementById('btn-mobile');
+            const infoText = document.getElementById('device-info-text');
+
+            if (type === 'mobile') {
+                wrapper.className = 'preview-frame mobile-shell bg-white overflow-hidden relative';
+                
+                btnMobile.className = 'flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition bg-amber-500 text-slate-950 shadow';
+                btnDesktop.className = 'flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition';
+                
+                infoText.innerText = 'โหมดปัจจุบัน: มือถือ Mobile Mockup (390px x 844px)';
+            } else {
+                wrapper.className = 'preview-frame desktop-shell bg-white overflow-hidden relative';
+                
+                btnDesktop.className = 'flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition bg-amber-500 text-slate-950 shadow';
+                btnMobile.className = 'flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition';
+                
+                infoText.innerText = 'โหมดปัจจุบัน: Desktop (100% Full Width)';
+            }
+        }
+
+        // Initialize Lucide Icons
+        lucide.createIcons();
     </script>
 </body>
 </html>

@@ -5,13 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Smart Corn WMS v2.1 — ระบบบริหารคลังลานข้าวโพด</title>
 
-<!-- CDN (pin version) -->
+<!-- CDN -->
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-<!-- ROUTER: ตัดสินโหมดก่อนวาดจอ กัน flash -->
 <script>
 (function(){
   var inIframe = false; try { inIframe = window.self !== window.top; } catch(e){ inIframe = true; }
@@ -27,14 +26,13 @@
 html,body{height:100%}
 body{min-height:100dvh}
 
-/* ---- สลับโหมด ---- */
 html[data-mode="app"]     #preview-shell{display:none!important}
 html[data-mode="preview"] #app-root,
 html[data-mode="preview"] #modal-root,
-html[data-mode="preview"] #toast-root{display:none!important}
+html[data-mode="preview"] #toast-root,
+html[data-mode="preview"] #login-overlay{display:none!important}
 html[data-mode="preview"] body{background:#0f172a;color:#f1f5f9;overflow:hidden}
 
-/* ---- Preview shell ---- */
 #preview-shell{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 .preview-frame{transition:all .4s cubic-bezier(.4,0,.2,1)}
 .mobile-shell{width:390px;height:min(844px,88dvh);border-radius:48px;border:12px solid #1e293b;
@@ -46,7 +44,6 @@ html[data-mode="preview"] body{background:#0f172a;color:#f1f5f9;overflow:hidden}
 .desktop-shell{width:100%;height:100%;border-radius:8px;border:1px solid #cbd5e1;
   box-shadow:0 10px 15px -3px rgba(0,0,0,.1)}
 
-/* ---- App ---- */
 .sidebar-active{background:#1e293b;color:#38bdf8;border-right:4px solid #38bdf8}
 aside{transition:width .3s ease,transform .3s ease}
 .sidebar-collapsed{width:5rem!important}
@@ -71,15 +68,25 @@ aside{transition:width .3s ease,transform .3s ease}
   .btn-xs{min-height:38px}
 }
 
-@media print{
-  .no-print,#preview-shell{display:none!important}
-  body{height:auto!important;min-height:0!important;overflow:visible!important;display:block!important}
-  aside,#sidebar-overlay{display:none!important}
-  main,#main-container{overflow:visible!important;height:auto!important;display:block!important}
-  tr,td,.avoid-break{page-break-inside:avoid}
-  .rtable thead{display:table-header-group}
-  body.print-ticket #app-root{display:none!important}
-  body.print-ticket #print-area{display:block!important}
+@media print {
+  .no-print, #preview-shell, aside, #sidebar-overlay, #app-header, #login-overlay { display: none !important; }
+  html, body {
+    background: #fff !important; color: #0f172a !important; height: auto !important;
+    min-height: 0 !important; overflow: visible !important; display: block !important; font-size: 11pt !important;
+  }
+  main, #main-container { overflow: visible !important; height: auto !important; display: block !important; padding: 0 !important; margin: 0 !important; }
+  #view-reports > div:first-child { display: none !important; }
+  #view-reports .bg-white { border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; border-radius: 0 !important; }
+  #report-title { font-size: 16pt !important; font-weight: bold !important; color: #0f172a !important; border-bottom: 2px solid #1e293b !important; padding-bottom: 6px !important; margin-bottom: 12px !important; text-align: center !important; }
+  .rtable, table { display: table !important; width: 100% !important; border-collapse: collapse !important; margin-top: 8px !important; }
+  .rtable thead { display: table-header-group !important; }
+  .rtable tbody { display: table-row-group !important; }
+  .rtable tr { display: table-row !important; border: none !important; margin: 0 !important; padding: 0 !important; background: transparent !important; page-break-inside: avoid !important; }
+  .rtable th, .rtable td { display: table-cell !important; padding: 6px 8px !important; border: 1px solid #cbd5e1 !important; font-size: 10pt !important; color: #1e293b !important; }
+  .rtable td::before { display: none !important; }
+  .rtable th { background-color: #f1f5f9 !important; color: #0f172a !important; font-weight: 700 !important; text-align: center !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body.print-ticket #app-root { display: none !important; }
+  body.print-ticket #print-area { display: block !important; }
 }
 #print-area{display:none}
 .toast-in{animation:ti .25s ease}
@@ -89,7 +96,44 @@ aside{transition:width .3s ease,transform .3s ease}
 
 <body class="bg-slate-100 text-slate-800 overflow-hidden">
 
-<!-- ═══════════════ PREVIEW SHELL (Mockup Viewer) ═══════════════ -->
+<!-- 🔒 LOGIN OVERLAY (หน้าจอล็อกอินก่อนเข้าใช้งาน) -->
+<div id="login-overlay" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 space-y-6 border border-slate-200">
+    <div class="text-center space-y-2">
+      <div class="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg text-slate-950">
+        <i data-lucide="wheat" class="w-10 h-10"></i>
+      </div>
+      <h2 class="text-2xl font-bold text-slate-800">Smart Corn WMS</h2>
+      <p class="text-xs text-slate-500">กรุณาเข้าสู่ระบบเพื่อเข้าใช้งานฐานข้อมูลรวม</p>
+    </div>
+
+    <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
+      <div>
+        <label for="login-username" class="block text-xs font-bold text-slate-700 mb-1">ชื่อผู้ใช้งาน (Username) *</label>
+        <input type="text" id="login-username" required placeholder="เช่น admin, scale, qa" class="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold">
+      </div>
+      <div>
+        <label for="login-password" class="block text-xs font-bold text-slate-700 mb-1">รหัสผ่าน (Password) *</label>
+        <input type="password" id="login-password" required placeholder="••••••••" class="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold">
+      </div>
+      <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3.5 rounded-xl text-sm shadow-lg transition flex items-center justify-center gap-2">
+        <i data-lucide="key-round" class="w-4 h-4"></i> เข้าสู่ระบบ
+      </button>
+    </form>
+
+    <div class="bg-slate-50 border rounded-xl p-3 text-[11px] text-slate-500 space-y-1">
+      <p class="font-bold text-slate-700">💡 บัญชีผู้ใช้เริ่มต้นสำหรับทดสอบ (รหัสผ่าน: 1234):</p>
+      <div class="grid grid-cols-2 gap-1 pt-1">
+        <span>• <b>admin</b> (เจ้าของลาน)</span>
+        <span>• <b>manager</b> (ผู้จัดการ)</span>
+        <span>• <b>scale</b> (พนักงานชั่ง)</span>
+        <span>• <b>qa</b> (ผู้ตรวจคุณภาพ)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PREVIEW SHELL -->
 <div id="preview-shell" class="no-print">
   <header class="bg-slate-800 border-b border-slate-700 h-16 px-4 md:px-6 flex items-center justify-between shrink-0 gap-3">
     <div class="flex items-center gap-3 min-w-0">
@@ -121,7 +165,7 @@ aside{transition:width .3s ease,transform .3s ease}
   </main>
 </div>
 
-<!-- ═══════════════ APPLICATION ═══════════════ -->
+<!-- APPLICATION -->
 <div id="app-root" class="flex h-[100dvh] overflow-hidden">
 
 <div id="sidebar-overlay" onclick="closeDrawer()" class="hidden fixed inset-0 bg-slate-900/50 z-50 no-print"></div>
@@ -140,16 +184,17 @@ aside{transition:width .3s ease,transform .3s ease}
     </button>
   </div>
 
-  <div class="p-3 bg-slate-800/50 m-2 rounded-lg flex items-center gap-3 border border-slate-700/50 overflow-hidden">
-    <div class="w-10 h-10 rounded-full bg-amber-500 text-slate-900 font-bold flex items-center justify-center text-lg shrink-0" id="user-avatar">เจ้</div>
-    <div class="overflow-hidden user-info-text flex-1">
-      <p class="font-semibold text-white text-sm truncate" id="user-display-name">เจ้าของลาน</p>
-      <label for="role-selector" class="sr-only">เลือกสิทธิ์ผู้ใช้งาน</label>
-      <select id="role-selector" onchange="changeRole(this.value)" class="bg-slate-900 text-xs text-amber-400 border border-slate-700 rounded px-1 py-1 mt-1 focus:outline-none w-full">
-        <option>เจ้าของลาน</option><option>ผู้จัดการ</option><option>พนักงานคลัง</option>
-        <option>พนักงานชั่งน้ำหนัก</option><option>ผู้ตรวจสอบคุณภาพ</option>
-      </select>
+  <div class="p-3 bg-slate-800/50 m-2 rounded-lg flex items-center justify-between border border-slate-700/50 overflow-hidden">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <div class="w-9 h-9 rounded-full bg-amber-500 text-slate-900 font-bold flex items-center justify-center text-sm shrink-0" id="user-avatar">เจ้</div>
+      <div class="overflow-hidden user-info-text min-w-0">
+        <p class="font-semibold text-white text-xs truncate" id="user-display-name">เจ้าของลาน</p>
+        <span class="text-[10px] text-amber-400 truncate block" id="user-role-text">เจ้าของลาน</span>
+      </div>
     </div>
+    <button onclick="handleLogout()" title="ออกจากระบบ" class="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg shrink-0">
+      <i data-lucide="log-out" class="w-4 h-4"></i>
+    </button>
   </div>
 
   <nav id="main-nav" class="flex-1 overflow-y-auto py-2 px-2 space-y-1 text-sm"></nav>
@@ -175,7 +220,7 @@ aside{transition:width .3s ease,transform .3s ease}
       <button id="btn-preview" onclick="enterPreview()" title="ทดสอบการแสดงผลบนอุปกรณ์" class="px-3 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200 border border-slate-300"><i data-lucide="monitor-smartphone" class="w-4 h-4"></i></button>
       <button id="btn-demo" onclick="loadDemoData()" class="px-3 py-2 bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg hover:bg-amber-200 border border-amber-300">⚡<span class="hidden sm:inline ml-1">ข้อมูลจำลอง</span></button>
       <button id="btn-backup" onclick="exportBackup()" title="สำรองข้อมูล" class="px-3 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200 border border-slate-300"><i data-lucide="download" class="w-4 h-4"></i></button>
-      <button id="btn-reset" onclick="resetData()" class="px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg border border-red-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+      <button id="btn-reset" onclick="resetData()" title="ลบข้อมูลทั้งหมด" class="px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg border border-red-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
     </div>
   </header>
 
@@ -224,73 +269,199 @@ aside{transition:width .3s ease,transform .3s ease}
     </div>
   </section>
 
-  <!-- 2) RECEIVING -->
+  <!-- 2.1) RECEIVING -->
   <section id="view-receiving" class="hidden space-y-5">
-    <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">บันทึกรับ-จ่ายข้าวโพด</h2>
-      <p class="text-sm text-slate-500">รับเข้าสร้าง Lot ใหม่ / จ่ายออกตัดสต็อกจาก Lot ต้นทางจริง</p></div>
-    <div class="bg-white rounded-xl border shadow-sm p-4 md:p-6">
-      <form id="form-receiving" novalidate class="space-y-5">
+    <div>
+      <h2 class="text-xl md:text-2xl font-bold text-slate-800">บันทึกรถเข้า (Inbound Check-in)</h2>
+      <p class="text-sm text-slate-500">ขั้นตอนที่ 1: กรอกข้อมูลรถเข้า สินค้า และน้ำหนักรถเข้า (Gross Weight)</p>
+    </div>
+
+    <div class="bg-white rounded-xl border shadow-sm p-4 md:p-6 space-y-4">
+      <form id="form-inbound-step1" onsubmit="handleInboundStep1(event)" class="space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div><label for="rec-type" class="block text-xs font-semibold text-slate-600 mb-1">1. ประเภทรายการ *</label>
-            <select id="rec-type" onchange="onRecTypeChange()" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold bg-amber-50">
-              <option value="รับเข้า">📥 รับเข้า (Inbound)</option><option value="จ่ายออก">📤 จ่ายออก (Outbound)</option></select></div>
-          <div><label for="rec-doc-no" class="block text-xs font-semibold text-slate-600 mb-1">เลขที่เอกสาร</label>
-            <input type="text" id="rec-doc-no" readonly class="w-full bg-slate-100 border rounded-lg px-3 py-2.5 text-sm font-mono font-bold text-slate-600"></div>
-          <div><label for="rec-datetime" class="block text-xs font-semibold text-slate-600 mb-1">วันที่และเวลา *</label>
-            <input type="datetime-local" id="rec-datetime" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"></div>
+          <div>
+            <label for="step1-doc-no" class="block text-xs font-semibold text-slate-600 mb-1">เลขที่เอกสาร (สร้างให้อัตโนมัติ)</label>
+            <input type="text" id="step1-doc-no" readonly class="w-full bg-slate-100 border rounded-lg px-3 py-2.5 text-sm font-mono font-bold text-slate-600">
+          </div>
+          <div>
+            <label for="step1-datetime" class="block text-xs font-semibold text-slate-600 mb-1">วันที่และเวลาเข้า *</label>
+            <input type="datetime-local" id="step1-datetime" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm">
+          </div>
+          <div>
+            <label for="step1-type" class="block text-xs font-semibold text-slate-600 mb-1">ประเภทรายการ *</label>
+            <select id="step1-type" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold bg-amber-50">
+              <option value="รับเข้า">📥 รับเข้า (Inbound)</option>
+              <option value="จ่ายออก">📤 จ่ายออก (Outbound)</option>
+            </select>
+          </div>
         </div>
-        <div id="rec-outbound-box" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <label for="rec-source-lot" class="block text-xs font-semibold text-blue-900 mb-1">Lot ต้นทางที่ตัดออก *</label>
-          <select id="rec-source-lot" class="w-full border border-blue-300 rounded-lg px-3 py-2.5 text-sm bg-white"></select>
-          <p class="text-xs text-blue-700 mt-2">ระบบจะหักน้ำหนักสุทธิออกจาก Lot นี้ทันทีเมื่อบันทึก</p>
-        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div><label for="rec-plate" class="block text-xs font-semibold text-slate-600 mb-1">2. ทะเบียนรถ *</label>
-            <input type="text" id="rec-plate" maxlength="30" placeholder="80-1234 สุโขทัย" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"></div>
-          <div><label for="rec-customer-type" class="block text-xs font-semibold text-slate-600 mb-1">3. ประเภทลูกค้า *</label>
-            <select id="rec-customer-type" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm">
-              <option>ลูกค้าทั่วไป</option><option>บริษัท CPF</option><option>โรงงานอาหารสัตว์</option></select></div>
-          <div><label for="rec-supplier" class="block text-xs font-semibold text-slate-600 mb-1">ชื่อผู้ขาย / ลูกค้า</label>
-            <input type="text" id="rec-supplier" maxlength="80" placeholder="ชื่อ-นามสกุล / บริษัท" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"></div>
-          <div id="rec-product-box"><label for="rec-product" class="block text-xs font-semibold text-slate-600 mb-1">4. สินค้า *</label>
-            <select id="rec-product" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"><option>ข้าวโพดเมล็ด</option><option>ข้าวโพดฝัก</option></select></div>
-        </div>
-        <div class="border-t pt-4 bg-slate-50 p-4 rounded-lg space-y-3">
-          <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2"><i data-lucide="scale" class="w-4 h-4 text-amber-600"></i> น้ำหนักและคุณภาพ</h3>
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div id="rec-moisture-box"><label for="rec-moisture" class="block text-xs font-semibold text-slate-600 mb-1">5. ความชื้น (%) *</label>
-              <input type="number" id="rec-moisture" step="0.1" min="5" max="40" placeholder="15.5" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-semibold text-cyan-700"></div>
-            <div><label for="rec-weight-in" class="block text-xs font-semibold text-slate-600 mb-1">6. น้ำหนักรถเข้า (กก.) *</label>
-              <input type="number" id="rec-weight-in" step="1" min="0" placeholder="15000" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-semibold"></div>
-            <div><label for="rec-weight-out" class="block text-xs font-semibold text-slate-600 mb-1">7. น้ำหนักรถออก (กก.) *</label>
-              <input type="number" id="rec-weight-out" step="1" min="0" placeholder="5000" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-semibold"></div>
-            <div><label for="rec-weight-net" class="block text-xs font-semibold text-slate-600 mb-1">8. น้ำหนักสุทธิ (กก.)</label>
-              <input type="number" id="rec-weight-net" readonly class="w-full bg-emerald-100 border border-emerald-300 rounded-lg px-3 py-2.5 text-sm font-bold text-emerald-800"></div>
+          <div>
+            <label for="step1-plate-prefix" class="block text-xs font-semibold text-slate-600 mb-1">ทะเบียนรถ *</label>
+            <input type="text" id="step1-plate-prefix" required maxlength="20" placeholder="เช่น 80-1234" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm">
           </div>
-          <p id="rec-weight-hint" class="text-xs text-slate-500"></p>
+
+          <div class="relative">
+            <label for="step1-province-input" class="block text-xs font-semibold text-slate-600 mb-1">จังหวัดทะเบียนรถ *</label>
+            <div class="relative">
+              <input type="text" id="step1-province-input" required autocomplete="off" placeholder="พิมพ์ค้นหาจังหวัด..." 
+                oninput="onProvinceSearchInput(this.value)" 
+                onfocus="onProvinceInputFocus()" 
+                onkeydown="onProvinceKeyDown(event)"
+                class="w-full border border-slate-300 rounded-lg pl-3 pr-8 py-2.5 text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+              <input type="hidden" id="step1-plate-province" required>
+              <i data-lucide="chevron-down" class="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+            </div>
+            <div id="province-dropdown" class="hidden absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100">
+            </div>
+          </div>
+
+          <div>
+            <label for="step1-supplier" class="block text-xs font-semibold text-slate-600 mb-1">ชื่อผู้ขาย / ลูกค้า *</label>
+            <input type="text" id="step1-supplier" required maxlength="80" placeholder="ชื่อ-นามสกุล / บริษัท" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm">
+          </div>
+          <div>
+            <label for="step1-product" class="block text-xs font-semibold text-slate-600 mb-1">ประเภทสินค้า *</label>
+            <select id="step1-product" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm">
+              <option>ข้าวโพดเมล็ด</option><option>ข้าวโพดฝัก</option>
+            </select>
+          </div>
         </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label for="step1-customer-type" class="block text-xs font-semibold text-slate-600 mb-1">ประเภทลูกค้า</label>
+            <select id="step1-customer-type" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm">
+              <option>ลูกค้าทั่วไป</option><option>บริษัท CPF</option><option>โรงงานอาหารสัตว์</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="bg-amber-50/70 border border-amber-200 p-4 rounded-xl">
+          <label for="step1-weight-in" class="block text-xs font-bold text-amber-900 mb-1">น้ำหนักรถเข้า (Gross Weight - กิโลกรัม) *</label>
+          <input type="number" id="step1-weight-in" required min="1" step="1" placeholder="เช่น 15000" class="w-full border border-amber-300 rounded-lg px-3 py-3 text-lg font-bold text-slate-800 bg-white">
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="reset" onclick="resetInboundForm()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg text-sm">ล้างฟอร์ม</button>
+          <button type="submit" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm flex items-center gap-2 shadow">
+            <i data-lucide="save" class="w-4 h-4"></i> บันทึกรถเข้า
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- 2.2) PENDING OUTBOUND -->
+  <section id="view-pending_outbound" class="hidden space-y-5">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b pb-3">
+      <div>
+        <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <i data-lucide="clock" class="w-6 h-6 text-amber-500"></i> รายการรอชั่งออก & อัปเดตคุณภาพ/กอง
+        </h2>
+        <p class="text-sm text-slate-500">ขั้นตอนที่ 2: รถที่ชั่งเข้าเรียบร้อยแล้วกำลังไปเทข้าว สามารถระบุ % ความชื้น และเลือกกองจัดเก็บได้ที่หน้านี้</p>
+      </div>
+      <button type="button" onclick="renderPendingTable()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border flex items-center gap-1.5 self-start md:self-auto shadow-sm">
+        <i data-lucide="refresh-cw" class="w-4 h-4"></i> รีเฟรชตาราง
+      </button>
+    </div>
+
+    <div class="bg-white rounded-xl border shadow-sm p-4 md:p-6 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="rtable w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-100 text-slate-700 uppercase text-xs font-bold">
+            <tr>
+              <th class="p-3">เลขที่เอกสาร</th>
+              <th class="p-3">เวลาชั่งเข้า</th>
+              <th class="p-3">ทะเบียนรถ</th>
+              <th class="p-3">ผู้ขาย</th>
+              <th class="p-3 text-right">น้ำหนักเข้า (กก.)</th>
+              <th class="p-3 text-center" style="width: 130px;">ความชื้น (%)</th>
+              <th class="p-3 text-center" style="width: 170px;">เลือก กอง/Zone</th>
+              <th class="p-3 text-center">สถานะ</th>
+              <th class="p-3 text-center">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="table-pending-outbound-body" class="divide-y divide-slate-200"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2.3) OUTBOUND PRICING -->
+  <section id="view-outbound_pricing" class="hidden space-y-5">
+    <div>
+      <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
+        <i data-lucide="calculator" class="w-6 h-6 text-amber-500"></i> ชั่งรถออก (Tare Weight) & คำนวณราคาเงินสด
+      </h2>
+      <p class="text-sm text-slate-500">ขั้นตอนที่ 3: บันทึกน้ำหนักรถเปล่าขาออก ระบบจะคำนวณน้ำหนักสุทธิและราคาเงินสดเพื่อออกตั๋วชั่งและรับเข้า Lot</p>
+    </div>
+
+    <div class="bg-white rounded-xl border shadow-sm p-4 md:p-6 space-y-5">
+      <div class="bg-indigo-50/70 border border-indigo-200 p-4 rounded-xl">
+        <label for="step3-pending-select" class="block text-xs font-bold text-indigo-900 mb-1">เลือกรถที่เทข้าวเสร็จแล้ว *</label>
+        <select id="step3-pending-select" onchange="onSelectPendingOutbound(this.value)" class="w-full border border-indigo-300 rounded-lg px-3 py-2.5 text-sm font-bold bg-white text-indigo-950">
+        </select>
+      </div>
+
+      <form id="form-outbound-step3" onsubmit="handleOutboundStep3(event)" class="space-y-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-3.5 rounded-xl border text-xs">
+          <div><span class="text-slate-500 block">เลขที่เอกสาร:</span> <b id="step3-disp-doc" class="text-slate-800 text-sm font-mono">-</b></div>
+          <div><span class="text-slate-500 block">ทะเบียนรถ:</span> <b id="step3-disp-plate" class="text-slate-800 text-sm">-</b></div>
+          <div><span class="text-slate-500 block">ผู้ขาย:</span> <b id="step3-disp-supplier" class="text-slate-800 text-sm">-</b></div>
+          <div><span class="text-slate-500 block">สินค้า:</span> <b id="step3-disp-product" class="text-slate-800 text-sm">-</b></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
+          <div>
+            <label for="step3-moisture" class="block text-xs font-semibold text-slate-600 mb-1">ความชื้น (%) *</label>
+            <input type="number" id="step3-moisture" required step="0.1" min="5" max="60" placeholder="15.5" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-semibold text-cyan-700">
+          </div>
+          <div>
+            <label for="step3-location" class="block text-xs font-semibold text-slate-600 mb-1">ตำแหน่งจัดเก็บ (กอง/Zone) *</label>
+            <select id="step3-location" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"></select>
+          </div>
+          <div>
+            <label for="step3-weight-in" class="block text-xs font-semibold text-slate-600 mb-1">น้ำหนักรถเข้า (Gross) (กก.)</label>
+            <input type="number" id="step3-weight-in" readonly class="w-full bg-slate-100 border rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700">
+          </div>
+          <div>
+            <label for="step3-weight-out" class="block text-xs font-semibold text-slate-600 mb-1">น้ำหนักรถออก (Tare Weight) (กก.) *</label>
+            <input type="number" id="step3-weight-out" required min="0" step="1" oninput="calcStep3Totals()" placeholder="เช่น 5000" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-blue-700 bg-blue-50/30">
+          </div>
+        </div>
+
         <div class="border border-amber-200 bg-amber-50/60 p-4 rounded-xl space-y-3">
-          <h3 class="font-bold text-amber-900 text-sm flex items-center gap-2"><i data-lucide="calculator" class="w-4 h-4"></i> 9. คำนวณราคา (1 ถัง = <span id="bucket-kg-label">15</span> กก.)</h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div><label for="price-per-bucket" class="block text-xs font-semibold text-amber-800 mb-1">ราคาต่อถัง (บาท)</label>
-              <input type="number" id="price-per-bucket" step="0.01" min="0" placeholder="95" class="w-full border border-amber-300 rounded-lg px-3 py-2.5 text-sm font-bold bg-white"></div>
-            <div><label for="price-per-kg" class="block text-xs font-semibold text-amber-800 mb-1">ราคาต่อ กก.</label>
-              <input type="text" id="price-per-kg" readonly placeholder="0.00" class="w-full bg-amber-100/70 border border-amber-300 rounded-lg px-3 py-2.5 text-sm font-mono font-bold"></div>
-            <div><label for="total-price-display" class="block text-xs font-semibold text-amber-800 mb-1">จำนวนเงินสุทธิ (บาท)</label>
-              <input type="text" id="total-price-display" readonly placeholder="0.00" class="w-full bg-emerald-600 border border-emerald-700 rounded-lg px-3 py-2.5 text-base font-mono font-bold text-white"></div>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label for="step3-weight-net" class="block text-xs font-bold text-slate-700 mb-1">น้ำหนักสุทธิ (Net Weight) (กก.)</label>
+              <input type="number" id="step3-weight-net" readonly class="w-full bg-emerald-100 border border-emerald-300 rounded-lg px-3 py-2.5 text-base font-bold text-emerald-800">
+            </div>
+            <div>
+              <label for="step3-price-bucket" class="block text-xs font-bold text-amber-900 mb-1">ราคาต่อถัง (บาท)</label>
+              <input type="number" id="step3-price-bucket" step="0.01" min="0" oninput="calcStep3Totals()" placeholder="เช่น 95" class="w-full border border-amber-300 rounded-lg px-3 py-2.5 text-sm font-bold bg-white">
+            </div>
+            <div>
+              <label for="step3-price-kg" class="block text-xs font-semibold text-amber-800 mb-1">ราคาต่อ กก. (บาท)</label>
+              <input type="text" id="step3-price-kg" readonly placeholder="0.00" class="w-full bg-amber-100/70 border border-amber-300 rounded-lg px-3 py-2.5 text-sm font-mono font-bold">
+            </div>
+            <div>
+              <label for="step3-total-price" class="block text-xs font-bold text-amber-900 mb-1">จำนวนเงินสุทธิ (บาท)</label>
+              <input type="text" id="step3-total-price" readonly placeholder="0.00" class="w-full bg-emerald-600 border border-emerald-700 rounded-lg px-3 py-2.5 text-base font-mono font-bold text-white">
+            </div>
           </div>
-          <p class="text-xs text-amber-700 italic">* (ราคาต่อถัง ÷ น้ำหนักต่อถัง) × น้ำหนักสุทธิ — ปัดทศนิยม 2 ตำแหน่งตอนบันทึก</p>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div id="rec-location-box"><label for="rec-location" class="block text-xs font-semibold text-slate-600 mb-1">ตำแหน่งจัดเก็บ (กอง/Zone) *</label>
-            <select id="rec-location" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"></select></div>
-          <div><label for="rec-remark" class="block text-xs font-semibold text-slate-600 mb-1">หมายเหตุ</label>
-            <input type="text" id="rec-remark" maxlength="200" placeholder="ข้อความเพิ่มเติม..." class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"></div>
+
+        <div>
+          <label for="step3-remark" class="block text-xs font-semibold text-slate-600 mb-1">หมายเหตุเพิ่มเติม</label>
+          <input type="text" id="step3-remark" maxlength="200" placeholder="หมายเหตุ..." class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm">
         </div>
-        <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
-          <button type="reset" class="px-5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg text-sm">ล้างฟอร์ม</button>
-          <button type="submit" id="rec-submit-btn" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm flex items-center justify-center gap-2 shadow">
-            <i data-lucide="save" class="w-4 h-4"></i> บันทึกเข้าระบบ</button>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="submit" id="step3-submit-btn" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm flex items-center gap-2 shadow">
+            <i data-lucide="printer" class="w-4 h-4"></i> บันทึกชั่งออก & พิมพ์ตั๋ว/ออก Lot
+          </button>
         </div>
       </form>
     </div>
@@ -298,7 +469,7 @@ aside{transition:width .3s ease,transform .3s ease}
 
   <!-- 3) WEIGHING -->
   <section id="view-weighing" class="hidden space-y-5">
-    <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">สถานีชั่งน้ำหนัก (2 ขั้นตอน)</h2>
+    <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">พิมพ์ตั๋วชั่ง</h2>
       <p class="text-sm text-slate-500">ชั่งเข้า → ลง/ขึ้นสินค้า → ชั่งออก → ส่งต่อเป็นรายการรับ-จ่าย</p></div>
     <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
       <h3 class="font-bold text-slate-800 mb-3 text-sm">เปิดตั๋วชั่ง (ชั่งเข้า)</h3>
@@ -332,40 +503,79 @@ aside{transition:width .3s ease,transform .3s ease}
   <!-- 4) LOTS -->
   <section id="view-lots" class="hidden space-y-5">
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-3">
-      <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">จัดการ Lot ข้าวโพด</h2>
-        <p class="text-sm text-slate-500">ติดตามคุณภาพ อายุจัดเก็บ และ Risk Score</p></div>
+      <div>
+        <h2 class="text-xl md:text-2xl font-bold text-slate-800">จัดการข้อมูลตั๋วชั่ง & สต็อก Lot ข้าวโพด</h2>
+        <p class="text-sm text-slate-500">รวมข้อมูลการชั่งน้ำหนัก, ตั๋วชั่ง, และสถานะ Lot ไว้ในตารางเดียว</p>
+      </div>
       <div class="flex gap-2">
-        <input type="text" id="lot-filter" oninput="lotPage=1;renderLotsTable()" placeholder="กรอง Lot/ผู้ขาย/กอง" class="border rounded-lg px-3 py-2.5 text-sm">
-        <select id="lot-sort" onchange="renderLotsTable()" class="border rounded-lg px-3 py-2.5 text-sm">
-          <option value="date_desc">ใหม่ → เก่า</option><option value="date_asc">เก่า → ใหม่ (FIFO)</option>
-          <option value="risk_desc">Risk สูง → ต่ำ</option><option value="weight_desc">คงเหลือมาก → น้อย</option></select>
+        <input type="text" id="unified-filter" oninput="unifiedPage=1;renderUnifiedTable()" placeholder="กรอง Lot / ทะเบียน / ผู้ขาย" class="border rounded-lg px-3 py-2.5 text-sm">
+        <select id="unified-sort" onchange="renderUnifiedTable()" class="border rounded-lg px-3 py-2.5 text-sm">
+          <option value="date_desc">ใหม่ → เก่า</option>
+          <option value="date_asc">เก่า → ใหม่ (FIFO)</option>
+        </select>
       </div>
     </div>
+
+    <div class="flex flex-wrap items-center gap-3 md:gap-5 bg-white p-3.5 rounded-xl border border-slate-200 text-xs shadow-sm">
+      <span class="font-bold text-slate-700 flex items-center gap-1.5"><i data-lucide="info" class="w-4 h-4 text-amber-500"></i> สถานะ:</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500"></span> รอชั่งออก</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> ปกติ / สำเร็จ</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500"></span> เฝ้าระวัง / เสี่ยงสูง</span>
+    </div>
+
     <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
         <table class="rtable w-full text-left text-sm text-slate-600">
           <thead class="bg-slate-800 text-slate-200 uppercase text-xs font-bold">
-            <tr><th class="p-3">Lot</th><th class="p-3">สินค้า</th><th class="p-3">ผู้ขาย</th><th class="p-3">กอง</th>
-            <th class="p-3 text-right">รับเข้า</th><th class="p-3 text-right">คงเหลือ</th>
-            <th class="p-3 text-center">ชื้น</th><th class="p-3 text-center">Risk</th><th class="p-3 text-center">จัดการ</th></tr></thead>
-          <tbody id="table-lots-body" class="divide-y divide-slate-200"></tbody>
+            <tr>
+              <th class="p-3">เลขที่ / Lot</th>
+              <th class="p-3">เวลา</th>
+              <th class="p-3">ทะเบียนรถ</th>
+              <th class="p-3">ผู้ขาย / ลูกค้า</th>
+              <th class="p-3 text-right">ชั่งเข้า (กก.)</th>
+              <th class="p-3 text-right">ชั่งออก (กก.)</th>
+              <th class="p-3 text-right">สุทธิ (กก.)</th>
+              <th class="p-3 text-center">ชื้น (%)</th>
+              <th class="p-3 text-center">กอง</th>
+              <th class="p-3 text-center">สถานะตั๋ว</th>
+              <th class="p-3 text-center">ความเสี่ยง / Lot</th>
+              <th class="p-3 text-center">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="table-unified-body" class="divide-y divide-slate-200"></tbody>
         </table>
       </div>
-      <div id="lot-pager" class="flex justify-between items-center p-3 text-sm border-t"></div>
+      <div id="unified-pager" class="flex justify-between items-center p-3 text-sm border-t"></div>
     </div>
   </section>
 
   <!-- 5) MAP -->
   <section id="view-map" class="hidden space-y-5">
     <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">แผนผังลานข้าวโพด</h2>
-      <p class="text-sm text-slate-500">สถานะกองตามระดับความเสี่ยงและความจุ</p></div>
-    <div class="flex flex-wrap items-center gap-3 md:gap-5 bg-white p-3 rounded-lg border text-xs">
-      <span class="font-bold">คำอธิบายสี:</span>
-      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-300"></span> ว่าง</span>
-      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> ปกติ</span>
-      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500"></span> เฝ้าระวัง</span>
-      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500"></span> เสี่ยงสูง</span>
+      <p class="text-sm text-slate-500">สถานะกองตามระดับความเสี่ยง ความจุ และช่วงความชื้นประจำกอง</p></div>
+
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
+      <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4 text-amber-500"></i> ตารางเกณฑ์การจัดเก็บแยกตามช่วงความชื้น</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead class="bg-slate-100 text-slate-700 font-bold border-b">
+            <tr>
+              <th class="p-2 border">ช่วงความชื้น</th>
+              <th class="p-2 border">สถานะ</th>
+              <th class="p-2 border">ระยะเวลาที่เก็บได้สูงสุด</th>
+              <th class="p-2 border">แนวทางบริหารจัดการ</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y text-slate-600">
+            <tr><td class="p-2 border font-bold">&lt; 14.5%</td><td class="p-2 border"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">ปลอดภัย (Safe)</span></td><td class="p-2 border">เก็บได้ยาวนาน</td><td class="p-2 border">กองเก็บรอขาย, หมั่นตรวจเช็กแมลงและศัตรูพืช</td></tr>
+            <tr><td class="p-2 border font-bold">15.0% - 18.0%</td><td class="p-2 border"><span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">ปานกลาง (Medium)</span></td><td class="p-2 border">3 - 7 วัน</td><td class="p-2 border">จัดคิวขายก่อน (FIFO) หรือเป่าลมระบายความร้อน</td></tr>
+            <tr><td class="p-2 border font-bold">18.5% - 25.0%</td><td class="p-2 border"><span class="px-2 py-0.5 rounded bg-orange-100 text-orange-800 font-bold">สูง (High)</span></td><td class="p-2 border">24 - 48 ชั่วโมง</td><td class="p-2 border">จัดคิวเข้าเครื่องอบ (Dryer) เป็นลำดับแรกๆ</td></tr>
+            <tr><td class="p-2 border font-bold">&gt; 25.0%</td><td class="p-2 border"><span class="px-2 py-0.5 rounded bg-red-100 text-red-800 font-bold">สูงมาก (Critical)</span></td><td class="p-2 border">&lt; 24 ชั่วโมง</td><td class="p-2 border">เทกองบางๆ ระบายความร้อน และเร่งกะเทาะ/อบทันที</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="map-grid-container"></div>
   </section>
 
@@ -389,8 +599,15 @@ aside{transition:width .3s ease,transform .3s ease}
         <div class="overflow-x-auto">
           <table class="rtable w-full text-left text-sm">
             <thead class="bg-slate-100 text-xs font-bold uppercase">
-              <tr><th class="p-2.5">วัน-เวลา</th><th class="p-2.5">Lot</th><th class="p-2.5 text-center">ชื้น</th>
-              <th class="p-2.5 text-center">ประเมิน</th><th class="p-2.5">ผู้ตรวจ</th></tr></thead>
+              <tr>
+                <th class="p-2.5">วัน-เวลา</th>
+                <th class="p-2.5">Lot</th>
+                <th class="p-2.5 text-center">ชื้น</th>
+                <th class="p-2.5 text-center">ประเมิน</th>
+                <th class="p-2.5">ผู้ตรวจ</th>
+                <th class="p-2.5 text-center">จัดการ</th>
+              </tr>
+            </thead>
             <tbody id="table-moisture-history" class="divide-y"></tbody>
           </table>
         </div>
@@ -437,9 +654,36 @@ aside{transition:width .3s ease,transform .3s ease}
 
   <!-- 8) ALERTS -->
   <section id="view-alerts" class="hidden space-y-5">
-    <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">ศูนย์แจ้งเตือนอัจฉริยะ</h2>
-      <p class="text-sm text-slate-500">ความชื้นสูง / เก็บนาน / พื้นที่ใกล้เต็ม / ตั๋วชั่งค้าง</p></div>
-    <div class="bg-white rounded-xl border shadow-sm p-4 space-y-3" id="alerts-container"></div>
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-4">
+      <div>
+        <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <i data-lucide="bell" class="w-6 h-6 text-amber-500"></i> ศูนย์แจ้งเตือนอัจฉริยะ
+        </h2>
+        <p class="text-sm text-slate-500">ตรวจสอบความชื้น, อายุจัดเก็บ, ความจุลาน และตั๋วชั่งค้าง</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="markAllAlertsAsRead()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 flex items-center gap-1.5 transition">
+          <i data-lucide="check-check" class="w-4 h-4 text-emerald-600"></i> อ่านทั้งหมด
+        </button>
+        <button onclick="switchView('settings')" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 flex items-center gap-1.5 transition">
+          <i data-lucide="settings" class="w-4 h-4 text-slate-500"></i> ตั้งค่าแจ้งเตือน
+        </button>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+      <div class="flex flex-wrap gap-1" id="alert-category-tabs">
+        <button onclick="setAlertTab('all')" id="tab-alert-all" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 shadow">ทั้งหมด</button>
+        <button onclick="setAlertTab('stock')" id="tab-alert-stock" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100">สินค้า/คลัง</button>
+        <button onclick="setAlertTab('capacity')" id="tab-alert-capacity" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100">พื้นที่/ความจุ</button>
+        <button onclick="setAlertTab('system')" id="tab-alert-system" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100">ระบบ/ตั๋วชั่ง</button>
+      </div>
+      <div class="flex items-center gap-2 text-xs text-slate-500 pr-2">
+        <span id="unread-count-text" class="font-bold text-amber-600">ยังไม่อ่าน 0 รายการ</span>
+      </div>
+    </div>
+
+    <div id="alerts-container" class="space-y-4"></div>
   </section>
 
   <!-- 9) REPORTS -->
@@ -498,8 +742,8 @@ aside{transition:width .3s ease,transform .3s ease}
         <div><label for="setting-capacity" class="block text-xs font-semibold mb-1">ความจุลานรวม (กก.)</label><input type="number" id="setting-capacity" min="1" class="w-full border rounded-lg p-2.5 text-sm"></div>
         <div><label for="setting-cap-alert" class="block text-xs font-semibold mb-1">เตือนเมื่อใช้เกิน (%)</label><input type="number" id="setting-cap-alert" min="1" max="100" class="w-full border rounded-lg p-2.5 text-sm"></div>
       </div>
-      <h3 class="font-bold border-b pb-2 pt-2">ความจุรายกอง (กก.)</h3>
-      <div id="zone-capacity-box" class="grid grid-cols-2 md:grid-cols-3 gap-3"></div>
+      <h3 class="font-bold border-b pb-2 pt-2">ความจุและช่วงความชื้นประจำกอง</h3>
+      <div id="zone-capacity-box" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
       <div class="pt-3 flex justify-end"><button onclick="saveSettings()" class="bg-emerald-600 text-white px-5 py-3 rounded-lg text-sm font-medium">บันทึกการตั้งค่า</button></div>
     </div>
     <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm max-w-3xl">
@@ -520,11 +764,133 @@ aside{transition:width .3s ease,transform .3s ease}
 
 <script>
 'use strict';
-/* ════════════════ 0) SELF SNAPSHOT (สำหรับ srcdoc fallback) ════════════════ */
+
 const SELF_HTML = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const IS_PREVIEW = window.__WMS_MODE__ === 'preview';
 
-/* ════════════════ 1) PREVIEW SHELL ════════════════ */
+// 🔑 รายชื่อผู้ใช้เริ่มต้น (Default Users)
+const DEFAULT_USERS = [
+  { username: 'admin', pass: '1234', role: 'เจ้าของลาน', name: 'ผู้ดูแลระบบหลัก' },
+  { username: 'manager', pass: '1234', role: 'ผู้จัดการ', name: 'ผู้จัดการลาน' },
+  { username: 'stock', pass: '1234', role: 'พนักงานคลัง', name: 'พนักงานคลังสินค้า' },
+  { username: 'scale', pass: '1234', role: 'พนักงานชั่งน้ำหนัก', name: 'พนักงานประจำเครื่องชั่ง' },
+  { username: 'qa', pass: '1234', role: 'ผู้ตรวจสอบคุณภาพ', name: 'ผู้ตรวจสอบคุณภาพ (QA)' }
+];
+
+let currentUser = null;
+
+const THAI_PROVINCES = [
+  "กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร", "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา", 
+  "ชลบุรี", "ชัยนาท", "ชัยภูมิ", "ชุมพร", "ตรัง", "ตราด", "ตาก", "นครนายก", "นครปฐม", "นครพนม", 
+  "นครราชสีมา", "นครศรีธรรมราช", "นครสวรรค์", "นนทบุรี", "นราธิวาส", "น่าน", "บึงกาฬ", "บุรีรัมย์", 
+  "ปทุมธานี", "ประจวบคีรีขันธ์", "ปราจีนบุรี", "ปัตตานี", "พระนครศรีอยุธยา", "พะเยา", "พังงา", "พัทลุง", 
+  "พิจิตร", "พิษณุโลก", "เพชรบุรี", "เพชรบูรณ์", "แพร่", "ภูเก็ต", "มหาสารคาม", "มุกดาหาร", "แม่ฮ่องสอน", 
+  "ยโสธร", "ยะลา", "ร้อยเอ็ด", "ระนอง", "ระยอง", "ราชบุรี", "ลพบุรี", "ลำปาง", "ลำพูน", "เลย", 
+  "ศรีสะเกษ", "สกลนคร", "สงขลา", "สตูล", "สมุทรปราการ", "สมุทรสงคราม", "สมุทรสาคร", "สระแก้ว", 
+  "สระบุรี", "สิงห์บุรี", "สุโขทัย", "สุพรรณบุรี", "สุราษฎร์ธานี", "สุรินทร์", "หนองคาย", "หนองบัวลำภู", 
+  "อ่างทอง", "อำนาจเจริญ", "อุดรธานี", "อุตรดิตถ์", "อุทัยธานี", "อุบลราชธานี", "เชียงราย", "เชียงใหม่"
+];
+
+let activeProvinceFocusIndex = -1;
+
+function onProvinceSearchInput(val) {
+  const dropdown = $('province-dropdown');
+  const hiddenInput = $('step1-plate-province');
+  if (!dropdown) return;
+
+  const query = val.trim().toLowerCase();
+  hiddenInput.value = '';
+
+  const filtered = query === '' 
+    ? THAI_PROVINCES 
+    : THAI_PROVINCES.filter(p => p.toLowerCase().includes(query));
+
+  if (filtered.length === 0) {
+    dropdown.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center">ไม่พบจังหวัดที่ค้นหา</div>`;
+  } else {
+    dropdown.innerHTML = filtered.map((prov, idx) => `
+      <div onclick="selectProvince('${esc(prov)}')" 
+        data-prov-idx="${idx}"
+        class="province-item px-3.5 py-2 text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-900 cursor-pointer transition flex items-center justify-between">
+        <span>${esc(prov)}</span>
+        <i data-lucide="check" class="w-3.5 h-3.5 text-amber-600 ${val === prov ? '' : 'hidden'}"></i>
+      </div>
+    `).join('');
+  }
+
+  dropdown.classList.remove('hidden');
+  activeProvinceFocusIndex = -1;
+  if (window.lucide) lucide.createIcons();
+}
+
+function onProvinceInputFocus() {
+  const input = $('step1-province-input');
+  onProvinceSearchInput(input ? input.value : '');
+}
+
+function selectProvince(provName) {
+  const input = $('step1-province-input');
+  const hiddenInput = $('step1-plate-province');
+  const dropdown = $('province-dropdown');
+
+  if (input) input.value = provName;
+  if (hiddenInput) hiddenInput.value = provName;
+  if (dropdown) dropdown.classList.add('hidden');
+}
+
+function onProvinceKeyDown(e) {
+  const dropdown = $('province-dropdown');
+  if (!dropdown || dropdown.classList.contains('hidden')) return;
+
+  const items = dropdown.querySelectorAll('.province-item');
+  if (!items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    activeProvinceFocusIndex = (activeProvinceFocusIndex + 1) % items.length;
+    highlightProvinceItem(items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    activeProvinceFocusIndex = (activeProvinceFocusIndex - 1 + items.length) % items.length;
+    highlightProvinceItem(items);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (activeProvinceFocusIndex >= 0 && items[activeProvinceFocusIndex]) {
+      items[activeProvinceFocusIndex].click();
+    }
+  } else if (e.key === 'Escape') {
+    dropdown.classList.add('hidden');
+  }
+}
+
+function highlightProvinceItem(items) {
+  items.forEach((item, i) => {
+    if (i === activeProvinceFocusIndex) {
+      item.classList.add('bg-amber-100', 'text-amber-900', 'font-bold');
+      item.scrollIntoView({ block: 'nearest' });
+    } else {
+      item.classList.remove('bg-amber-100', 'text-amber-900', 'font-bold');
+    }
+  });
+}
+
+function resetInboundForm() {
+  const input = $('step1-province-input');
+  const hiddenInput = $('step1-plate-province');
+  if (input) input.value = '';
+  if (hiddenInput) hiddenInput.value = '';
+  const dropdown = $('province-dropdown');
+  if (dropdown) dropdown.classList.add('hidden');
+}
+
+document.addEventListener('click', function(e) {
+  const provContainer = $('step1-province-input')?.closest('.relative');
+  if (provContainer && !provContainer.contains(e.target)) {
+    $('province-dropdown')?.classList.add('hidden');
+  }
+});
+
+/* PREVIEW SHELL */
 const SHELL = {desktop:'desktop-shell', tablet:'tablet-shell', mobile:'mobile-shell'};
 const INFO  = {desktop:'Desktop (100%)', tablet:'Tablet (820px)', mobile:'Mobile (390 x 844)'};
 function switchDevice(type){
@@ -549,11 +915,10 @@ function initPreviewFrame(){
   let handshake = false;
   const onMsg = e => { if (e.data === 'WMS_READY'){ handshake = true; window.removeEventListener('message', onMsg); } };
   window.addEventListener('message', onMsg);
-  // พยายามโหลดไฟล์ตัวเองก่อน (ได้ localStorage เต็มรูปแบบ)
   f.src = location.href.split('#')[0] + '#app';
   setTimeout(()=>{
     if (handshake) return;
-    try { // fallback: ฝังสำเนาตัวเองแบบ srcdoc (ทำงานได้แม้เปิดจาก file://)
+    try {
       f.removeAttribute('src'); f.srcdoc = SELF_HTML;
       setTimeout(()=>{ if(!handshake) fb.classList.remove('hidden'); }, 2500);
     } catch(e){ fb.classList.remove('hidden'); }
@@ -567,20 +932,29 @@ if (IS_PREVIEW){
   });
 }
 
-/* ════════════════ 2) APPLICATION ════════════════ */
+/* APPLICATION */
+const MOISTURE_RANGES = {
+  'any': { label: 'ทุกช่วงความชื้น', badge: 'bg-slate-100 text-slate-700', min: 0, max: 100, days: '-', action: 'จัดเก็บทั่วไป' },
+  'safe': { label: '< 14.5% ปลอดภัย (Safe)', badge: 'bg-emerald-100 text-emerald-800 font-bold', min: 0, max: 14.5, days: 'เก็บได้ยาวนาน', action: 'กองเก็บรอขาย, หมั่นตรวจเช็กแมลงและศัตรูพืช' },
+  'medium': { label: '15.0% - 18.0% ปานกลาง (Medium)', badge: 'bg-amber-100 text-amber-800 font-bold', min: 14.51, max: 18.0, days: '3 - 7 วัน', action: 'จัดคิวขายก่อน (FIFO) หรือเป่าลมระบายความร้อน' },
+  'high': { label: '18.1% - 30.0% เสี่ยงสูง (High Risk)', badge: 'bg-red-100 text-red-800 font-bold', min: 18.01, max: 30.0, days: '24 - 48 ชั่วโมง', action: 'จัดคิวเข้าเครื่องอบ (Dryer) เป็นลำดับแรกๆ' },
+  'critical': { label: '> 30.0% เร่งเข้าตู้อบ (Critical Dryer)', badge: 'bg-purple-100 text-purple-900 font-bold', min: 30.01, max: 100, days: '< 24 ชั่วโมง', action: 'เทกองบางๆ ระบายความร้อน และเร่งกะเทาะ/อบทันที' }
+};
+
 const STORAGE_KEY = 'SMART_CORN_WMS_DB_V2';
 const SCHEMA_VERSION = 2;
 const DEFAULT_STATE = {
   version: SCHEMA_VERSION, currentUserRole: 'เจ้าของลาน',
   settings: { moistNormal:15.0, moistWarn:17.0, ageWarn:14, ageMax:30,
     bucketKg:15, yardCapacityKg:500000, capAlertPct:85,
-    zones:[{code:'A01',capacityKg:100000},{code:'A02',capacityKg:100000},{code:'B01',capacityKg:100000},
-           {code:'B02',capacityKg:80000},{code:'C01',capacityKg:70000},{code:'D01',capacityKg:50000}] },
-  counters:{}, lots:[], weighingRecords:[], moistureRecords:[], issueRecords:[], activityLogs:[]
+    zones:[{code:'A01',capacityKg:100000, targetMoisture:'medium'},{code:'A02',capacityKg:100000, targetMoisture:'safe'},
+           {code:'B01',capacityKg:100000, targetMoisture:'high'},{code:'B02',capacityKg:80000, targetMoisture:'medium'},
+           {code:'C01',capacityKg:70000, targetMoisture:'any'},{code:'D01',capacityKg:50000, targetMoisture:'any'}] },
+  counters:{}, lots:[], weighingRecords:[], moistureRecords:[], issueRecords:[], activityLogs:[],
+  readAlerts: [], dismissedAlerts: []
 };
 let appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
 
-/* ---------- utils ---------- */
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const round2 = n => Math.round(((Number(n)||0) + Number.EPSILON) * 100) / 100;
@@ -593,7 +967,6 @@ const dayKey = iso => String(iso||'').slice(0,10);
 function fmtDT(iso){ if(!iso) return '-'; const d=new Date(iso); return isNaN(d)?esc(iso):d.toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}); }
 function fmtD(iso){ if(!iso) return '-'; const d=new Date(iso); return isNaN(d)?esc(iso):d.toLocaleDateString('th-TH',{dateStyle:'medium'}); }
 
-/* ---------- toast / modal ---------- */
 function toast(msg, type='ok', ms=3500){
   const c = {ok:'bg-emerald-600', error:'bg-red-600', warn:'bg-amber-500', info:'bg-slate-800'};
   const el = document.createElement('div');
@@ -602,6 +975,7 @@ function toast(msg, type='ok', ms=3500){
   $('toast-root').appendChild(el);
   setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, ms);
 }
+
 let lastFocus = null;
 function openModal(html, onOpen){
   lastFocus = document.activeElement;
@@ -617,46 +991,86 @@ function closeModal(){
   document.body.classList.remove('drawer-lock');
   if (lastFocus && lastFocus.focus) lastFocus.focus();
 }
-document.addEventListener('keydown', e => {
-  if (IS_PREVIEW) return;
-  if (e.key === 'Escape'){ if(!$('modal-root').classList.contains('hidden')) closeModal(); else closeDrawer(); }
-  if (e.key === 'Tab' && !$('modal-root').classList.contains('hidden')){
-    const f = $('modal-box').querySelectorAll('a[href],button:not([disabled]),input,select,textarea');
-    if(!f.length) return;
-    const first=f[0], last=f[f.length-1];
-    if (e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
-    else if (!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
-  }
-});
-function uiConfirm(message, {danger=false, okText='ยืนยัน', requireText=null}={}){
-  return new Promise(res=>{
-    openModal(`<h3 class="font-bold text-lg">ยืนยันการทำรายการ</h3>
-      <p class="text-sm text-slate-600 whitespace-pre-line">${esc(message)}</p>
-      ${requireText?`<div><p class="text-xs text-slate-500 mb-1">พิมพ์ <b>${esc(requireText)}</b> เพื่อยืนยัน</p>
-      <input id="confirm-text" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>`:''}
-      <div class="flex gap-2 pt-2">
-        <button id="cf-cancel" class="flex-1 bg-slate-200 py-2.5 rounded-lg text-sm">ยกเลิก</button>
-        <button id="cf-ok" class="flex-1 ${danger?'bg-red-600':'bg-emerald-600'} text-white py-2.5 rounded-lg text-sm font-medium">${esc(okText)}</button>
-      </div>`);
-    $('cf-cancel').onclick = ()=>{ closeModal(); res(false); };
-    $('cf-ok').onclick = ()=>{
-      if (requireText && $('confirm-text').value.trim() !== requireText){ toast('ข้อความยืนยันไม่ถูกต้อง','error'); return; }
-      closeModal(); res(true); };
-  });
-}
-function uiPrompt(label, {placeholder='', required=true}={}){
-  return new Promise(res=>{
-    openModal(`<h3 class="font-bold text-lg">${esc(label)}</h3>
-      <input id="prompt-input" placeholder="${esc(placeholder)}" class="w-full border rounded-lg px-3 py-2.5 text-sm">
-      <div class="flex gap-2 pt-2"><button id="pm-cancel" class="flex-1 bg-slate-200 py-2.5 rounded-lg text-sm">ยกเลิก</button>
-      <button id="pm-ok" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm">ตกลง</button></div>`);
-    $('pm-cancel').onclick = ()=>{ closeModal(); res(null); };
-    $('pm-ok').onclick = ()=>{ const v=$('prompt-input').value.trim();
-      if(required && !v){ toast('กรุณากรอกข้อมูล','warn'); return; } closeModal(); res(v); };
+
+function uiConfirm(title, opts={}){
+  return new Promise((resolve)=>{
+    openModal(`
+      <h3 class="font-bold text-base text-slate-800 border-b pb-2 mb-3">${esc(title)}</h3>
+      ${opts.requireText ? `<p class="text-xs text-slate-500 mb-2">พิมพ์คำว่า "<b>${esc(opts.requireText)}</b>" เพื่อยืนยัน</p>
+      <input type="text" id="ui-confirm-input" class="w-full border border-slate-300 rounded-lg p-2 text-sm mb-2">` : ''}
+      <div class="flex justify-end gap-2 pt-2">
+        <button id="ui-confirm-cancel" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium">ยกเลิก</button>
+        <button id="ui-confirm-ok" class="px-4 py-2 ${opts.danger?'bg-red-600':'bg-amber-500'} text-white rounded-lg text-sm font-bold shadow">ยืนยัน</button>
+      </div>
+    `, ()=>{
+      const input = $('ui-confirm-input');
+      const finish = (val) => { closeModal(); resolve(val); };
+      $('ui-confirm-ok').onclick = () => {
+        if(opts.requireText && input.value.trim() !== opts.requireText){
+          return toast(`กรุณาพิมพ์ "${opts.requireText}" ให้ถูกต้อง`, 'warn');
+        }
+        finish(true);
+      };
+      $('ui-confirm-cancel').onclick = () => finish(false);
+    });
   });
 }
 
-/* ---------- storage ---------- */
+function handleLogin(e){
+  e.preventDefault();
+  const u = $('login-username').value.trim();
+  const p = $('login-password').value.trim();
+
+  const found = DEFAULT_USERS.find(x => x.username.toLowerCase() === u.toLowerCase() && x.pass === p);
+  if (!found){
+    return toast('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'error');
+  }
+
+  currentUser = found;
+  appState.currentUserRole = found.role;
+  sessionStorage.setItem('WMS_ACTIVE_USER', JSON.stringify(found));
+
+  $('login-overlay').classList.add('hidden');
+  $('user-display-name').textContent = found.name;
+  $('user-role-text').textContent = found.role;
+  $('user-avatar').textContent = found.name.substring(0, 2);
+
+  logActivity(`เข้าสู่ระบบ: ${found.name} (${found.role})`);
+  saveData();
+  renderNav();
+  
+  if (typeof window.syncFromExcelDB === 'function') {
+    window.syncFromExcelDB(false);
+  }
+  
+  toast(`ยินดีต้อนรับ ${found.name}`, 'ok');
+}
+
+function handleLogout(){
+  currentUser = null;
+  sessionStorage.removeItem('WMS_ACTIVE_USER');
+  $('login-overlay').classList.remove('hidden');
+  $('form-login').reset();
+  toast('ออกจากระบบเรียบร้อยแล้ว', 'info');
+}
+
+function checkLoginSession(){
+  const saved = sessionStorage.getItem('WMS_ACTIVE_USER');
+  if (saved){
+    try {
+      const u = JSON.parse(saved);
+      currentUser = u;
+      appState.currentUserRole = u.role;
+      $('login-overlay').classList.add('hidden');
+      $('user-display-name').textContent = u.name;
+      $('user-role-text').textContent = u.role;
+      $('user-avatar').textContent = u.name.substring(0, 2);
+    } catch(e){}
+  } else {
+    $('login-overlay').classList.remove('hidden');
+  }
+}
+
 function loadData(){
   let raw=null;
   try { raw = localStorage.getItem(STORAGE_KEY); }
@@ -671,32 +1085,35 @@ function loadData(){
       lots: Array.isArray(p.lots)?p.lots:[], weighingRecords: Array.isArray(p.weighingRecords)?p.weighingRecords:[],
       moistureRecords: Array.isArray(p.moistureRecords)?p.moistureRecords:[],
       issueRecords: Array.isArray(p.issueRecords)?p.issueRecords:[],
-      activityLogs: Array.isArray(p.activityLogs)?p.activityLogs:[] };
+      activityLogs: Array.isArray(p.activityLogs)?p.activityLogs:[],
+      readAlerts: Array.isArray(p.readAlerts)?p.readAlerts:[],
+      dismissedAlerts: Array.isArray(p.dismissedAlerts)?p.dismissedAlerts:[] };
     migrate();
   } catch(e){
-    try { localStorage.setItem(STORAGE_KEY+'_CORRUPT_'+Date.now(), raw); } catch(_){}
     appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
-    toast('ข้อมูลเดิมเสียหาย ระบบเริ่มใหม่ (สำรองไฟล์เสียไว้แล้ว)','error',8000);
   }
 }
+
 function migrate(){
   appState.lots.forEach(l=>{ l.id ||= uid('LOT'); l.status ||= 'active'; l.docNo ||= l.lotNumber;
     l.initialMoisture ??= l.currentMoisture; l.currentWeight = num(l.currentWeight); l.pricePerKg = round2(l.pricePerKg); });
   appState.issueRecords.forEach(r=>{ r.id ||= uid('ISS'); r.status ||= 'active'; });
   appState.weighingRecords.forEach(w=>{ w.id ||= uid('WT'); w.status ||= 'done'; w.docNo ||= w.lotNumber||w.id; });
+  appState.readAlerts ||= []; appState.dismissedAlerts ||= [];
   appState.version = SCHEMA_VERSION;
 }
+
 function saveData(){
   appState.activityLogs = appState.activityLogs.slice(0,500);
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); }
-  catch(e){ toast('บันทึกไม่สำเร็จ: พื้นที่จัดเก็บเต็ม กรุณาส่งออกข้อมูลแล้วล้างรายการเก่า','error',9000); return false; }
+  catch(e){ toast('บันทึกไม่สำเร็จ: พื้นที่จัดเก็บเต็ม','error',9000); return false; }
   refreshBadges();
+  refreshPendingBadgeCount();
   if (currentView === 'dashboard') renderDashboard();
   return true;
 }
-function logActivity(action){ appState.activityLogs.unshift({ ts:new Date().toISOString(), user:appState.currentUserRole, action }); }
 
-/* ---------- doc no ---------- */
+function logActivity(action){ appState.activityLogs.unshift({ ts:new Date().toISOString(), user:appState.currentUserRole, action }); }
 function docExists(d){ return appState.lots.some(l=>l.docNo===d)||appState.issueRecords.some(i=>i.docNo===d)||appState.weighingRecords.some(w=>w.docNo===d); }
 function peekDocNo(prefix){
   const k = dayKey(nowLocalInput()).replace(/-/g,'');
@@ -705,62 +1122,76 @@ function peekDocNo(prefix){
   return doc;
 }
 function commitDocNo(doc){ const p=doc.split('-'); const key=p[0]+p[1]; appState.counters[key]=Math.max(appState.counters[key]||0, parseInt(p[2],10)); }
-
-/* ---------- risk ---------- */
 function daysStored(iso){ const d=new Date(iso); return isNaN(d)?0:Math.max(0,Math.floor((Date.now()-d.getTime())/86400000)); }
+
 function evaluateLotRisk(lot){
-  const s=appState.settings, days=daysStored(lot.receivedDate), m=num(lot.currentMoisture);
-  let score=0;
-  if (m>s.moistWarn) score+=50; else if (m>s.moistNormal) score+=25;
-  if (days>s.ageMax) score+=40; else if (days>s.ageWarn) score+=20;
-  score=Math.min(score,100);
-  let status='ปกติ', badgeClass='bg-emerald-100 text-emerald-800';
-  if (score>60){ status='เสี่ยงสูง'; badgeClass='bg-red-100 text-red-800'; }
-  else if (score>30){ status='เฝ้าระวัง'; badgeClass='bg-amber-100 text-amber-800'; }
-  return { score, status, badgeClass, days };
+  const s = appState.settings, days = daysStored(lot.receivedDate), m = num(lot.currentMoisture);
+  let score = 0; const reasons = [];
+
+  if (m > 30.0) { score = 100; reasons.push(`ความชื้นสูงวิกฤต (> 30.0%) ต้องเร่งอบ`); }
+  else if (m > 18.0) { score += 65; reasons.push(`ความชื้นอยู่ในระดับเสี่ยงสูง (18.1% - 30.0%)`); }
+  else if (m > 14.5) { score += 35; reasons.push(`ความชื้นเกินเกณฑ์ปกติอยู่ในระดับเฝ้าระวัง (14.6% - 18.0%)`); }
+
+  if (days > s.ageMax) { score += 40; reasons.push(`ระยะเวลาจัดเก็บเกินกำหนดสูงสุด (${days} วัน > ${s.ageMax} วัน)`); }
+  else if (days > s.ageWarn) { score += 20; reasons.push(`ระยะเวลาจัดเก็บเริ่มนาน (${days} วัน > ${s.ageWarn} วัน)`); }
+
+  score = Math.min(score, 100);
+  let status = 'ปกติ', badgeClass = 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 cursor-pointer shadow-sm';
+
+  if (m > 30.0) { status = 'เร่งอบ'; badgeClass = 'bg-purple-100 text-purple-900 border border-purple-300 hover:bg-purple-200 cursor-pointer shadow-sm'; }
+  else if (score >= 60) { status = 'เสี่ยงสูง'; badgeClass = 'bg-red-100 text-red-800 hover:bg-red-200 cursor-pointer shadow-sm'; }
+  else if (score >= 30) { status = 'เฝ้าระวัง'; badgeClass = 'bg-amber-100 text-amber-800 hover:bg-amber-200 cursor-pointer shadow-sm'; }
+
+  return { score, status, badgeClass, days, reasons };
 }
+
 const activeLots    = () => appState.lots.filter(l=>l.status!=='void');
 const availableLots = () => activeLots().filter(l=>num(l.currentWeight)>0);
 
-/* ---------- roles ---------- */
-const NAV_ITEMS = [['dashboard','layout-dashboard','Dashboard'],['receiving','arrow-left-right','บันทึกรับ-จ่าย'],
-  ['weighing','scale','สถานีชั่งน้ำหนัก'],['lots','boxes','จัดการ Lot'],['map','map','แผนผังลาน'],
-  ['moisture','droplets','ตรวจความชื้น'],['issue','arrow-up-right','เบิกจ่าย (FIFO/FEFO)'],
-  ['alerts','bell','ศูนย์แจ้งเตือน'],['reports','file-text','รายงานและส่งออก'],['settings','settings','ตั้งค่าระบบ']];
+const NAV_ITEMS = [
+  ['dashboard','layout-dashboard','Dashboard'],
+  ['receiving','log-in','บันทึกรถเข้า (Inbound)'],
+  ['pending_outbound','clock','รายการรอชั่งออก'],
+  ['outbound_pricing','calculator','ชั่งรถออก & คำนวณราคา'],
+  ['lots','boxes','จัดการ Lot & ตั๋วชั่ง'],
+  ['map','map','แผนผังลาน'],
+  ['moisture','droplets','ตรวจความชื้น'],
+  ['issue','arrow-up-right','เบิกจ่าย (FIFO/FEFO)'],
+  ['alerts','bell','ศูนย์แจ้งเตือน'],
+  ['reports','file-text','รายงานและส่งออก'],
+  ['settings','settings','ตั้งค่าระบบ']
+];
+
 const ROLES = {
   'เจ้าของลาน':{views:'*',perms:{settings:1,void:1,demo:1,reset:1,edit:1,backup:1}},
   'ผู้จัดการ':{views:'*',perms:{settings:1,void:1,demo:0,reset:0,edit:1,backup:1}},
-  'พนักงานคลัง':{views:['dashboard','receiving','lots','map','issue','alerts'],perms:{edit:1}},
-  'พนักงานชั่งน้ำหนัก':{views:['dashboard','weighing','receiving'],perms:{}},
+  'พนักงานคลัง':{views:['dashboard','receiving','pending_outbound','outbound_pricing','lots','map','issue','alerts'],perms:{edit:1}},
+  'พนักงานชั่งน้ำหนัก':{views:['dashboard','weighing','receiving','pending_outbound','outbound_pricing'],perms:{}},
   'ผู้ตรวจสอบคุณภาพ':{views:['dashboard','moisture','lots','alerts','reports'],perms:{}}
 };
+
 const can = p => !!(ROLES[appState.currentUserRole]?.perms?.[p]);
 function allowedViews(){ const r=ROLES[appState.currentUserRole]; return (!r||r.views==='*') ? NAV_ITEMS.map(i=>i[0]) : r.views; }
+
 function renderNav(){
   const allow = allowedViews();
   $('main-nav').innerHTML = NAV_ITEMS.filter(i=>allow.includes(i[0])).map(([id,icon,label])=>`
     <button onclick="switchView('${id}')" id="nav-${id}" title="${esc(label)}"
       class="w-full flex items-center justify-between gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition">
-      <span class="flex items-center gap-3 overflow-hidden"><i data-lucide="${icon}" class="w-5 h-5 shrink-0"></i>
-      <span class="sidebar-text truncate">${esc(label)}</span></span>
+      <span class="flex items-center gap-3 overflow-hidden">
+        <i data-lucide="${icon}" class="w-5 h-5 shrink-0"></i>
+        <span class="sidebar-text truncate">${esc(label)}</span>
+      </span>
+      ${id==='pending_outbound'?'<span id="pending-count-badge" class="bg-amber-500 text-slate-950 text-xs px-2 py-0.5 rounded-full font-bold sidebar-text">0</span>':''}
       ${id==='alerts'?'<span id="alert-badge" class="hidden bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold sidebar-text">0</span>':''}
     </button>`).join('');
   $('btn-demo').classList.toggle('hidden', !can('demo'));
-  $('btn-reset').classList.toggle('hidden', !can('reset'));
+  $('btn-reset').classList.remove('hidden');
   $('btn-backup').classList.toggle('hidden', !can('backup'));
+  refreshPendingBadgeCount();
   if (window.lucide) lucide.createIcons();
 }
-function changeRole(role){
-  appState.currentUserRole = role;
-  $('user-display-name').textContent = role;
-  $('user-avatar').textContent = role.substring(0,2);
-  logActivity('เปลี่ยนสิทธิ์ผู้ใช้งานเป็น: '+role);
-  saveData(); renderNav();
-  const allow = allowedViews();
-  switchView(allow.includes(currentView) ? currentView : allow[0]);
-}
 
-/* ---------- view switch ---------- */
 let currentView = 'dashboard';
 function switchView(viewId){
   if (!allowedViews().includes(viewId)){ toast('สิทธิ์ของคุณไม่สามารถเข้าถึงเมนูนี้','warn'); return; }
@@ -770,11 +1201,24 @@ function switchView(viewId){
   $('nav-'+viewId)?.classList.add('sidebar-active');
   $('main-container').scrollTop = 0;
   closeDrawer();
-  ({dashboard:renderDashboard, weighing:renderWeighingTable, lots:renderLotsTable, map:renderWarehouseMap,
-    moisture:renderMoistureView, issue:renderIssueView, alerts:renderAlertsCenter, reports:renderReports,
-    settings:renderSettings, receiving:prepareReceivingForm})[viewId]?.();
+  
+  ({
+    dashboard: renderDashboard,
+    receiving: prepareReceivingForm,
+    pending_outbound: renderPendingTable,
+    outbound_pricing: prepareOutboundPricingForm,
+    lots: renderUnifiedTable,
+    map: renderWarehouseMap,
+    moisture: renderMoistureView,
+    issue: renderIssueView,
+    alerts: renderAlertsCenter,
+    reports: renderReports,
+    settings: renderSettings
+  })[viewId]?.();
+
   if (window.lucide) lucide.createIcons();
 }
+
 const isMobile = () => window.matchMedia('(max-width:767px)').matches;
 function toggleSidebar(){
   const sb = $('main-sidebar');
@@ -793,114 +1237,346 @@ function closeDrawer(){
   $('sidebar-overlay').classList.add('hidden');
   document.body.classList.remove('drawer-lock');
 }
-window.addEventListener('resize', ()=>{ if(!IS_PREVIEW && !isMobile()) closeDrawer(); });
 
-/* ---------- receiving ---------- */
-function zoneOptions(sel){ return appState.settings.zones.map(z=>`<option value="${esc(z.code)}" ${sel===z.code?'selected':''}>กอง ${esc(z.code)}</option>`).join(''); }
+function zoneOptions(sel){
+  return appState.settings.zones.map(z=>{
+    const tm = MOISTURE_RANGES[z.targetMoisture || 'any']?.label || 'ทุกช่วงความชื้น';
+    return `<option value="${esc(z.code)}" ${sel===z.code?'selected':''}>กอง ${esc(z.code)} (${tm})</option>`;
+  }).join('');
+}
+
+function refreshPendingBadgeCount(){
+  const pendingCount = appState.weighingRecords.filter(w => w.status === 'pending').length;
+  const badge = $('pending-count-badge');
+  if (badge) badge.textContent = pendingCount;
+}
+
 function prepareReceivingForm(){
-  $('rec-datetime').value = nowLocalInput();
-  $('rec-datetime').max = nowLocalInput();
-  $('rec-location').innerHTML = '<option value="">-- เลือกกอง --</option>' + zoneOptions();
-  $('bucket-kg-label').textContent = appState.settings.bucketKg;
-  onRecTypeChange();
+  resetInboundForm();
+  $('step1-datetime').value = nowLocalInput();
+  $('step1-datetime').max = nowLocalInput();
+  $('step1-doc-no').value = peekDocNo('CORN');
+  refreshPendingBadgeCount();
 }
-function onRecTypeChange(){
-  const out = $('rec-type').value === 'จ่ายออก';
-  $('rec-doc-no').value = peekDocNo(out?'OUT':'CORN');
-  $('rec-outbound-box').classList.toggle('hidden', !out);
-  $('rec-location-box').classList.toggle('hidden', out);
-  $('rec-moisture-box').classList.toggle('hidden', out);
-  $('rec-product-box').classList.toggle('hidden', out);
-  $('rec-weight-hint').textContent = out
-    ? 'จ่ายออก: รถเข้ามาเปล่า → ออกพร้อมสินค้า จึงต้อง น้ำหนักออก > น้ำหนักเข้า'
-    : 'รับเข้า: รถเข้ามาพร้อมสินค้า → ออกเปล่า จึงต้อง น้ำหนักเข้า > น้ำหนักออก';
-  if (out) refreshSourceLotSelect();
-  calcNetWeight();
+
+function prepareOutboundPricingForm(){
+  $('step3-location').innerHTML = '<option value="">-- เลือกกอง --</option>' + zoneOptions();
+  refreshStep3PendingDropdown();
+  refreshPendingBadgeCount();
 }
-function refreshSourceLotSelect(){
-  const lots = availableLots();
-  $('rec-source-lot').innerHTML = lots.length
-    ? lots.map(l=>`<option value="${esc(l.id)}">${esc(l.lotNumber)} — ${esc(l.product)} — คงเหลือ ${nf(l.currentWeight)} กก. (กอง ${esc(l.location)})</option>`).join('')
-    : '<option value="">-- ไม่มีสินค้าคงเหลือ --</option>';
-}
-function calcNetWeight(){
-  const out = $('rec-type').value === 'จ่ายออก';
-  const wIn = num($('rec-weight-in').value), wOut = num($('rec-weight-out').value);
-  const net = out ? (wOut-wIn) : (wIn-wOut);
-  $('rec-weight-net').value = net>0 ? Math.round(net) : 0;
-  const bad = (wIn>0 && wOut>0 && net<=0);
-  $('rec-weight-net').classList.toggle('bg-red-100', bad);
-  $('rec-weight-net').classList.toggle('bg-emerald-100', !bad);
-  calculatePrice();
-}
-function calculatePrice(){
-  const net = num($('rec-weight-net').value), bucket = num($('price-per-bucket').value);
-  const kg = appState.settings.bucketKg || 15;
-  if (bucket>0){ const perKg = round2(bucket/kg);
-    $('price-per-kg').value = perKg.toFixed(2);
-    $('total-price-display').value = nf(round2(net*perKg),2)+' ฿';
-  } else { $('price-per-kg').value='0.00'; $('total-price-display').value='0.00 ฿'; }
-}
-let submitting = false;
-async function handleReceivingSubmit(e){
+
+function handleInboundStep1(e){
   e.preventDefault();
-  if (submitting) return;
-  const btn=$('rec-submit-btn'), type=$('rec-type').value, out=type==='จ่ายออก';
-  const dt=$('rec-datetime').value, net=num($('rec-weight-net').value), plate=$('rec-plate').value.trim();
-  if (!dt) return toast('กรุณาระบุวันที่และเวลา','warn');
-  if (new Date(dt) > new Date(Date.now()+60000)) return toast('ห้ามบันทึกวันที่ในอนาคต','warn');
-  if (!plate) return toast('กรุณากรอกทะเบียนรถ','warn');
-  if (net<=0) return toast(out?'จ่ายออก: น้ำหนักออกต้องมากกว่าน้ำหนักเข้า':'รับเข้า: น้ำหนักเข้าต้องมากกว่าน้ำหนักออก','error',5000);
+  const docNo = $('step1-doc-no').value;
+  const dt = $('step1-datetime').value;
+  const platePrefix = $('step1-plate-prefix').value.trim();
+  const plateProv = $('step1-plate-province').value;
+  const plate = `${platePrefix} ${plateProv}`;
+  const supplier = $('step1-supplier').value.trim();
+  const customerType = $('step1-customer-type').value;
+  const product = $('step1-product').value;
+  const wIn = num($('step1-weight-in').value);
 
-  submitting=true; btn.disabled=true;
-  try {
-    const bucket=num($('price-per-bucket').value);
-    const perKg = bucket>0 ? round2(bucket/(appState.settings.bucketKg||15)) : 0;
-    const total = round2(net*perKg), docNo = $('rec-doc-no').value;
+  if (!platePrefix || !plateProv || !supplier || wIn <= 0) {
+    return toast('กรุณากรอกข้อมูลสำคัญให้ครบถ้วน (ทะเบียนรถ, เลือกจังหวัด, ผู้ขาย, น้ำหนักเข้า)', 'warn');
+  }
 
-    if (out){
-      const lot = appState.lots.find(l=>l.id === $('rec-source-lot').value);
-      if (!lot) { toast('กรุณาเลือก Lot ต้นทาง','warn'); return; }
-      if (net > num(lot.currentWeight)) { toast(`เบิกเกินคงเหลือ: Lot นี้เหลือ ${nf(lot.currentWeight)} กก.`,'error',6000); return; }
-      lot.currentWeight = round2(num(lot.currentWeight)-net);
-      appState.issueRecords.unshift({ id:uid('ISS'), docNo, datetime:dt, lotId:lot.id, lotNumber:lot.lotNumber,
-        customer:$('rec-supplier').value.trim()||$('rec-customer-type').value, plate, weight:net,
-        operator:appState.currentUserRole, remark:$('rec-remark').value.trim(), pricePerKg:perKg, totalPrice:total, status:'active' });
-      appState.weighingRecords.unshift({ id:uid('WT'), docNo, type:'จ่ายออก', plate, supplier:$('rec-supplier').value.trim(),
-        weightIn:num($('rec-weight-in').value), weightOut:num($('rec-weight-out').value), netWeight:net,
-        datetimeIn:dt, datetimeOut:dt, status:'done', refNo:docNo });
-      logActivity(`จ่ายออก ${docNo} จาก ${lot.lotNumber} จำนวน ${nf(net)} กก.`);
-    } else {
-      const moist = num($('rec-moisture').value);
-      if (moist<5 || moist>40) { toast('ความชื้นต้องอยู่ระหว่าง 5–40%','warn'); return; }
-      if (!$('rec-location').value) { toast('กรุณาเลือกตำแหน่งจัดเก็บ','warn'); return; }
-      const zone = appState.settings.zones.find(z=>z.code===$('rec-location').value);
-      const used = zoneUsed(zone.code);
-      if (zone.capacityKg && used+net > zone.capacityKg){
-        const ok = await uiConfirm(`กอง ${zone.code} จะเกินความจุ (${nf(used+net)} / ${nf(zone.capacityKg)} กก.)\nยืนยันบันทึกต่อหรือไม่?`,{danger:true});
-        if (!ok) return;
-      }
-      appState.lots.unshift({ id:uid('LOT'), lotNumber:docNo, docNo, status:'active', transactionType:'รับเข้า',
-        receivedDate:dt, plate, customerType:$('rec-customer-type').value,
-        supplier:$('rec-supplier').value.trim()||$('rec-customer-type').value, product:$('rec-product').value,
-        initialMoisture:moist, currentMoisture:moist, weightIn:num($('rec-weight-in').value),
-        weightOut:num($('rec-weight-out').value), netWeight:net, currentWeight:net,
-        bucketPrice:bucket, pricePerKg:perKg, totalPrice:total,
-        location:$('rec-location').value, remark:$('rec-remark').value.trim() });
-      appState.weighingRecords.unshift({ id:uid('WT'), docNo, type:'รับเข้า', plate, supplier:$('rec-supplier').value.trim(),
-        weightIn:num($('rec-weight-in').value), weightOut:num($('rec-weight-out').value), netWeight:net,
-        datetimeIn:dt, datetimeOut:dt, status:'done', refNo:docNo });
-      logActivity(`รับเข้า ${docNo} จำนวน ${nf(net)} กก. มูลค่า ${nf(total,2)} บาท`);
-    }
-    commitDocNo(docNo);
-    if (!saveData()) return;
-    toast(`บันทึก ${type} สำเร็จ: ${docNo} (${nf(net)} กก. / ${nf(total,2)} บาท)`,'ok',5000);
-    $('form-receiving').reset(); prepareReceivingForm();
-    switchView(out?'issue':'lots');
-  } finally { submitting=false; btn.disabled=false; }
+  appState.weighingRecords.unshift({
+    id: uid('WT'),
+    docNo: docNo,
+    type: $('step1-type').value,
+    plate: plate,
+    supplier: supplier,
+    customerType: customerType,
+    product: product,
+    weightIn: wIn,
+    weightOut: null,
+    netWeight: null,
+    moisture: null,
+    location: '',
+    datetimeIn: dt,
+    datetimeOut: null,
+    status: 'pending',
+    refNo: null
+  });
+
+  commitDocNo(docNo);
+  logActivity(`บันทึกรถเข้า ${docNo} ทะเบียน ${plate} (${nf(wIn)} กก.) - รอชั่งออก`);
+  saveData();
+
+  toast(`บันทึกรถเข้าสำเร็จ: ${docNo} (สถานะ: รอนำไปกอง/รอชั่งออก)`, 'ok', 4000);
+  
+  $('form-inbound-step1').reset();
+  prepareReceivingForm();
+  
+  switchView('pending_outbound');
 }
 
-/* ---------- dashboard ---------- */
+function renderPendingTable(){
+  refreshPendingBadgeCount();
+  const pendingList = appState.weighingRecords.filter(w => w.status === 'pending');
+  const tb = $('table-pending-outbound-body');
+  if (!tb) return;
+
+  if (!pendingList.length){
+    tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">ไม่มีรายการรถที่รอชั่งออกในขณะนี้</td></tr>`;
+    return;
+  }
+
+  tb.innerHTML = pendingList.map(w => {
+    return `<tr class="hover:bg-slate-50 border-b">
+      <td class="p-3 font-mono font-bold text-amber-700" data-label="เลขที่">${esc(w.docNo)}</td>
+      <td class="p-3 text-xs" data-label="เวลาเข้า">${fmtDT(w.datetimeIn)}</td>
+      <td class="p-3 font-bold text-slate-800" data-label="ทะเบียน">${esc(w.plate)}</td>
+      <td class="p-3" data-label="ผู้ขาย">${esc(w.supplier)}</td>
+      <td class="p-3 text-right font-mono font-semibold" data-label="น้ำหนักเข้า">${nf(w.weightIn)}</td>
+      <td class="p-3 text-center" data-label="ความชื้น">
+        <input type="number" step="0.1" min="5" max="40" value="${w.moisture || ''}" placeholder="%" 
+          onchange="updatePendingItem('${w.id}', 'moisture', this.value)"
+          class="w-20 border border-slate-300 rounded px-2 py-1 text-center font-bold text-cyan-700 text-xs">
+      </td>
+      <td class="p-3 text-center" data-label="เลือกกอง">
+        <select onchange="updatePendingItem('${w.id}', 'location', this.value)" class="w-36 border border-slate-300 rounded px-2 py-1 text-xs">
+          <option value="">-- เลือกกอง --</option>
+          ${zoneOptions(w.location)}
+        </select>
+      </td>
+      <td class="p-3 text-center" data-label="สถานะ">
+        <span class="px-2 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+          รอนำไปกอง/รอชั่งออก
+        </span>
+      </td>
+      <td class="p-3 text-center" data-label="จัดการ">
+        <button onclick="goToStep3WithTicket('${w.id}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow flex items-center gap-1 mx-auto">
+          ชั่งออก & คำนวณราคา <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function updatePendingItem(id, key, val){
+  const item = appState.weighingRecords.find(w => w.id === id);
+  if (item) {
+    if (key === 'moisture') {
+      const m = num(val);
+      item.moisture = m;
+
+      if (m > 0) {
+        let targetKey = 'any';
+        if (m <= 14.5) targetKey = 'safe';          
+        else if (m <= 18.0) targetKey = 'medium';    
+        else if (m <= 30.0) targetKey = 'high';      
+        else targetKey = 'critical';                 
+
+        let matchedZone = appState.settings.zones.find(z => z.targetMoisture === targetKey);
+        if (!matchedZone && targetKey === 'critical') {
+          matchedZone = appState.settings.zones.find(z => z.targetMoisture === 'high' || z.targetMoisture === 'any');
+        }
+        if (!matchedZone) {
+          matchedZone = appState.settings.zones.find(z => z.targetMoisture === 'any') || appState.settings.zones[0];
+        }
+
+        if (matchedZone) {
+          item.location = matchedZone.code;
+        }
+      }
+    } else {
+      item[key] = val;
+    }
+
+    saveData();
+    renderPendingTable();
+    
+    if (key === 'moisture' && item.location) {
+      toast(`อัปเดตความชื้น ${item.moisture}% → จัดลงกอง ${item.location} อัตโนมัติ`, 'ok', 3000);
+    }
+  }
+}
+
+function calcStep3Totals(){
+  const id = $('step3-pending-select').value;
+  const pendingRec = appState.weighingRecords.find(w => w.id === id);
+  const isOutbound = pendingRec && pendingRec.type === 'จ่ายออก';
+
+  const wIn = num($('step3-weight-in').value);
+  const wOut = num($('step3-weight-out').value);
+  const bucketPrice = num($('step3-price-bucket').value);
+  const kgPerBucket = appState.settings.bucketKg || 15;
+
+  let net = 0;
+  if (wIn > 0 && wOut > 0) {
+    net = isOutbound ? (wOut - wIn) : (wIn - wOut);
+    net = Math.max(0, net);
+  }
+  $('step3-weight-net').value = net;
+
+  if (bucketPrice > 0) {
+    const pricePerKg = round2(bucketPrice / kgPerBucket);
+    const totalPrice = round2(net * pricePerKg);
+    $('step3-price-kg').value = pricePerKg.toFixed(2);
+    $('step3-total-price').value = nf(totalPrice, 2) + ' ฿';
+  } else {
+    $('step3-price-kg').value = '0.00';
+    $('step3-total-price').value = '0.00 ฿';
+  }
+}
+
+async function handleOutboundStep3(e){
+  e.preventDefault();
+  const id = $('step3-pending-select').value;
+  const pendingRec = appState.weighingRecords.find(w => w.id === id);
+
+  if (!pendingRec) return toast('กรุณาเลือกรถที่ต้องการชั่งออก', 'warn');
+
+  const isOutbound = pendingRec.type === 'จ่ายออก';
+  const wIn = num(pendingRec.weightIn);
+  const wOut = num($('step3-weight-out').value);
+  
+  const net = isOutbound ? (wOut - wIn) : (wIn - wOut);
+
+  if (wOut <= 0 || net <= 0) {
+    const errorMsg = isOutbound 
+      ? 'น้ำหนักไม่ถูกต้อง (จ่ายออก: ชั่งบรรทุกสินค้าออก ต้องหนักกว่า รถเปล่าชั่งเข้า)'
+      : 'น้ำหนักไม่ถูกต้อง (รับเข้า: ชั่งบรรทุกสินค้าเข้า ต้องหนักกว่า รถเปล่าชั่งออก)';
+    return toast(errorMsg, 'error', 5000);
+  }
+
+  const moist = num($('step3-moisture').value);
+  const location = $('step3-location').value;
+  if (!moist || !location) {
+    return toast('กรุณาระบุ % ความชื้น และ ตำแหน่งกอง/Zone ให้ครบถ้วน', 'warn');
+  }
+
+  const bucketPrice = num($('step3-price-bucket').value);
+  const pricePerKg = bucketPrice > 0 ? round2(bucketPrice / (appState.settings.bucketKg || 15)) : 0;
+  const totalPrice = round2(net * pricePerKg);
+  const dtOut = nowLocalInput();
+
+  pendingRec.weightOut = wOut;
+  pendingRec.netWeight = net;
+  pendingRec.datetimeOut = dtOut;
+  pendingRec.status = 'done';
+  pendingRec.moisture = moist;
+  pendingRec.location = location;
+
+  if (isOutbound) {
+    const availableInZone = activeLots().filter(l => l.location === location && num(l.currentWeight) > 0);
+    let remainingToDeduct = net;
+
+    for (const lot of availableInZone) {
+      if (remainingToDeduct <= 0) break;
+      const deductAmount = Math.min(num(lot.currentWeight), remainingToDeduct);
+      lot.currentWeight = round2(num(lot.currentWeight) - deductAmount);
+      remainingToDeduct -= deductAmount;
+    }
+
+    appState.issueRecords.unshift({
+      id: uid('ISS'),
+      docNo: pendingRec.docNo,
+      datetime: dtOut,
+      lotId: availableInZone[0]?.id || '',
+      lotNumber: `กอง ${location}`,
+      customer: pendingRec.supplier,
+      plate: pendingRec.plate,
+      weight: net,
+      operator: appState.currentUserRole,
+      remark: $('step3-remark').value.trim(),
+      pricePerKg: pricePerKg,
+      totalPrice: totalPrice,
+      status: 'active'
+    });
+
+    logActivity(`ชั่งออก [ขายออก] ${pendingRec.docNo} สุทธิ ${nf(net)} กก. รวมราคาขาย ${nf(totalPrice, 2)} บาท (ตัดสต็อกกอง ${location})`);
+    toast(`บันทึกการขายออกสำเร็จ: ${pendingRec.docNo} (ตัดสต็อก ${nf(net)} กก.)`, 'ok', 5000);
+  } else {
+    appState.lots.unshift({
+      id: uid('LOT'),
+      lotNumber: pendingRec.docNo,
+      docNo: pendingRec.docNo,
+      status: 'active',
+      transactionType: 'รับเข้า',
+      receivedDate: pendingRec.datetimeIn,
+      plate: pendingRec.plate,
+      customerType: pendingRec.customerType || 'ลูกค้าทั่วไป',
+      supplier: pendingRec.supplier,
+      product: pendingRec.product || 'ข้าวโพดเมล็ด',
+      initialMoisture: moist,
+      currentMoisture: moist,
+      weightIn: wIn,
+      weightOut: wOut,
+      netWeight: net,
+      currentWeight: net,
+      bucketPrice: bucketPrice,
+      pricePerKg: pricePerKg,
+      totalPrice: totalPrice,
+      location: location,
+      remark: $('step3-remark').value.trim()
+    });
+
+    logActivity(`ชั่งออก [รับเข้า] ${pendingRec.docNo} สุทธิ ${nf(net)} กก. รวมเงิน ${nf(totalPrice, 2)} บาท`);
+    toast(`บันทึกการรับเข้าสำเร็จ: ${pendingRec.docNo} (${nf(net)} กก.)`, 'ok', 5000);
+  }
+
+  saveData();
+  printTicket(pendingRec.id);
+  resetStep3Form();
+  refreshPendingBadgeCount();
+  switchView(isOutbound ? 'issue' : 'lots');
+}
+
+function refreshStep3PendingDropdown(){
+  const pendingList = appState.weighingRecords.filter(w => w.status === 'pending');
+  const sel = $('step3-pending-select');
+  if (!sel) return;
+
+  if (!pendingList.length){
+    sel.innerHTML = `<option value="">-- ไม่มีรายการรถที่รอชั่งออก --</option>`;
+    resetStep3Form();
+    return;
+  }
+
+  sel.innerHTML = `<option value="">-- คลิกเลือกรถเพื่อชั่งออก (${pendingList.length} คัน) --</option>` +
+    pendingList.map(w => `<option value="${w.id}">${esc(w.docNo)} — ทะเบียน ${esc(w.plate)} (${esc(w.supplier)})</option>`).join('');
+}
+
+function goToStep3WithTicket(id){
+  switchView('outbound_pricing');
+  setTimeout(() => {
+    $('step3-pending-select').value = id;
+    onSelectPendingOutbound(id);
+  }, 50);
+}
+
+function onSelectPendingOutbound(id){
+  const item = appState.weighingRecords.find(w => w.id === id);
+  if (!item) {
+    resetStep3Form();
+    return;
+  }
+
+  $('step3-disp-doc').textContent = item.docNo;
+  $('step3-disp-plate').textContent = item.plate;
+  $('step3-disp-supplier').textContent = item.supplier;
+  $('step3-disp-product').textContent = item.product || 'ข้าวโพดเมล็ด';
+
+  $('step3-weight-in').value = item.weightIn;
+  $('step3-moisture').value = item.moisture || '';
+  if (item.location) $('step3-location').value = item.location;
+
+  calcStep3Totals();
+}
+
+function resetStep3Form(){
+  $('step3-disp-doc').textContent = '-';
+  $('step3-disp-plate').textContent = '-';
+  $('step3-disp-supplier').textContent = '-';
+  $('step3-disp-product').textContent = '-';
+  $('form-outbound-step3')?.reset();
+}
+
 let chartInOut=null, chartQuality=null;
 function timeframeRange(){
   const tf=$('dashboard-timeframe').value;
@@ -910,7 +1586,7 @@ function timeframeRange(){
   if (tf==='30days') start.setDate(start.getDate()-29);
   return { start, end, days: tf==='today'?1:(tf==='7days'?7:30) };
 }
-function zoneUsed(code){ return activeLots().filter(l=>l.location===code).reduce((a,b)=>a+num(b.currentWeight),0); }
+
 function renderDashboard(){
   const lots = activeLots();
   $('empty-state-notice').classList.toggle('hidden', lots.length>0);
@@ -938,6 +1614,7 @@ function renderDashboard(){
   $('dash-used-capacity').textContent  = capPct.toFixed(0)+'%';
   renderCharts(days);
 }
+
 function renderCharts(days){
   if (typeof Chart === 'undefined') return;
   const labels=[], inData=[], outData=[];
@@ -964,7 +1641,6 @@ function renderCharts(days){
   } else { chartQuality.data.datasets[0].data=[seed,cob]; chartQuality.update(); }
 }
 
-/* ---------- weighing ---------- */
 let weighPage=1; const PAGE=25;
 function handleWeighOpen(e){
   e.preventDefault();
@@ -980,42 +1656,122 @@ function handleWeighOpen(e){
   saveData(); $('form-weigh-open').reset();
   toast(`เปิดตั๋วชั่ง ${docNo} แล้ว — รอชั่งออก`,'ok'); renderWeighingTable();
 }
-async function completeWeigh(id){
+
+function completeWeigh(id){
   const w = appState.weighingRecords.find(x=>x.id===id); if(!w) return;
-  const v = await uiPrompt(`ชั่งออก — ตั๋ว ${w.docNo} (ชั่งเข้า ${nf(w.weightIn)} กก.)`,{placeholder:'น้ำหนักชั่งออก (กก.)'});
-  if (v===null) return;
-  const wOut = num(v);
-  if (wOut<=0) return toast('น้ำหนักไม่ถูกต้อง','error');
-  const net = w.type==='จ่ายออก' ? wOut-w.weightIn : w.weightIn-wOut;
-  if (net<=0) return toast(w.type==='จ่ายออก'?'จ่ายออก: น้ำหนักออกต้องมากกว่าเข้า':'รับเข้า: น้ำหนักเข้าต้องมากกว่าออก','error',5000);
-  w.weightOut=wOut; w.netWeight=Math.round(net); w.datetimeOut=nowLocalInput(); w.status='done';
-  logActivity(`ปิดตั๋วชั่ง ${w.docNo} สุทธิ ${nf(w.netWeight)} กก.`);
-  saveData(); renderWeighingTable();
-  toast('ปิดตั๋วชั่งเรียบร้อย กดปุ่ม "สร้างรายการ" เพื่อบันทึกเข้าสต็อก','ok',5000);
+  const isOutbound = w.type === 'จ่ายออก';
+  
+  openModal(`
+    <div class="flex items-center justify-between border-b pb-3">
+      <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+        <i data-lucide="scale" class="w-5 h-5 text-amber-500"></i> บันทึกน้ำหนักชั่งออก (ตั๋ว: ${esc(w.docNo)})
+      </h3>
+      <button onclick="closeModal()" class="p-1 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="space-y-4 py-2 text-sm">
+      <div class="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-lg border text-xs">
+        <div><b>ทะเบียนรถ:</b> <span class="font-bold text-slate-800">${esc(w.plate)}</span></div>
+        <div><b>ผู้ขาย/ลูกค้า:</b> <span class="font-bold text-slate-800">${esc(w.supplier || '-')}</span></div>
+        <div><b>ประเภท:</b> <span class="font-bold ${isOutbound?'text-blue-600':'text-emerald-600'}">${esc(w.type || 'รับเข้า')}</span></div>
+        <div><b>น้ำหนักชั่งเข้า:</b> <span class="font-bold text-slate-800">${nf(w.weightIn)} กก.</span></div>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">น้ำหนักชั่งออก (Tare Weight) (กก.) *</label>
+        <input type="number" id="modal-weight-out" required min="1" placeholder="เช่น 5000" 
+          oninput="calcModalNetWeight(${w.weightIn}, '${w.type}')"
+          class="w-full border border-amber-300 rounded-lg p-2.5 text-base font-bold text-blue-700 bg-blue-50/30 focus:outline-none focus:ring-2 focus:ring-amber-500">
+      </div>
+      <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg flex justify-between items-center">
+        <span class="text-xs font-bold text-emerald-900">น้ำหนักสุทธิ (Net Weight):</span>
+        <span id="modal-net-weight-disp" class="text-lg font-bold text-emerald-700">0 กก.</span>
+      </div>
+    </div>
+    <div class="flex gap-2 pt-2">
+      <button onclick="closeModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-medium">ยกเลิก</button>
+      <button onclick="saveCompleteWeigh('${w.id}')" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-lg text-sm shadow">บันทึกชั่งออก</button>
+    </div>
+  `);
 }
+
+function calcModalNetWeight(weightIn, type){
+  const wOut = num($('modal-weight-out')?.value);
+  const isOutbound = type === 'จ่ายออก';
+  let net = 0;
+  if (wOut > 0) {
+    net = isOutbound ? (wOut - weightIn) : (weightIn - wOut);
+    net = Math.max(0, net);
+  }
+  const disp = $('modal-net-weight-disp');
+  if (disp) disp.textContent = `${nf(net)} กก.`;
+}
+
+function saveCompleteWeigh(id){
+  const w = appState.weighingRecords.find(x=>x.id===id); if(!w) return;
+  const wOut = num($('modal-weight-out')?.value);
+  if (wOut <= 0) return toast('กรุณากรอกน้ำหนักชั่งออกให้ถูกต้อง', 'warn');
+
+  const isOutbound = w.type === 'จ่ายออก';
+  const net = isOutbound ? (wOut - w.weightIn) : (w.weightIn - wOut);
+
+  if (net <= 0) {
+    const errorMsg = isOutbound 
+      ? 'น้ำหนักไม่ถูกต้อง (จ่ายออก: ชั่งออกต้องมากกว่าชั่งเข้า)'
+      : 'น้ำหนักไม่ถูกต้อง (รับเข้า: ชั่งเข้าต้องมากกว่าชั่งออก)';
+    return toast(errorMsg, 'error', 5000);
+  }
+
+  w.weightOut = wOut;
+  w.netWeight = Math.round(net);
+  w.datetimeOut = nowLocalInput();
+  w.status = 'done';
+
+  logActivity(`ปิดตั๋วชั่ง ${w.docNo} สุทธิ ${nf(w.netWeight)} กก.`);
+  saveData(); closeModal(); renderWeighingTable();
+  toast(`บันทึกชั่งออกเรียบร้อย: ${w.docNo} (สุทธิ ${nf(w.netWeight)} กก.)`, 'ok', 5000);
+}
+
 function ticketToTransaction(id){
   const w = appState.weighingRecords.find(x=>x.id===id); if(!w||w.status!=='done') return;
-  switchView('receiving');
-  $('rec-type').value = w.type; onRecTypeChange();
-  $('rec-plate').value = w.plate; $('rec-supplier').value = w.supplier||'';
-  $('rec-weight-in').value = w.weightIn; $('rec-weight-out').value = w.weightOut;
-  $('rec-datetime').value = w.datetimeOut || nowLocalInput();
-  calcNetWeight();
-  toast(`ดึงข้อมูลจากตั๋ว ${w.docNo} แล้ว กรุณากรอกความชื้น/กอง/ราคา`,'info',6000);
+  goToStep3WithTicket(w.id);
+  toast(`ดึงข้อมูลจากตั๋ว ${w.docNo} แล้ว`,'info',6000);
 }
+
 async function voidWeigh(id){
   if (!can('void')) return toast('สิทธิ์ของคุณไม่สามารถยกเลิกเอกสาร','warn');
-  const reason = await uiPrompt('เหตุผลการยกเลิกตั๋วชั่ง'); if(!reason) return;
-  const w = appState.weighingRecords.find(x=>x.id===id);
-  w.status='void'; w.voidReason=reason;
-  logActivity(`ยกเลิกตั๋วชั่ง ${w.docNo}: ${reason}`);
-  saveData(); renderWeighingTable(); toast('ยกเลิกตั๋วชั่งแล้ว','ok');
+  if (!await uiConfirm('คุณต้องการลบตั๋วชั่งและ Lot นี้ออกจากระบบและ Google Sheets หรือไม่?', {danger: true, requireText: 'ลบ'})) return;
+  
+  const idx = appState.weighingRecords.findIndex(x => x.id === id);
+  if (idx !== -1) {
+    const docNo = appState.weighingRecords[idx].docNo;
+    const deletedWeighId = appState.weighingRecords[idx].id;
+    appState.weighingRecords.splice(idx, 1);
+    
+    const lotIdx = appState.lots.findIndex(l => l.docNo === docNo || l.lotNumber === docNo);
+    if (lotIdx !== -1) {
+      const lotId = appState.lots[lotIdx].id;
+      appState.lots.splice(lotIdx, 1);
+      if (typeof window.postExcelRecord === 'function') {
+        await window.postExcelRecord('lots', { id: lotId, docNo }, 'delete');
+      }
+    }
+
+    if (typeof window.postExcelRecord === 'function') {
+      await window.postExcelRecord('weighing_records', { id: deletedWeighId, docNo }, 'delete');
+    }
+
+    logActivity(`ลบตั๋วชั่งและ Lot ${docNo} ออกจากระบบและ Google Sheets`);
+    saveData(); renderWeighingTable();
+    if (typeof renderUnifiedTable === 'function' && currentView === 'lots') renderUnifiedTable();
+    toast('ลบตั๋วชั่งและ Lot ออกจากระบบและ Google Sheets เรียบร้อยแล้ว', 'ok');
+  }
 }
+
 function pagerHTML(page,total,varName,fn){
   return `<button onclick="${varName}=Math.max(1,${varName}-1);${fn}()" class="px-3 py-2 bg-slate-100 rounded-lg" ${page<=1?'disabled':''}>ก่อนหน้า</button>
     <span class="text-slate-500">หน้า ${page} / ${total}</span>
     <button onclick="${varName}=Math.min(${total},${varName}+1);${fn}()" class="px-3 py-2 bg-slate-100 rounded-lg" ${page>=total?'disabled':''}>ถัดไป</button>`;
 }
+
 function renderWeighingTable(){
   const rows = appState.weighingRecords;
   const total = Math.max(1, Math.ceil(rows.length/PAGE));
@@ -1045,6 +1801,7 @@ function renderWeighingTable(){
   }).join('');
   $('weigh-pager').innerHTML = pagerHTML(weighPage,total,'weighPage','renderWeighingTable');
 }
+
 function printTicket(id){
   const w = appState.weighingRecords.find(x=>x.id===id); if(!w) return;
   const cell='border:1px solid #333;padding:8px';
@@ -1066,42 +1823,125 @@ function printTicket(id){
 }
 window.addEventListener('afterprint', ()=>{ document.body.classList.remove('print-ticket'); const p=$('print-area'); if(p) p.innerHTML=''; });
 
-/* ---------- lots ---------- */
-let lotPage=1;
-function renderLotsTable(){
-  const q = ($('lot-filter').value||'').toLowerCase().trim();
-  let rows = appState.lots.filter(l=>!q || [l.lotNumber,l.supplier,l.location,l.product,l.plate].some(v=>String(v||'').toLowerCase().includes(q)));
-  const sort = $('lot-sort').value;
-  rows.sort((a,b)=>{
-    if (sort==='date_asc') return new Date(a.receivedDate)-new Date(b.receivedDate);
-    if (sort==='risk_desc') return evaluateLotRisk(b).score-evaluateLotRisk(a).score;
-    if (sort==='weight_desc') return num(b.currentWeight)-num(a.currentWeight);
-    return new Date(b.receivedDate)-new Date(a.receivedDate);
+let unifiedPage = 1;
+function renderUnifiedTable() {
+  const q = ($('unified-filter')?.value || '').toLowerCase().trim();
+  let rows = [...appState.weighingRecords];
+
+  if (q) {
+    rows = rows.filter(w => 
+      String(w.docNo || '').toLowerCase().includes(q) ||
+      String(w.plate || '').toLowerCase().includes(q) ||
+      String(w.supplier || '').toLowerCase().includes(q) ||
+      String(w.location || '').toLowerCase().includes(q)
+    );
+  }
+
+  const sort = $('unified-sort')?.value || 'date_desc';
+  rows.sort((a, b) => {
+    const timeA = new Date(a.datetimeIn || 0).getTime();
+    const timeB = new Date(b.datetimeIn || 0).getTime();
+    return sort === 'date_asc' ? timeA - timeB : timeB - timeA;
   });
-  const total = Math.max(1,Math.ceil(rows.length/PAGE));
-  lotPage = Math.min(lotPage,total);
-  const slice = rows.slice((lotPage-1)*PAGE, lotPage*PAGE);
-  const tb = $('table-lots-body');
-  if (!rows.length){ tb.innerHTML=`<tr><td colspan="9" class="p-4 text-center text-slate-400">ไม่พบข้อมูล Lot</td></tr>`; $('lot-pager').innerHTML=''; return; }
-  tb.innerHTML = slice.map(lot=>{
-    const r = evaluateLotRisk(lot), voided = lot.status==='void';
-    return `<tr class="hover:bg-slate-50 ${voided?'opacity-50 line-through':''}">
-      <td class="p-3 font-mono font-bold text-amber-700" data-label="Lot">${esc(lot.lotNumber)}</td>
-      <td class="p-3" data-label="สินค้า">${esc(lot.product)}</td>
-      <td class="p-3" data-label="ผู้ขาย">${esc(lot.supplier)} <span class="text-xs text-slate-400">(${esc(lot.customerType)})</span></td>
-      <td class="p-3" data-label="กอง"><span class="px-2 py-0.5 bg-slate-100 rounded border text-xs font-bold">${esc(lot.location)}</span></td>
-      <td class="p-3 text-right" data-label="รับเข้า">${nf(lot.netWeight)}</td>
-      <td class="p-3 text-right font-bold" data-label="คงเหลือ">${nf(lot.currentWeight)}</td>
-      <td class="p-3 text-center font-semibold text-cyan-700" data-label="ชื้น">${nf(lot.currentMoisture,1)}%</td>
-      <td class="p-3 text-center" data-label="Risk"><span class="px-2 py-0.5 rounded text-xs ${r.badgeClass} font-bold">${r.score} (${r.status}) · ${r.days} วัน</span></td>
-      <td class="p-3 text-center" data-label="จัดการ"><div class="flex gap-1 justify-end md:justify-center flex-wrap">
-        <button onclick="openQRModal('${lot.id}')" class="btn-xs px-2 py-1.5 bg-slate-800 text-white rounded text-xs">QR</button>
-        ${!voided&&can('edit')?`<button onclick="openLotEdit('${lot.id}')" class="btn-xs px-2 py-1.5 bg-amber-500 text-white rounded text-xs">แก้ไข</button>`:''}
-        ${!voided&&can('void')?`<button onclick="voidLot('${lot.id}')" class="btn-xs px-2 py-1.5 bg-red-100 text-red-700 rounded text-xs">ยกเลิก</button>`:''}
-      </div></td></tr>`;
+
+  const total = Math.max(1, Math.ceil(rows.length / PAGE));
+  unifiedPage = Math.min(unifiedPage, total);
+  const slice = rows.slice((unifiedPage - 1) * PAGE, unifiedPage * PAGE);
+  const tb = $('table-unified-body');
+
+  if (!tb) return;
+  if (!rows.length) {
+    tb.innerHTML = `<tr><td colspan="12" class="p-6 text-center text-slate-400">ไม่พบข้อมูลตั๋วชั่งหรือ Lot ในระบบ</td></tr>`;
+    $('unified-pager').innerHTML = '';
+    return;
+  }
+
+  tb.innerHTML = slice.map(w => {
+    const lot = appState.lots.find(l => l.docNo === w.docNo || l.lotNumber === w.docNo);
+    const risk = lot ? evaluateLotRisk(lot) : null;
+
+    let ticketStatusBadge = w.status === 'pending'
+      ? `<span class="px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-800 font-bold">รอชั่งออก</span>`
+      : `<span class="px-2 py-0.5 rounded text-xs bg-emerald-100 text-emerald-800 font-bold">สมบูรณ์</span>`;
+
+    let riskBadge = '-';
+    if (lot && risk) {
+      riskBadge = `<button onclick="showRiskDetail('${lot.id}')" class="px-2.5 py-1 rounded-full text-xs font-bold ${risk.badgeClass} transition hover:scale-105" title="คลิกเพื่อดูรายงานความเสี่ยง">${risk.status}</button>`;
+    } else if (w.status === 'done') {
+      riskBadge = `<span class="text-slate-400 text-xs">ตั๋วชั่งทั่วไป</span>`;
+    }
+
+    return `<tr class="hover:bg-slate-50">
+      <td class="p-3 font-mono font-bold text-amber-700" data-label="เลขที่/Lot">${esc(w.docNo)}</td>
+      <td class="p-3 text-xs" data-label="เวลา">${fmtDT(w.datetimeIn)}</td>
+      <td class="p-3 font-bold text-slate-800" data-label="ทะเบียน">${esc(w.plate)}</td>
+      <td class="p-3 text-xs" data-label="ผู้ขาย/ลูกค้า">${esc(w.supplier || '-')}</td>
+      <td class="p-3 text-right font-mono" data-label="ชั่งเข้า">${nf(w.weightIn)}</td>
+      <td class="p-3 text-right font-mono" data-label="ชั่งออก">${w.weightOut == null ? '-' : nf(w.weightOut)}</td>
+      <td class="p-3 text-right font-mono font-bold text-emerald-700" data-label="สุทธิ">${w.netWeight == null ? '-' : nf(w.netWeight)}</td>
+      <td class="p-3 text-center font-semibold text-cyan-700" data-label="ชื้น">${w.moisture ? nf(w.moisture, 1) + '%' : '-'}</td>
+      <td class="p-3 text-center" data-label="กอง">${w.location ? `<span class="px-2 py-0.5 bg-slate-100 rounded border text-xs font-bold">${esc(w.location)}</span>` : '-'}</td>
+      <td class="p-3 text-center" data-label="สถานะตั๋ว">${ticketStatusBadge}</td>
+      <td class="p-3 text-center" data-label="ความเสี่ยง">${riskBadge}</td>
+      <td class="p-3 text-center" data-label="จัดการ">
+        <div class="flex gap-1 justify-end md:justify-center flex-wrap">
+          ${w.status === 'pending' ? `<button onclick="completeWeigh('${w.id}')" class="btn-xs px-2 py-1.5 bg-amber-500 text-white rounded text-xs font-bold">ชั่งออก</button>` : ''}
+          ${w.status === 'done' ? `<button onclick="printTicket('${w.id}')" class="btn-xs px-2 py-1.5 bg-slate-800 text-white rounded text-xs">พิมพ์</button>` : ''}
+          ${lot && can('edit') ? `<button onclick="openLotEdit('${lot.id}')" class="btn-xs px-2 py-1.5 bg-blue-600 text-white rounded text-xs">แก้ไข</button>` : ''}
+          ${can('void') ? `<button onclick="voidWeigh('${w.id}')" class="btn-xs px-2 py-1.5 bg-red-100 text-red-700 rounded text-xs">ลบ</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
   }).join('');
-  $('lot-pager').innerHTML = pagerHTML(lotPage,total,'lotPage','renderLotsTable');
+
+  $('unified-pager').innerHTML = pagerHTML(unifiedPage, total, 'unifiedPage', 'renderUnifiedTable');
+  if (window.lucide) lucide.createIcons();
 }
+
+function showRiskDetail(id){
+  const lot = appState.lots.find(l=>l.id===id); if(!lot) return;
+  const r = evaluateLotRisk(lot);
+  const isNeedAction = r.status !== 'ปกติ';
+
+  let reasonsHTML = (r.reasons && r.reasons.length > 0)
+    ? `<div class="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
+        <p class="text-xs font-bold text-amber-900 mb-1">สาเหตุความเสี่ยง / ข้อสังเกตที่พบ:</p>
+        <ul class="list-disc list-inside text-xs text-amber-800 space-y-1">` +
+        r.reasons.map(res => `<li><b>${esc(res)}</b></li>`).join('') + `</ul></div>`
+    : `<div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs text-emerald-800 font-medium">✓ สถานะปกติ ความชื้นและระยะเวลาจัดเก็บอยู่ในเกณฑ์มาตรฐาน</div>`;
+
+  const iconName = r.status==='เร่งอบ'?'flame':r.status==='เสี่ยงสูง'?'alert-octagon':r.status==='เฝ้าระวัง'?'alert-triangle':'check-circle';
+  const iconColor = r.status==='เร่งอบ'?'text-purple-600':r.status==='เสี่ยงสูง'?'text-red-600':r.status==='เฝ้าระวัง'?'text-amber-600':'text-emerald-600';
+
+  openModal(`
+    <div class="flex items-center justify-between border-b pb-3">
+      <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+        <i data-lucide="${iconName}" class="w-5 h-5 ${iconColor}"></i> รายละเอียดสถานะ Lot: ${esc(lot.lotNumber)}
+      </h3>
+      <button onclick="closeModal()" aria-label="ปิด" class="p-1 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="space-y-3 py-2 text-sm">
+      <div class="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-lg border text-xs">
+        <div><b>สถานะความเสี่ยง:</b> <span class="px-2 py-0.5 rounded text-xs ${r.badgeClass} font-bold">${r.status}</span></div>
+        <div><b>อายุจัดเก็บ:</b> <span class="font-bold text-slate-700">${r.days} วัน</span></div>
+        <div><b>กองจัดเก็บ:</b> <span class="font-bold text-slate-700">${esc(lot.location)}</span></div>
+        <div><b>ความชื้นปัจจุบัน:</b> <span class="font-bold text-cyan-700">${nf(lot.currentMoisture, 1)}%</span></div>
+      </div>
+      ${reasonsHTML}
+      <div class="text-xs bg-slate-100 p-3 rounded-lg space-y-1 text-slate-600">
+        <p><b>ผู้ขาย/ลูกค้า:</b> ${esc(lot.supplier)} (${esc(lot.customerType)})</p>
+        <p><b>สินค้า:</b> ${esc(lot.product)} | <b>ทะเบียนรถ:</b> ${esc(lot.plate)}</p>
+        <p><b>ปริมาณคงเหลือ:</b> ${nf(lot.currentWeight)} กก. (จากรับเข้า ${nf(lot.netWeight)} กก.)</p>
+        <p><b>วันที่รับเข้า:</b> ${fmtDT(lot.receivedDate)}</p>
+      </div>
+    </div>
+    <div class="flex gap-2 pt-2">
+      ${isNeedAction ? `<button onclick="closeModal(); switchView('alerts');" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 shadow"><i data-lucide="bell" class="w-4 h-4"></i> ไปที่ศูนย์แจ้งเตือน</button>` : ''}
+      <button onclick="closeModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-medium">ปิด</button>
+    </div>
+  `);
+}
+
 function openLotEdit(id){
   const lot = appState.lots.find(l=>l.id===id); if(!lot) return;
   const issued = num(lot.netWeight)-num(lot.currentWeight);
@@ -1122,6 +1962,7 @@ function openLotEdit(id){
     <div class="flex gap-2 pt-2"><button onclick="closeModal()" class="flex-1 bg-slate-200 py-2.5 rounded-lg text-sm">ยกเลิก</button>
     <button onclick="saveLotEdit('${lot.id}')" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm">บันทึก</button></div>`);
 }
+
 function saveLotEdit(id){
   const lot = appState.lots.find(l=>l.id===id);
   const reason = $('ed-reason').value.trim();
@@ -1140,68 +1981,93 @@ function saveLotEdit(id){
   lot.totalPrice = round2(num(lot.netWeight)*num(lot.pricePerKg));
   lot.remark = $('ed-remark').value.trim();
   logActivity(`แก้ไข ${lot.lotNumber} (${reason}) จาก ${before}`);
-  saveData(); closeModal(); renderLotsTable(); toast('บันทึกการแก้ไขแล้ว','ok');
-}
-async function voidLot(id){
-  const lot = appState.lots.find(l=>l.id===id);
-  if (num(lot.currentWeight)!==num(lot.netWeight)) return toast('Lot นี้ถูกเบิกออกบางส่วนแล้ว ต้องยกเลิกใบเบิกก่อน','error',6000);
-  const reason = await uiPrompt(`เหตุผลการยกเลิก ${lot.lotNumber}`); if(!reason) return;
-  lot.status='void'; lot.voidReason=reason; lot.currentWeight=0;
-  logActivity(`ยกเลิก Lot ${lot.lotNumber}: ${reason}`);
-  saveData(); renderLotsTable(); toast('ยกเลิก Lot แล้ว','ok');
-}
-function openQRModal(id){
-  const lot = appState.lots.find(l=>l.id===id); if(!lot) return;
-  const r = evaluateLotRisk(lot);
-  openModal(`<div class="flex items-center justify-between border-b pb-3">
-      <h3 class="font-bold text-lg">รายละเอียด Lot</h3>
-      <button onclick="closeModal()" aria-label="ปิด" class="p-2 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button></div>
-    <div class="flex flex-col items-center py-2">
-      <div id="qrcode-container" class="p-3 bg-white border rounded-lg"></div>
-      <p class="font-mono font-bold text-lg mt-2">${esc(lot.lotNumber)}</p></div>
-    <div class="text-xs bg-slate-50 p-4 rounded-lg border grid grid-cols-2 gap-1.5">
-      <div><b>สินค้า:</b> ${esc(lot.product)}</div><div><b>ผู้ขาย:</b> ${esc(lot.supplier)}</div>
-      <div><b>ทะเบียน:</b> ${esc(lot.plate)}</div><div><b>กอง:</b> ${esc(lot.location)}</div>
-      <div><b>รับเข้า:</b> ${nf(lot.netWeight)} กก.</div><div><b>คงเหลือ:</b> ${nf(lot.currentWeight)} กก.</div>
-      <div><b>ความชื้น:</b> ${nf(lot.currentMoisture,1)}%</div><div><b>อายุเก็บ:</b> ${r.days} วัน</div>
-      <div><b>ราคา/ถัง:</b> ${nf(lot.bucketPrice,2)} ฿</div><div><b>มูลค่ารับเข้า:</b> ${nf(lot.totalPrice,2)} ฿</div>
-      <div class="col-span-2"><b>Risk:</b> ${r.score} (${r.status})</div>
-      <div class="col-span-2"><b>หมายเหตุ:</b> ${esc(lot.remark||'-')}</div></div>
-    <div class="flex gap-2"><button onclick="closeModal()" class="flex-1 bg-slate-200 py-2.5 rounded-lg text-sm">ปิด</button></div>`,
-    ()=>{ if (typeof QRCode!=='undefined') new QRCode($('qrcode-container'),{text:lot.lotNumber,width:140,height:140,correctLevel:QRCode.CorrectLevel.H}); });
+  saveData(); closeModal(); renderUnifiedTable(); toast('บันทึกการแก้ไขแล้ว','ok');
 }
 
-/* ---------- map ---------- */
+async function voidLot(id){
+  const lot = appState.lots.find(l => l.id === id);
+  if (!lot) return;
+  if (num(lot.currentWeight) !== num(lot.netWeight)) {
+    return toast('Lot นี้ถูกเบิกออกบางส่วนแล้ว ไม่สามารถลบได้', 'error', 6000);
+  }
+  if (!await uiConfirm(`คุณต้องการลบ Lot ${lot.lotNumber} ออกจากระบบและ Google Sheets หรือไม่?`, {danger: true, requireText: 'ลบ'})) return;
+
+  const idx = appState.lots.findIndex(l => l.id === id);
+  if (idx !== -1) {
+    const deletedLotId = appState.lots[idx].id;
+    const docNo = appState.lots[idx].docNo || appState.lots[idx].lotNumber;
+    appState.lots.splice(idx, 1);
+
+    const weighIdx = appState.weighingRecords.findIndex(w => w.docNo === docNo || w.id === deletedLotId);
+    if (weighIdx !== -1) {
+      const weighId = appState.weighingRecords[weighIdx].id;
+      appState.weighingRecords.splice(weighIdx, 1);
+      if (typeof window.postExcelRecord === 'function') {
+        await window.postExcelRecord('weighing_records', { id: weighId, docNo }, 'delete');
+      }
+    }
+
+    if (typeof window.postExcelRecord === 'function') {
+      await window.postExcelRecord('lots', { id: deletedLotId, docNo }, 'delete');
+    }
+
+    logActivity(`ลบ Lot ${lot.lotNumber} ออกจากระบบและ Google Sheets`);
+    saveData(); 
+    if (typeof renderUnifiedTable === 'function') renderUnifiedTable(); 
+    toast('ลบ Lot ออกจากระบบและ Google Sheets เรียบร้อยแล้ว', 'ok');
+  }
+}
+
 function renderWarehouseMap(){
   $('map-grid-container').innerHTML = appState.settings.zones.map(z=>{
     const lots = activeLots().filter(l=>l.location===z.code && num(l.currentWeight)>0);
     const used = lots.reduce((a,l)=>a+num(l.currentWeight),0);
     const pct = z.capacityKg>0 ? Math.min(100,used/z.capacityKg*100) : 0;
     const maxRisk = lots.reduce((m,l)=>Math.max(m,evaluateLotRisk(l).score),0);
+    const tm = MOISTURE_RANGES[z.targetMoisture || 'any'] || MOISTURE_RANGES['any'];
+
+    const mismatchLots = lots.filter(l => {
+      if (z.targetMoisture && z.targetMoisture !== 'any' && tm) {
+        const m = num(l.currentMoisture);
+        return m < tm.min || m > tm.max;
+      }
+      return false;
+    });
+
     let color='border-slate-300 bg-white', badge='<span class="px-2 py-0.5 rounded text-xs bg-slate-200 text-slate-600">ว่าง</span>';
     if (lots.length){
-      if (maxRisk>60){ color='border-red-500 bg-red-50/50'; badge='<span class="px-2 py-0.5 rounded text-xs bg-red-500 text-white font-bold">เสี่ยงสูง</span>'; }
+      if (maxRisk>60 || mismatchLots.length>0){ color='border-red-500 bg-red-50/50'; badge='<span class="px-2 py-0.5 rounded text-xs bg-red-500 text-white font-bold">เสี่ยงสูง</span>'; }
       else if (maxRisk>30){ color='border-amber-500 bg-amber-50/50'; badge='<span class="px-2 py-0.5 rounded text-xs bg-amber-500 text-white font-bold">เฝ้าระวัง</span>'; }
       else { color='border-emerald-500 bg-emerald-50/50'; badge='<span class="px-2 py-0.5 rounded text-xs bg-emerald-500 text-white font-bold">ปกติ</span>'; }
     }
-    return `<div class="border-2 ${color} rounded-xl p-4 shadow-sm space-y-3">
-      <div class="flex justify-between items-center border-b pb-2"><h3 class="font-bold text-lg">กอง ${esc(z.code)}</h3>${badge}</div>
-      <p class="text-sm">คงเหลือ <b>${nf(used/1000,2)} ตัน</b> / ความจุ ${nf(z.capacityKg/1000,1)} ตัน</p>
-      <div class="w-full bg-slate-200 rounded-full h-2.5"><div class="h-2.5 rounded-full ${pct>90?'bg-red-500':pct>70?'bg-amber-500':'bg-emerald-500'}" style="width:${pct}%"></div></div>
-      <p class="text-xs text-slate-500">ใช้พื้นที่ ${pct.toFixed(0)}% · ${lots.length} Lot</p>
+
+    return `<div class="border-2 ${color} rounded-xl p-4 shadow-sm space-y-3 flex flex-col justify-between">
+      <div>
+        <div class="flex justify-between items-start border-b pb-2">
+          <div>
+            <h3 class="font-bold text-lg">กอง ${esc(z.code)}</h3>
+            <span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${tm.badge} mt-0.5">ช่วงชื้น: ${tm.label}</span>
+          </div>
+          ${badge}
+        </div>
+        <p class="text-sm mt-2">คงเหลือ <b>${nf(used/1000,2)} ตัน</b> / ความจุ ${nf(z.capacityKg/1000,1)} ตัน</p>
+        <div class="w-full bg-slate-200 rounded-full h-2.5 my-1.5"><div class="h-2.5 rounded-full ${pct>90?'bg-red-500':pct>70?'bg-amber-500':'bg-emerald-500'}" style="width:${pct}%"></div></div>
+        <p class="text-xs text-slate-500">ใช้พื้นที่ ${pct.toFixed(0)}% · ${lots.length} Lot</p>
+        ${mismatchLots.length > 0 ? `<div class="mt-2 p-1.5 bg-red-100 border border-red-300 rounded text-[11px] text-red-800 font-bold flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3.5 h-3.5 shrink-0"></i> พบ ${mismatchLots.length} Lot ชื้นไม่ตรงเกณฑ์ประจำกอง</div>` : ''}
+      </div>
       <div class="pt-2 border-t text-xs text-slate-500">${lots.map(l=>`• ${esc(l.lotNumber)} (${esc(l.product)} ${nf(l.currentMoisture,1)}%)`).join('<br>')||'ไม่มีสินค้า'}</div>
     </div>`;
   }).join('');
+  if (window.lucide) lucide.createIcons();
 }
 
-/* ---------- moisture ---------- */
 function renderMoistureView(){
   const lots = activeLots();
   $('moist-lot-id').innerHTML = lots.length
     ? lots.map(l=>`<option value="${esc(l.id)}">${esc(l.lotNumber)} (กอง ${esc(l.location)} — ชื้นล่าสุด ${nf(l.currentMoisture,1)}%)</option>`).join('')
     : '<option value="">-- ยังไม่มี Lot --</option>';
   const tb = $('table-moisture-history');
-  if (!appState.moistureRecords.length){ tb.innerHTML=`<tr><td colspan="5" class="p-4 text-center text-slate-400">ยังไม่มีประวัติ</td></tr>`; return; }
+  if (!appState.moistureRecords.length){ tb.innerHTML=`<tr><td colspan="6" class="p-4 text-center text-slate-400">ยังไม่มีประวัติ</td></tr>`; return; }
   tb.innerHTML = appState.moistureRecords.slice(0,100).map(m=>{
     const high = num(m.val) > appState.settings.moistWarn;
     return `<tr class="hover:bg-slate-50">
@@ -1209,9 +2075,35 @@ function renderMoistureView(){
       <td class="p-2.5 font-mono font-bold text-amber-700" data-label="Lot">${esc(m.lotNumber)}</td>
       <td class="p-2.5 text-center font-bold text-cyan-700" data-label="ชื้น">${nf(m.val,1)}%</td>
       <td class="p-2.5 text-center" data-label="ประเมิน"><span class="px-2 py-0.5 rounded text-xs font-bold ${high?'bg-red-100 text-red-800':'bg-emerald-100 text-emerald-800'}">${high?'ความชื้นสูง':'ปกติ'}</span></td>
-      <td class="p-2.5 text-xs" data-label="ผู้ตรวจ">${esc(m.inspector)}</td></tr>`;
+      <td class="p-2.5 text-xs" data-label="ผู้ตรวจ">${esc(m.inspector)}</td>
+      <td class="p-2.5 text-center" data-label="จัดการ">
+        ${can('void') ? `<button onclick="voidMoisture('${m.id}')" class="btn-xs px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs font-medium transition">ลบ</button>` : '-'}
+      </td>
+    </tr>`;
   }).join('');
 }
+
+async function voidMoisture(id){
+  if (!can('void')) return toast('สิทธิ์ของคุณไม่สามารถลบข้อมูลได้', 'warn');
+  const rec = appState.moistureRecords.find(x => x.id === id);
+  if (!rec) return;
+  if (!await uiConfirm(`คุณต้องการลบประวัติการตรวจวัดความชื้นของ Lot ${rec.lotNumber} ใช่หรือไม่?`, {danger: true, requireText: 'ลบ'})) return;
+
+  const idx = appState.moistureRecords.findIndex(x => x.id === id);
+  if (idx !== -1) {
+    appState.moistureRecords.splice(idx, 1);
+
+    if (typeof window.postExcelRecord === 'function') {
+      await window.postExcelRecord('moisture_records', { id }, 'delete');
+    }
+
+    logActivity(`ลบประวัติการตรวจความชื้น Lot ${rec.lotNumber}`);
+    saveData();
+    renderMoistureView();
+    toast('ลบประวัติความชื้นในระบบและ Google Sheets เรียบร้อยแล้ว', 'ok');
+  }
+}
+
 function handleMoistureSubmit(e){
   e.preventDefault();
   const lot = appState.lots.find(l=>l.id===$('moist-lot-id').value);
@@ -1226,12 +2118,12 @@ function handleMoistureSubmit(e){
   saveData(); $('form-moisture').reset(); renderMoistureView(); toast('บันทึกค่าความชื้นแล้ว','ok');
 }
 
-/* ---------- issue ---------- */
 function updateIssueHint(){
   const lot = availableLots().find(l=>l.id===$('issue-lot-id').value);
   $('issue-hint').textContent = lot ? `คงเหลือสูงสุด ${nf(lot.currentWeight)} กก.` : '';
   if (lot) $('issue-weight').max = lot.currentWeight;
 }
+
 function renderIssueView(){
   const lots = availableLots();
   $('issue-lot-id').innerHTML = lots.length
@@ -1251,7 +2143,7 @@ function renderIssueView(){
       <div class="bg-white p-3 rounded-lg border shadow-sm">
         <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded">FEFO (เสี่ยงสุด)</span>
         <h4 class="font-bold mt-1">${esc(fefo.lotNumber)}</h4>
-        <p class="text-xs text-slate-500">ชื้น ${nf(fefo.currentMoisture,1)}% · Risk ${evaluateLotRisk(fefo).score} · เหลือ ${nf(fefo.currentWeight)} กก.</p>
+        <p class="text-xs text-slate-500">ชื้น ${nf(fefo.currentMoisture,1)}% · สถานะ ${evaluateLotRisk(fefo).status} · เหลือ ${nf(fefo.currentWeight)} กก.</p>
         <button onclick="pickLot('${fefo.id}')" class="mt-2 text-xs bg-amber-600 text-white px-3 py-2 rounded">เลือก Lot นี้</button></div>`;
   }
   const tb = $('table-issue-history');
@@ -1267,82 +2159,151 @@ function renderIssueView(){
       <td class="p-2.5 text-center" data-label="จัดการ">${r.status!=='void'&&can('void')?`<button onclick="voidIssue('${r.id}')" class="btn-xs px-2 py-1.5 bg-red-100 text-red-700 rounded text-xs">ยกเลิก</button>`:'-'}</td>
     </tr>`).join('');
 }
+
 function pickLot(id){ $('issue-lot-id').value=id; updateIssueHint(); $('issue-weight').focus(); }
+
 function handleIssueSubmit(e){
   e.preventDefault();
-  if (submitting) return;
-  const btn=$('issue-submit');
   const lot = appState.lots.find(l=>l.id===$('issue-lot-id').value);
   const w = num($('issue-weight').value), customer = $('issue-customer').value.trim();
   if (!lot) return toast('กรุณาเลือก Lot','warn');
   if (!customer) return toast('กรุณาระบุลูกค้า/ปลายทาง','warn');
   if (w<=0) return toast('จำนวนต้องมากกว่า 0','warn');
   if (w>num(lot.currentWeight)) return toast(`เบิกเกินคงเหลือ (เหลือ ${nf(lot.currentWeight)} กก.)`,'error',6000);
-  submitting=true; btn.disabled=true;
-  try {
-    const docNo = peekDocNo('OUT');
-    lot.currentWeight = round2(num(lot.currentWeight)-w);
-    appState.issueRecords.unshift({ id:uid('ISS'), docNo, datetime:new Date().toISOString(), lotId:lot.id,
-      lotNumber:lot.lotNumber, customer, plate:$('issue-plate').value.trim(), weight:w,
-      operator:$('issue-operator').value.trim()||appState.currentUserRole, remark:$('issue-remark').value.trim(),
-      pricePerKg:num(lot.pricePerKg), totalPrice:round2(w*num(lot.pricePerKg)), status:'active' });
-    commitDocNo(docNo);
-    logActivity(`เบิกจ่าย ${docNo} จาก ${lot.lotNumber} ${nf(w)} กก. → ${customer}`);
-    saveData(); $('form-issue').reset(); renderIssueView();
-    toast(`บันทึกการเบิกจ่ายสำเร็จ (${docNo})`,'ok');
-  } finally { submitting=false; btn.disabled=false; }
-}
-async function voidIssue(id){
-  const r = appState.issueRecords.find(x=>x.id===id); if(!r) return;
-  const reason = await uiPrompt(`เหตุผลการยกเลิกใบเบิก ${r.docNo}`); if(!reason) return;
-  const lot = appState.lots.find(l=>l.id===r.lotId);
-  if (lot) lot.currentWeight = round2(num(lot.currentWeight)+num(r.weight));
-  r.status='void'; r.voidReason=reason;
-  logActivity(`ยกเลิกใบเบิก ${r.docNo} คืนสต็อก ${nf(r.weight)} กก.: ${reason}`);
-  saveData(); renderIssueView(); toast('ยกเลิกใบเบิกและคืนสต็อกแล้ว','ok');
+  
+  const docNo = peekDocNo('OUT');
+  lot.currentWeight = round2(num(lot.currentWeight)-w);
+  appState.issueRecords.unshift({ id:uid('ISS'), docNo, datetime:new Date().toISOString(), lotId:lot.id,
+    lotNumber:lot.lotNumber, customer, plate:$('issue-plate').value.trim(), weight:w,
+    operator:$('issue-operator').value.trim()||appState.currentUserRole, remark:$('issue-remark').value.trim(),
+    pricePerKg:num(lot.pricePerKg), totalPrice:round2(w*num(lot.pricePerKg)), status:'active' });
+  commitDocNo(docNo);
+  logActivity(`เบิกจ่าย ${docNo} จาก ${lot.lotNumber} ${nf(w)} กก. → ${customer}`);
+  saveData(); $('form-issue').reset(); renderIssueView();
+  toast(`บันทึกการเบิกจ่ายสำเร็จ (${docNo})`,'ok');
 }
 
-/* ---------- alerts ---------- */
-function buildAlerts(){
+async function voidIssue(id){
+  const r = appState.issueRecords.find(x => x.id === id); 
+  if(!r) return;
+  if (!await uiConfirm(`คุณต้องการลบใบเบิก ${r.docNo} และคืนสต็อกหรือไม่?`, {danger: true, requireText: 'ลบ'})) return;
+
+  const lot = appState.lots.find(l => l.id === r.lotId);
+  if (lot) lot.currentWeight = round2(num(lot.currentWeight) + num(r.weight));
+
+  const idx = appState.issueRecords.findIndex(x => x.id === id);
+  if (idx !== -1) {
+    appState.issueRecords.splice(idx, 1);
+    
+    if (typeof window.postExcelRecord === 'function') {
+      await window.postExcelRecord('issue_records', { id }, 'delete');
+    }
+
+    logActivity(`ลบใบเบิก ${r.docNo} และคืนสต็อก ${nf(r.weight)} กก.`);
+    saveData(); 
+    renderIssueView(); 
+    toast('ลบใบเบิกและคืนสต็อกในระบบและ Google Sheets แล้ว', 'ok');
+  }
+}
+
+let activeAlertTab = 'all';
+function setAlertTab(tab){
+  activeAlertTab = tab;
+  ['all','stock','capacity','system'].forEach(t=>{
+    const btn = $(`tab-alert-${t}`);
+    if(btn){
+      btn.className = (t===tab) ? 'px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 shadow' : 'px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100';
+    }
+  });
+  renderAlertsCenter();
+}
+
+function isAlertRead(id){ return (appState.readAlerts || []).includes(id); }
+function markAllAlertsAsRead(){
+  const list = rawAlerts(); appState.readAlerts ||= [];
+  list.forEach(a => { if (!appState.readAlerts.includes(a.id)) appState.readAlerts.push(a.id); });
+  saveData(); toast('ทำเครื่องหมายว่าอ่านแล้วทั้งหมดแล้ว','ok'); renderAlertsCenter();
+}
+function dismissAlert(id){
+  appState.dismissedAlerts ||= [];
+  if (!appState.dismissedAlerts.includes(id)) appState.dismissedAlerts.push(id);
+  saveData(); renderAlertsCenter();
+}
+
+function refreshBadges(){
+  const list = rawAlerts();
+  const unreadCount = list.filter(a => !isAlertRead(a.id)).length;
+  const b = $('alert-badge');
+  if (b){ b.textContent = unreadCount; b.classList.toggle('hidden', unreadCount === 0); }
+  const unreadText = $('unread-count-text');
+  if (unreadText){ unreadText.textContent = `ยังไม่อ่าน ${unreadCount} รายการ`; }
+}
+
+function getMoistureStatusStyle(moisture) {
+  const m = num(moisture);
+  if (m <= 0) return { text: 'เฝ้าระวัง', badgeClass: 'bg-amber-100 text-amber-800 border-amber-300 font-bold', cardClass: 'bg-amber-50/60 border-amber-200 border-l-4 border-l-amber-500' };
+  if (m <= 14.5) return { text: 'ปลอดภัย', badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold', cardClass: 'bg-emerald-50/60 border-emerald-200 border-l-4 border-l-emerald-500' };
+  if (m <= 18.0) return { text: 'เฝ้าระวัง', badgeClass: 'bg-amber-100 text-amber-800 border-amber-300 font-bold', cardClass: 'bg-amber-50/60 border-amber-200 border-l-4 border-l-amber-500' };
+  if (m <= 30.0) return { text: 'เสี่ยงสูง', badgeClass: 'bg-red-100 text-red-800 border-red-300 font-bold', cardClass: 'bg-red-50/70 border-red-200 border-l-4 border-l-red-500' };
+  return { text: 'เร่งเข้าตู้อบ', badgeClass: 'bg-purple-100 text-purple-900 border-purple-300 font-bold', cardClass: 'bg-purple-50/80 border-purple-200 border-l-4 border-l-purple-600' };
+}
+
+function rawAlerts(){
   const s = appState.settings, out=[];
+  const dismissed = new Set(appState.dismissedAlerts || []);
+
   activeLots().filter(l=>num(l.currentWeight)>0).forEach(lot=>{
-    const r = evaluateLotRisk(lot);
-    if (num(lot.currentMoisture)>s.moistWarn)
-      out.push({t:'red',title:'ความชื้นสูงเกินเกณฑ์',desc:`${lot.lotNumber} ชื้น ${nf(lot.currentMoisture,1)}% (กอง ${lot.location})`});
-    if (r.days>s.ageMax)
-      out.push({t:'amber',title:'จัดเก็บนานเกินกำหนด',desc:`${lot.lotNumber} เก็บมาแล้ว ${r.days} วัน`});
+    const r = evaluateLotRisk(lot); const m = num(lot.currentMoisture);
+    if (m > s.moistWarn){
+      const id = `alt-mhigh-${lot.id}`;
+      if (!dismissed.has(id)){
+        out.push({ id, category: 'stock', severity: 'critical', title: 'ความชื้นสูงเกินเกณฑ์',
+          desc: `${lot.lotNumber} (ชื้น ${nf(m,1)}%) อยู่ในกอง ${lot.location}`, time: lot.receivedDate || new Date().toISOString(),
+          refType: 'lot', refId: lot.id, moisture: m });
+      }
+    }
+    if (r.days > s.ageMax){
+      const id = `alt-overdue-${lot.id}`;
+      if (!dismissed.has(id)){
+        out.push({ id, category: 'stock', severity: 'warning', title: 'จัดเก็บนานเกินกำหนด',
+          desc: `${lot.lotNumber} เก็บมาแล้ว ${r.days} วัน (กอง ${lot.location})`, time: lot.receivedDate || new Date().toISOString(),
+          refType: 'lot', refId: lot.id, moisture: 0 });
+      }
+    }
   });
-  s.zones.forEach(z=>{
-    const used = zoneUsed(z.code);
-    if (z.capacityKg>0 && used/z.capacityKg*100 >= s.capAlertPct)
-      out.push({t:'amber',title:'พื้นที่กองใกล้เต็ม',desc:`กอง ${z.code} ใช้ไปแล้ว ${(used/z.capacityKg*100).toFixed(0)}%`});
-  });
-  const totalStock = activeLots().reduce((a,l)=>a+num(l.currentWeight),0);
-  if (s.yardCapacityKg>0 && totalStock/s.yardCapacityKg*100 >= s.capAlertPct)
-    out.push({t:'red',title:'ความจุลานรวมใกล้เต็ม',desc:`ใช้ไปแล้ว ${(totalStock/s.yardCapacityKg*100).toFixed(0)}% ของความจุทั้งหมด`});
-  appState.weighingRecords.filter(w=>w.status==='pending').forEach(w=>{
-    if ((Date.now()-new Date(w.datetimeIn))/3600000 > 6)
-      out.push({t:'amber',title:'ตั๋วชั่งค้างเกิน 6 ชั่วโมง',desc:`${w.docNo} ทะเบียน ${w.plate} ยังไม่ชั่งออก`});
-  });
+
   return out;
 }
-function refreshBadges(){
-  const n = buildAlerts().length, b = $('alert-badge');
-  if (!b) return;
-  b.textContent = n; b.classList.toggle('hidden', n===0);
-}
+
 function renderAlertsCenter(){
-  const alerts = buildAlerts(); refreshBadges();
-  $('alerts-container').innerHTML = alerts.length
-    ? alerts.map(a=>`<div class="p-4 rounded-lg border-l-4 ${a.t==='red'?'border-red-500 bg-red-50':'border-amber-500 bg-amber-50'} flex items-start gap-3">
-        <i data-lucide="alert-triangle" class="w-5 h-5 ${a.t==='red'?'text-red-600':'text-amber-600'} shrink-0 mt-0.5"></i>
-        <div><h4 class="font-bold text-sm ${a.t==='red'?'text-red-900':'text-amber-900'}">${esc(a.title)}</h4>
-        <p class="text-xs ${a.t==='red'?'text-red-700':'text-amber-700'}">${esc(a.desc)}</p></div></div>`).join('')
-    : `<p class="text-slate-400 text-center py-8">ไม่มีการแจ้งเตือนในขณะนี้</p>`;
+  const rawList = rawAlerts(); refreshBadges();
+  let filtered = activeAlertTab !== 'all' ? rawList.filter(a => a.category === activeAlertTab) : rawList;
+  const container = $('alerts-container');
+  if (!container) return;
+
+  if (!filtered.length){
+    container.innerHTML = `<div class="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-400 space-y-2">
+      <i data-lucide="bell-off" class="w-10 h-10 mx-auto text-slate-300"></i><p class="text-sm font-medium">ไม่มีรายการแจ้งเตือนในขณะนี้</p></div>`;
+    if (window.lucide) lucide.createIcons(); return;
+  }
+
+  container.innerHTML = filtered.map(item => {
+    const style = getMoistureStatusStyle(item.moisture);
+    return `
+    <div class="p-4 rounded-xl border ${style.cardClass} shadow-sm flex items-center justify-between transition">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <h4 class="font-bold text-sm text-slate-800">${esc(item.title)}</h4>
+          <span class="px-2 py-0.5 rounded text-[11px] border ${style.badgeClass}">${style.text}</span>
+        </div>
+        <p class="text-xs text-slate-600">${esc(item.desc)}</p>
+      </div>
+      <button onclick="dismissAlert('${item.id}')" class="text-xs text-slate-400 hover:text-slate-600 px-2 py-1">ซ่อน</button>
+    </div>`;
+  }).join('');
   if (window.lucide) lucide.createIcons();
 }
 
-/* ---------- reports / export ---------- */
 function reportRows(){
   const from=$('rep-from').value, to=$('rep-to').value, type=$('rep-type').value;
   const inRange = iso => (!from || dayKey(iso)>=from) && (!to || dayKey(iso)<=to);
@@ -1354,41 +2315,58 @@ function reportRows(){
     return { head:['เลขที่','วันที่','Lot','ลูกค้า','ทะเบียน','น้ำหนัก (กก.)','มูลค่า (บาท)'],
       rows: appState.issueRecords.filter(r=>r.status!=='void'&&inRange(r.datetime)).map(r=>[r.docNo,fmtD(r.datetime),r.lotNumber,r.customer,r.plate||'-',num(r.weight),num(r.totalPrice)]),
       sumIdx:[5,6] };
-  return { head:['Lot','วันที่รับ','ผู้ขาย','กอง','คงเหลือ (กก.)','ชื้น (%)','อายุ (วัน)','Risk','มูลค่า (บาท)'],
+  return { head:['Lot','วันที่รับ','ผู้ขาย','กอง','คงเหลือ (กก.)','ชื้น (%)','อายุ (วัน)','สถานะความเสี่ยง','มูลค่า (บาท)'],
     rows: activeLots().filter(l=>num(l.currentWeight)>0&&inRange(l.receivedDate)).map(l=>{
       const r = evaluateLotRisk(l);
-      return [l.lotNumber,fmtD(l.receivedDate),l.supplier,l.location,num(l.currentWeight),num(l.currentMoisture),r.days,r.score,round2(num(l.currentWeight)*num(l.pricePerKg))];
+      return [l.lotNumber,fmtD(l.receivedDate),l.supplier,l.location,num(l.currentWeight),num(l.currentMoisture),r.days,r.status,round2(num(l.currentWeight)*num(l.pricePerKg))];
     }), sumIdx:[4,8] };
 }
+
 function renderReports(){
   $('report-date').textContent = new Date().toLocaleDateString('th-TH',{dateStyle:'long'});
   $('report-author').textContent = appState.currentUserRole;
   const t = $('rep-type').value;
   $('report-title').textContent = t==='in'?'รายงานรายการรับเข้า':t==='out'?'รายงานรายการจ่ายออก':'รายงานสต็อกคงเหลือรายล็อต';
   const { head, rows, sumIdx } = reportRows();
-  $('report-table-head').innerHTML = `<tr class="bg-slate-100">${head.map(h=>`<th class="border border-slate-300 p-2 text-xs">${esc(h)}</th>`).join('')}</tr>`;
+  
+  $('report-table-head').innerHTML = `<tr class="bg-slate-100">${head.map(h=>`<th class="border border-slate-300 p-2 text-xs font-bold text-slate-800 text-center">${esc(h)}</th>`).join('')}</tr>`;
+  
   $('report-table-body').innerHTML = rows.length
-    ? rows.map(r=>`<tr>${r.map((c,i)=>`<td class="border border-slate-300 p-2 ${typeof c==='number'?'text-right':''}" data-label="${esc(head[i])}">${typeof c==='number'?nf(c, i===sumIdx[1]?2:0):esc(c)}</td>`).join('')}</tr>`).join('')
-    : `<tr><td colspan="${head.length}" class="border p-4 text-center text-slate-400">ไม่มีข้อมูลในช่วงที่เลือก</td></tr>`;
+    ? rows.map((r, idx)=>`<tr class="${idx%2===1?'bg-slate-50/60':''} hover:bg-slate-100/50">
+        ${r.map((c,i)=>{
+          const isNum = typeof c === 'number';
+          const alignClass = isNum ? 'text-right font-mono font-medium' : (i===1||i===3||i===5||i===6||i===7?'text-center':'text-left');
+          return `<td class="border border-slate-200 p-2 text-xs text-slate-800 ${alignClass}" data-label="${esc(head[i])}">${isNum ? nf(c, i===sumIdx[1]?2:0) : esc(c)}</td>`;
+        }).join('')}
+      </tr>`).join('')
+    : `<tr><td colspan="${head.length}" class="border p-6 text-center text-slate-400">ไม่มีข้อมูลในช่วงที่เลือก</td></tr>`;
+    
   const sums = sumIdx.map(i=>rows.reduce((a,r)=>a+(Number(r[i])||0),0));
+  
   $('report-table-foot').innerHTML = rows.length
-    ? `<tr>${head.map((h,i)=>{ if(i===0) return `<td class="border p-2">รวม ${rows.length} รายการ</td>`;
-        const k = sumIdx.indexOf(i); return `<td class="border p-2 text-right">${k>=0?nf(sums[k], k===1?2:0):''}</td>`; }).join('')}</tr>` : '';
+    ? `<tr class="bg-slate-100 font-bold text-xs">${head.map((h,i)=>{ 
+        if(i===0) return `<td class="border border-slate-300 p-2.5 text-left text-slate-800">รวมทั้งสิ้น ${rows.length} รายการ</td>`;
+        const k = sumIdx.indexOf(i); 
+        return `<td class="border border-slate-300 p-2.5 text-right font-mono text-slate-900">${k>=0 ? nf(sums[k], k===1?2:0) : ''}</td>`; 
+      }).join('')}</tr>` : '';
 }
+
 function clearReportRange(){ $('rep-from').value=''; $('rep-to').value=''; renderReports(); }
+
 function exportCSV(){
   const { head, rows } = reportRows();
   const csv = [head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
   downloadBlob('\uFEFF'+csv, `SmartCornWMS_${$('rep-type').value}_${dayKey(nowLocalInput())}.csv`, 'text/csv;charset=utf-8');
-  toast('ส่งออก CSV แล้ว (เปิดด้วย Excel ได้ทันที)','ok');
+  toast('ส่งออก CSV แล้ว','ok');
 }
+
 function exportBackup(){
   downloadBlob(JSON.stringify(appState,null,2), `SmartCornWMS_Backup_${dayKey(nowLocalInput())}.json`, 'application/json');
   toast('สำรองข้อมูลเรียบร้อย','ok');
 }
+
 async function importBackup(input){
-  const file = input.files?.[0]; input.value='';
-  if (!file) return;
+  const file = input.files?.[0]; input.value=''; if (!file) return;
   if (!await uiConfirm('การกู้คืนจะเขียนทับข้อมูลปัจจุบันทั้งหมด ยืนยันหรือไม่?',{danger:true,requireText:'กู้คืน'})) return;
   try {
     const p = JSON.parse(await file.text());
@@ -1397,58 +2375,72 @@ async function importBackup(input){
     migrate(); saveData(); renderNav(); switchView('dashboard'); toast('กู้คืนข้อมูลสำเร็จ','ok');
   } catch(e){ toast('ไฟล์สำรองไม่ถูกต้อง','error'); }
 }
+
 function downloadBlob(content, filename, mime){
   const url = URL.createObjectURL(new Blob([content],{type:mime}));
   const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
-/* ---------- settings ---------- */
 function renderSettings(){
   const s = appState.settings;
   $('setting-moist-normal').value=s.moistNormal; $('setting-moist-warn').value=s.moistWarn;
   $('setting-age-warn').value=s.ageWarn; $('setting-age-max').value=s.ageMax;
   $('setting-bucket-kg').value=s.bucketKg; $('setting-capacity').value=s.yardCapacityKg; $('setting-cap-alert').value=s.capAlertPct;
-  $('zone-capacity-box').innerHTML = s.zones.map((z,i)=>`<div><label class="block text-xs font-semibold mb-1">กอง ${esc(z.code)}</label>
-    <input type="number" min="0" data-zone="${i}" value="${num(z.capacityKg)}" class="w-full border rounded-lg p-2.5 text-sm"></div>`).join('');
+  
+  $('zone-capacity-box').innerHTML = s.zones.map((z,i)=>`
+    <div class="border p-3 rounded-lg bg-slate-50 space-y-2">
+      <label class="block text-xs font-bold text-slate-700">กอง ${esc(z.code)}</label>
+      <div><span class="block text-[11px] text-slate-500 mb-0.5">ความจุ (กก.):</span>
+        <input type="number" min="0" data-zone-cap="${i}" value="${num(z.capacityKg)}" class="w-full border rounded p-2 text-xs"></div>
+      <div><span class="block text-[11px] text-slate-500 mb-0.5">เกณฑ์ช่วงความชื้นประจำกอง:</span>
+        <select data-zone-moist="${i}" class="w-full border rounded p-2 text-xs font-semibold">
+          <option value="any" ${(z.targetMoisture||'any')==='any'?'selected':''}>ทุกช่วงความชื้น</option>
+          <option value="safe" ${(z.targetMoisture)==='safe'?'selected':''}>&lt; 14.5% ปลอดภัย (Safe)</option>
+          <option value="medium" ${(z.targetMoisture)==='medium'?'selected':''}>15.0% - 18.0% ปานกลาง (Medium)</option>
+          <option value="high" ${(z.targetMoisture)==='high'?'selected':''}>18.5% - 25.0% สูง (High)</option>
+          <option value="critical" ${(z.targetMoisture)==='critical'?'selected':''}>&gt; 25.0% สูงมาก (Critical)</option>
+        </select></div>
+    </div>`).join('');
+
   $('audit-log-box').innerHTML = appState.activityLogs.length
     ? appState.activityLogs.map(l=>`<div class="border-b pb-1"><span class="text-slate-400">${fmtDT(l.ts)}</span> <b class="text-slate-700">[${esc(l.user)}]</b> ${esc(l.action)}</div>`).join('')
     : '<p class="text-slate-400">ยังไม่มีประวัติ</p>';
   const editable = can('settings');
-  $('view-settings').querySelectorAll('input,button').forEach(el=>el.disabled = !editable);
+  $('view-settings').querySelectorAll('input,select,button').forEach(el=>el.disabled = !editable);
 }
+
 function saveSettings(){
   if (!can('settings')) return toast('สิทธิ์ของคุณไม่สามารถแก้ไขการตั้งค่า','warn');
   const g = (id,min,max,def)=>{ const v=num($(id).value); return (v>=min&&v<=max)?v:def; };
   const s = appState.settings;
   s.moistNormal = g('setting-moist-normal',5,40,s.moistNormal);
   s.moistWarn   = g('setting-moist-warn',5,40,s.moistWarn);
-  if (s.moistWarn <= s.moistNormal) return toast('เกณฑ์เฝ้าระวังต้องมากกว่าเกณฑ์ปกติ','error');
   s.ageWarn = g('setting-age-warn',1,365,s.ageWarn);
   s.ageMax  = g('setting-age-max',1,365,s.ageMax);
-  if (s.ageMax <= s.ageWarn) return toast('วันเกินกำหนดต้องมากกว่าวันเฝ้าระวัง','error');
   s.bucketKg = g('setting-bucket-kg',1,100,s.bucketKg);
   s.yardCapacityKg = g('setting-capacity',1,100000000,s.yardCapacityKg);
   s.capAlertPct = g('setting-cap-alert',1,100,s.capAlertPct);
-  $('zone-capacity-box').querySelectorAll('input[data-zone]').forEach(inp=>{ s.zones[+inp.dataset.zone].capacityKg = num(inp.value); });
+  
+  $('zone-capacity-box').querySelectorAll('input[data-zone-cap]').forEach(inp=>{ s.zones[+inp.dataset.zoneCap].capacityKg = num(inp.value); });
+  $('zone-capacity-box').querySelectorAll('select[data-zone-moist]').forEach(sel=>{ s.zones[+sel.dataset.zoneMoist].targetMoisture = sel.value; });
+
   logActivity('บันทึกการตั้งค่าระบบ');
   saveData(); renderSettings(); toast('บันทึกการตั้งค่าแล้ว','ok');
 }
 
-/* ---------- search ---------- */
 let searchTimer=null;
 function onSearchInput(q){ clearTimeout(searchTimer); searchTimer=setTimeout(()=>doSearch(q.trim().toLowerCase()),200); }
+
 function doSearch(q){
   const box=$('search-results');
   if (q.length<2){ box.classList.add('hidden'); return; }
   const hit = s => String(s||'').toLowerCase().includes(q);
   const res=[];
   appState.lots.filter(l=>hit(l.lotNumber)||hit(l.supplier)||hit(l.plate)||hit(l.location))
-    .slice(0,8).forEach(l=>res.push({icon:'boxes',title:l.lotNumber,sub:`${l.supplier} · กอง ${l.location} · เหลือ ${nf(l.currentWeight)} กก.`,act:`openQRModal('${l.id}')`}));
+    .slice(0,8).forEach(l=>res.push({icon:'boxes',title:l.lotNumber,sub:`${l.supplier} · กอง ${l.location} · เหลือ ${nf(l.currentWeight)} กก.`,act:`showRiskDetail('${l.id}')`}));
   appState.weighingRecords.filter(w=>hit(w.docNo)||hit(w.plate)||hit(w.supplier))
     .slice(0,5).forEach(w=>res.push({icon:'scale',title:w.docNo,sub:`ตั๋วชั่ง · ${w.plate} · ${w.status==='pending'?'รอชั่งออก':'สมบูรณ์'}`,act:`switchView('weighing')`}));
-  appState.issueRecords.filter(r=>hit(r.docNo)||hit(r.customer)||hit(r.lotNumber))
-    .slice(0,5).forEach(r=>res.push({icon:'arrow-up-right',title:r.docNo,sub:`เบิกจ่าย · ${r.customer} · ${nf(r.weight)} กก.`,act:`switchView('issue')`}));
   box.innerHTML = res.length
     ? res.map(r=>`<button onclick="${r.act};document.getElementById('search-results').classList.add('hidden')"
         class="w-full text-left px-3 py-2.5 hover:bg-slate-50 border-b flex items-start gap-2">
@@ -1458,83 +2450,225 @@ function doSearch(q){
   box.classList.remove('hidden');
   if (window.lucide) lucide.createIcons();
 }
-document.addEventListener('click', e=>{
-  if (IS_PREVIEW) return;
-  if (!e.target.closest('#global-search') && !e.target.closest('#search-results'))
-    $('search-results')?.classList.add('hidden');
-});
 
-/* ---------- demo / reset ---------- */
 async function loadDemoData(){
   if (!can('demo')) return toast('สิทธิ์ของคุณไม่สามารถโหลดข้อมูลจำลอง','warn');
-  if (appState.lots.length){
-    if (!await uiConfirm('มีข้อมูลจริงอยู่ในระบบแล้ว การโหลดข้อมูลจำลองจะเขียนทับทั้งหมด',{danger:true,requireText:'ทับข้อมูล'})) return;
-  } else if (!await uiConfirm('โหลดข้อมูลจำลองเพื่อทดสอบระบบ?')) return;
   const d = n => { const x=new Date(); x.setDate(x.getDate()-n); return toLocalInput(x); };
   appState.lots = [
     {id:uid('LOT'),lotNumber:'CORN-DEMO-001',docNo:'CORN-DEMO-001',status:'active',transactionType:'รับเข้า',
      product:'ข้าวโพดเมล็ด',customerType:'บริษัท CPF',receivedDate:d(3),supplier:'บริษัท CPF',plate:'80-1111 สุโขทัย',
      weightIn:11550,weightOut:6000,netWeight:5550,currentWeight:5550,initialMoisture:14.5,currentMoisture:14.5,
-     bucketPrice:95,pricePerKg:6.33,totalPrice:35131.5,location:'A01',remark:'คุณภาพดี'},
-    {id:uid('LOT'),lotNumber:'CORN-DEMO-002',docNo:'CORN-DEMO-002',status:'active',transactionType:'รับเข้า',
-     product:'ข้าวโพดฝัก',customerType:'ลูกค้าทั่วไป',receivedDate:d(35),supplier:'นายสมชาย',plate:'70-2222 สุโขทัย',
-     weightIn:22000,weightOut:7000,netWeight:15000,currentWeight:12000,initialMoisture:18.2,currentMoisture:18.2,
-     bucketPrice:90,pricePerKg:6.00,totalPrice:90000,location:'B01',remark:'ชื้นสูง เฝ้าระวัง'}
+     bucketPrice:95,pricePerKg:6.33,totalPrice:35131.5,location:'A01',remark:'คุณภาพดี'}
   ];
   appState.weighingRecords = appState.lots.map(l=>({id:uid('WT'),docNo:'WT-'+l.lotNumber,type:'รับเข้า',plate:l.plate,
     supplier:l.supplier,weightIn:l.weightIn,weightOut:l.weightOut,netWeight:l.netWeight,
     datetimeIn:l.receivedDate,datetimeOut:l.receivedDate,status:'done',refNo:l.docNo}));
-  appState.issueRecords = [{id:uid('ISS'),docNo:'OUT-DEMO-001',datetime:d(1),lotId:appState.lots[1].id,
-    lotNumber:'CORN-DEMO-002',customer:'โรงงานอาหารสัตว์ A',plate:'70-9999',weight:3000,
-    operator:'พนักงานคลัง',pricePerKg:6,totalPrice:18000,status:'active'}];
-  appState.moistureRecords = [];
   logActivity('โหลดข้อมูลจำลอง');
   saveData(); switchView('dashboard'); toast('โหลดข้อมูลจำลองแล้ว','ok');
 }
+
 async function resetData(){
-  if (!can('reset')) return toast('สิทธิ์ของคุณไม่สามารถล้างข้อมูล','warn');
-  if (!await uiConfirm('ข้อมูลทั้งหมดจะถูกลบถาวรและกู้คืนไม่ได้\nแนะนำให้กดสำรอง JSON ก่อน',{danger:true,requireText:'ลบทั้งหมด'})) return;
-  try { localStorage.removeItem(STORAGE_KEY); } catch(_){}
+  if (!await uiConfirm('ข้อมูลทั้งหมดจะถูกลบถาวรและกู้คืนไม่ได้', {danger:true, requireText:'ลบทั้งหมด'})) return;
+  try { localStorage.clear(); } catch(e){}
+  appState.lots = [];
+  appState.weighingRecords = [];
+  appState.moistureRecords = [];
+  appState.issueRecords = [];
+  appState.activityLogs = [];
+  appState.readAlerts = [];
+  appState.dismissedAlerts = [];
+  appState.counters = {};
+  saveData();
   location.reload();
 }
 
-/* ---------- init ---------- */
 function bindEvents(){
-  $('form-receiving').addEventListener('submit', handleReceivingSubmit);
-  $('form-receiving').addEventListener('reset', ()=>setTimeout(prepareReceivingForm,0));
-  ['rec-weight-in','rec-weight-out'].forEach(id=>$(id).addEventListener('input', calcNetWeight));
-  $('price-per-bucket').addEventListener('input', calculatePrice);
-  $('form-weigh-open').addEventListener('submit', handleWeighOpen);
-  $('form-moisture').addEventListener('submit', handleMoistureSubmit);
-  $('form-issue').addEventListener('submit', handleIssueSubmit);
+  $('form-weigh-open')?.addEventListener('submit', handleWeighOpen);
+  $('form-moisture')?.addEventListener('submit', handleMoistureSubmit);
+  $('form-issue')?.addEventListener('submit', handleIssueSubmit);
+  
   window.addEventListener('online',  ()=>$('online-dot').className='inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1');
   window.addEventListener('offline', ()=>{ $('online-dot').className='inline-block w-2 h-2 rounded-full bg-red-500 mr-1';
     toast('ออฟไลน์: ข้อมูลยังบันทึกลงเครื่องได้ตามปกติ','warn'); });
   window.addEventListener('storage', e=>{
-    if (e.key === STORAGE_KEY){ loadData(); refreshBadges(); toast('ข้อมูลถูกอัปเดตจากแท็บอื่น','info'); switchView(currentView); }
+    if (e.key === STORAGE_KEY){ loadData(); refreshBadges(); refreshPendingBadgeCount(); toast('ข้อมูลถูกอัปเดตจากแท็บอื่น','info'); switchView(currentView); }
   });
 }
+
 function checkLibs(){
   const miss=[];
-  if (typeof Chart==='undefined') miss.push('Chart.js (กราฟ)');
-  if (typeof QRCode==='undefined') miss.push('QRCode (คิวอาร์)');
-  if (typeof lucide==='undefined') miss.push('Lucide (ไอคอน)');
-  if (miss.length) toast('โหลดไลบรารีไม่ครบ: '+miss.join(', ')+' — ระบบยังใช้งานส่วนอื่นได้','warn',9000);
+  if (typeof Chart==='undefined') miss.push('Chart.js');
+  if (typeof QRCode==='undefined') miss.push('QRCode');
+  if (typeof lucide==='undefined') miss.push('Lucide');
+  if (miss.length) toast('โหลดไลบรารีไม่ครบ: '+miss.join(', '),'warn',9000);
 }
+
 function initApp(){
   let inIframe=false; try { inIframe = window.self!==window.top; } catch(e){ inIframe=true; }
-  if (inIframe) $('btn-preview').classList.add('hidden');
+  if (inIframe) $('btn-preview')?.classList.add('hidden');
   loadData();
-  $('role-selector').value = appState.currentUserRole;
-  $('user-display-name').textContent = appState.currentUserRole;
-  $('user-avatar').textContent = appState.currentUserRole.substring(0,2);
+  checkLoginSession();
   renderNav(); bindEvents(); checkLibs();
-  prepareReceivingForm(); refreshBadges();
+  prepareReceivingForm(); refreshBadges(); refreshPendingBadgeCount();
   switchView(allowedViews()[0]);
   if (window.lucide) lucide.createIcons();
   try { if (inIframe) parent.postMessage('WMS_READY','*'); } catch(e){}
 }
 if (!IS_PREVIEW) window.addEventListener('DOMContentLoaded', initApp);
+</script>
+
+<!-- ═══════════════ EXCEL DB SYNC ADDON (CENTRALIZED CLOUD SYNC) ═══════════════ -->
+<script>
+'use strict';
+(function(){
+  const EXCEL_API_URL = 'https://script.google.com/macros/s/AKfycbwx46_ZK2Y04ElbvoF0hySWAg3-WIbjHUv7T_wujTxH1_y_iTKkR7dOyZPyj26FMx_4Nw/exec';
+
+  const PENDING_KEY = 'WMS_PENDING_PUSH_QUEUE';
+  
+  const TABLE_MAP = [
+    ['lots', 'lots'],
+    ['issueRecords', 'issue_records'],
+    ['moistureRecords', 'moisture_records'],
+    ['weighingRecords', 'weighing_records']
+  ];
+  
+  const seen = { 
+    lots: new Set(), 
+    issue_records: new Set(), 
+    moisture_records: new Set(), 
+    weighing_records: new Set() 
+  };
+
+  function markAllSeen(){
+    TABLE_MAP.forEach(([stateKey, table])=>{
+      (appState[stateKey]||[]).forEach(item=>{ if(item && item.id) seen[table].add(item.id); });
+    });
+  }
+
+  function loadPending(){ try { return JSON.parse(localStorage.getItem(PENDING_KEY)||'[]'); } catch(e){ return []; } }
+  function savePending(list){ try { localStorage.setItem(PENDING_KEY, JSON.stringify(list)); } catch(e){} }
+
+  async function postRecord(table, record, action = 'save'){
+    try {
+      const res = await fetch(EXCEL_API_URL, {
+        method:'POST',
+        headers: {'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({ action, table, record })
+      });
+      const json = await res.json().catch(()=>({ok:false}));
+      if (!json.ok) throw new Error('server rejected');
+      return true;
+    } catch(err){
+      const pending = loadPending();
+      pending.push({ table, record, action });
+      savePending(pending);
+      return false;
+    }
+  }
+
+  window.postExcelRecord = postRecord;
+
+  async function flushPending(){
+    if (!EXCEL_API_URL || EXCEL_API_URL.indexOf('PASTE_')===0) return;
+    let pending = loadPending();
+    if (!pending.length) return;
+    const remain = [];
+    for (const p of pending){
+      const ok = await postRecord(p.table, p.record, p.action || 'save').catch(()=>false);
+      if (!ok) remain.push(p);
+    }
+    savePending(remain);
+  }
+
+  function checkDeletionsAndPush() {
+    TABLE_MAP.forEach(([stateKey, table]) => {
+      const currentItems = appState[stateKey] || [];
+      const currentIds = new Set(currentItems.map(item => item.id));
+
+      seen[table].forEach(id => {
+        const item = currentItems.find(x => x.id === id);
+        if (!currentIds.has(id) || (item && item.status === 'void')) {
+          seen[table].delete(id);
+          postRecord(table, { id }, 'delete');
+        }
+      });
+
+      currentItems.forEach(item => {
+        if (item && item.id && item.status !== 'void') {
+          if (!seen[table].has(item.id)) {
+            seen[table].add(item.id);
+          }
+          postRecord(table, item, 'save');
+        }
+      });
+    });
+  }
+
+  function wrapSaveData(){
+    if (typeof window.saveData !== 'function' || window.saveData.__xlsWrapped) return;
+    const original = window.saveData;
+    const wrapped = function(){ 
+      const r = original.apply(this, arguments); 
+      checkDeletionsAndPush(); 
+      return r; 
+    };
+    wrapped.__xlsWrapped = true;
+    window.saveData = wrapped;
+  }
+
+  function replaceStateFromRemote(data){
+    TABLE_MAP.forEach(([stateKey, table])=>{
+      if (Array.isArray(data[table])) {
+        appState[stateKey] = data[table];
+      }
+    });
+  }
+
+  async function pullFromSheet(showToast){
+    if (!EXCEL_API_URL || EXCEL_API_URL.indexOf('PASTE_')===0){
+      if (showToast) toast('ยังไม่ได้ตั้งค่าลิงก์ Excel API ในสคริปต์เสริม','warn');
+      return;
+    }
+    try {
+      const res = await fetch(EXCEL_API_URL, {cache:'no-store'});
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+      replaceStateFromRemote(data);
+      markAllSeen();
+      saveData();
+      if (typeof currentView !== 'undefined') switchView(currentView);
+      if (showToast) toast('ซิงก์ข้อมูลกลางจาก Google Sheets เรียบร้อยแล้ว','ok');
+    } catch(err){
+      if (showToast) toast('ดึงข้อมูลกลางไม่สำเร็จ: '+err.message,'error',6000);
+    }
+  }
+
+  async function syncNow(showToast){ await flushPending(); await pullFromSheet(showToast); }
+  window.syncFromExcelDB = syncNow;
+
+  function injectSyncButton(){
+    if (document.getElementById('btn-excel-sync')) return;
+    const demoBtn = document.getElementById('btn-demo');
+    if (!demoBtn || !demoBtn.parentElement) return;
+    const btn = document.createElement('button');
+    btn.id = 'btn-excel-sync';
+    btn.title = 'ซิงก์ข้อมูลกับ Google Sheets';
+    btn.className = 'px-3 py-2 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-200 border border-indigo-300';
+    btn.innerHTML = '🔄<span class="hidden sm:inline ml-1">ซิงก์ Sheets</span>';
+    btn.onclick = ()=>syncNow(true);
+    demoBtn.parentElement.insertBefore(btn, demoBtn);
+  }
+
+  window.addEventListener('load', function(){
+    setTimeout(async function(){
+      injectSyncButton();
+      markAllSeen();
+      wrapSaveData();
+      await flushPending();
+      await pullFromSheet(false);
+    }, 400);
+  });
+})();
 </script>
 </body>
 </html>

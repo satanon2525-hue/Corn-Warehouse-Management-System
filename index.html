@@ -109,9 +109,10 @@ aside{transition:width .3s ease,transform .3s ease}
         <input type="text" id="login-username" required autocomplete="username" maxlength="40" placeholder="เช่น admin, scale" class="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold">
       </div>
       <div>
-        <label for="login-password" class="block text-xs font-bold text-slate-700 mb-1">รหัสผ่าน (Password) *</label>
+        <label for="login-password" class="block text-xs font-bold text-slate-700 mb-1">รหัสผ่าน (Password) หรือ PIN 4 หลัก *</label>
         <input type="password" id="login-password" required autocomplete="current-password" maxlength="100" placeholder="••••••••" class="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold">
       </div>
+      <p class="text-[11px] text-slate-500 leading-relaxed">เจ้าของลาน/ผู้จัดการ: ใช้รหัสผ่านประจำตัว · พนักงานชั่ง/คลัง: ใช้ <b>PIN 4 หลักประจำวัน</b> ที่ผู้จัดการแจ้งตอนเช้า (เปลี่ยนใหม่ทุกวัน 00:00 น.)</p>
       <p id="login-msg" class="hidden text-xs text-red-600 font-semibold"></p>
       <button type="submit" id="login-submit-btn" class="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-slate-950 font-bold py-3.5 rounded-xl text-sm shadow-lg transition flex items-center justify-center gap-2">
         <i data-lucide="key-round" class="w-4 h-4"></i> เข้าสู่ระบบ
@@ -223,6 +224,7 @@ aside{transition:width .3s ease,transform .3s ease}
   </header>
 
   <div class="flex-1 overflow-y-auto p-3 md:p-6" id="main-container">
+  <div id="flow-stripe" class="hidden"></div>
 
   <!-- 1) DASHBOARD -->
   <section id="view-dashboard" class="space-y-5">
@@ -233,11 +235,12 @@ aside{transition:width .3s ease,transform .3s ease}
         <option value="today">วันนี้</option><option value="7days" selected>7 วันล่าสุด</option><option value="30days">30 วันล่าสุด</option>
       </select>
     </div>
+    <div id="pin-box" class="hidden bg-white border-2 border-amber-300 rounded-xl p-4 shadow-sm"></div>
     <div id="empty-state-notice" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
       <i data-lucide="inbox" class="w-12 h-12 text-amber-500 mx-auto mb-2"></i>
       <h3 class="font-bold text-lg text-amber-900">ยังไม่มีข้อมูลในระบบ</h3>
       <p class="text-slate-600 text-sm mb-4">เริ่มต้นโดยบันทึกการรับข้าวโพดล็อตแรก</p>
-      <button onclick="switchView('receiving')" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg shadow text-sm">+ บันทึกรับเข้า</button>
+      <button onclick="switchView('receiving_in')" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg shadow text-sm">+ บันทึกรับเข้า</button>
     </div>
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-xs font-semibold text-slate-500">ปริมาณคงเหลือรวม</p>
@@ -270,15 +273,15 @@ aside{transition:width .3s ease,transform .3s ease}
   <!-- 2.1) RECEIVING -->
   <section id="view-receiving" class="hidden space-y-5">
     <div>
-      <h2 class="text-xl md:text-2xl font-bold text-slate-800">รับรถขาเข้า</h2>
-      <p class="text-sm text-slate-500">ขั้นตอนที่ 1: วัดความชื้น ➔ กรอกข้อมูลรถและชั่งน้ำหนักขาเข้า</p>
+      <h2 id="receiving-title" class="text-xl md:text-2xl font-bold text-slate-800">รับรถขาเข้า</h2>
+      <p id="receiving-sub" class="text-sm text-slate-500">ขั้นตอนที่ 1: วัดความชื้น ➔ กรอกข้อมูลรถและชั่งน้ำหนักขาเข้า</p>
     </div>
 
-    <div class="bg-white rounded-xl border shadow-sm p-4 md:p-6 max-w-2xl mx-auto space-y-4">
+    <div id="receiving-card" class="bg-white rounded-xl border shadow-sm p-4 md:p-6 max-w-2xl mx-auto space-y-4">
       <form id="form-inbound-step1" onsubmit="handleInboundStep1(event)" class="space-y-4" autocomplete="off">
-        <div>
+        <div id="step1-type-wrap" class="hidden">   <!-- ประเภทถูกล็อกตามเมนูที่เข้า (รับเข้า / จ่ายออก) ไม่ให้เลือกเอง -->
           <label for="step1-type" class="block text-xs font-bold text-slate-700 mb-1">1. ประเภทรายการ *</label>
-          <select id="step1-type" onchange="onTypeChange(this.value)" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold bg-amber-50 focus:ring-2 focus:ring-amber-500">
+          <select id="step1-type" disabled onchange="onTypeChange(this.value)" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold bg-amber-50 focus:ring-2 focus:ring-amber-500">
             <option value="รับเข้า">📥 รับเข้า (Inbound)</option>
             <option value="จ่ายออก">📤 จ่ายออก (Outbound)</option>
           </select>
@@ -370,9 +373,9 @@ aside{transition:width .3s ease,transform .3s ease}
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b pb-3">
       <div>
         <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
-          <i data-lucide="clock" class="w-6 h-6 text-amber-500"></i> รายการรอชั่งออก & เทข้าวลงกอง
+          <i data-lucide="clock" class="w-6 h-6 text-amber-500"></i> <span id="pending-title">รายการรอชั่งออก & เทข้าวลงกอง</span>
         </h2>
-        <p class="text-sm text-slate-500">ขั้นตอนที่ 2: รถชั่งเข้าแล้ว ➔ เทข้าวลงกองตามความชื้น (ระบบกำหนดกองอัตโนมัติ) ➔ กลับมาชั่งออก</p>
+        <p id="pending-sub" class="text-sm text-slate-500">ขั้นตอนที่ 2: รถชั่งเข้าแล้ว ➔ เทข้าวลงกองตามความชื้น (ระบบกำหนดกองอัตโนมัติ) ➔ กลับมาชั่งออก</p>
       </div>
       <button type="button" onclick="renderPendingTable()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border flex items-center gap-1.5 self-start md:self-auto shadow-sm">
         <i data-lucide="refresh-cw" class="w-4 h-4"></i> รีเฟรชตาราง
@@ -405,12 +408,12 @@ aside{transition:width .3s ease,transform .3s ease}
   <section id="view-outbound_pricing" class="hidden space-y-5">
     <div>
       <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
-        <i data-lucide="truck" class="w-6 h-6 text-amber-500"></i> ชั่งน้ำหนักรถขาออก
+        <i data-lucide="truck" class="w-6 h-6 text-amber-500"></i> <span id="close-title">ชั่งน้ำหนักรถขาออก</span>
       </h2>
-      <p class="text-sm text-slate-500">ปิดตั๋วชั่งทั้งรับเข้าและจ่ายออก — ระบบสร้าง Lot / ตัดสต็อก FIFO อัตโนมัติ (จ่ายออกจำกัดรอบละ 30 ตัน)</p>
+      <p id="close-sub" class="text-sm text-slate-500">ปิดตั๋วชั่งทั้งรับเข้าและจ่ายออก — ระบบสร้าง Lot / ตัดสต็อก FIFO อัตโนมัติ (จ่ายออกจำกัดรอบละ 30 ตัน)</p>
     </div>
 
-    <div class="flex bg-slate-200 p-1 rounded-xl max-w-md gap-1">
+    <div id="outbound-mode-tabs" class="flex bg-slate-200 p-1 rounded-xl max-w-md gap-1">
       <button onclick="switchOutboundMode('scale')" id="tab-mode-scale" class="flex-1 py-2 px-4 rounded-lg text-xs font-bold bg-white text-slate-900 shadow transition flex items-center justify-center gap-2">
         <i data-lucide="calculator" class="w-4 h-4 text-amber-500"></i> ชั่งออกผ่านตาชั่ง
       </button>
@@ -539,16 +542,18 @@ aside{transition:width .3s ease,transform .3s ease}
       <p class="text-sm text-slate-500">เปิดตั๋วชั่งด่วน — การชั่งออกทุกครั้งจะผ่านหน้า "ชั่งน้ำหนักรถขาออก" เพื่อให้สต็อกถูกต้อง</p></div>
     <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
       <h3 class="font-bold text-slate-800 mb-3 text-sm">เปิดตั๋วชั่งใหม่ (ด่วน)</h3>
-      <form id="form-weigh-open" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" autocomplete="off">
-        <div><label for="wo-type" class="block text-xs font-semibold text-slate-600 mb-1">ประเภท</label>
-          <select id="wo-type" class="w-full border rounded-lg px-3 py-2.5 text-sm"><option>รับเข้า</option><option>จ่ายออก</option></select></div>
+      <form id="form-weigh-open" class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end" autocomplete="off">
+        <input type="hidden" id="wo-type" value="รับเข้า">
         <div><label for="wo-plate" class="block text-xs font-semibold text-slate-600 mb-1">ทะเบียนรถ *</label>
           <input type="text" id="wo-plate" maxlength="30" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>
         <div><label for="wo-supplier" class="block text-xs font-semibold text-slate-600 mb-1">ผู้ขาย/ลูกค้า *</label>
           <input type="text" id="wo-supplier" list="supplier-list" maxlength="80" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>
         <div><label for="wo-weight-in" class="block text-xs font-semibold text-slate-600 mb-1">น้ำหนักชั่งเข้า (กก.) *</label>
           <input type="number" id="wo-weight-in" min="1" max="80000" step="1" inputmode="numeric" class="w-full border rounded-lg px-3 py-2.5 text-sm font-semibold"></div>
-        <button type="submit" id="wo-submit-btn" class="bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white font-semibold py-3 rounded-lg text-sm">เปิดตั๋วชั่ง</button>
+        <div class="md:col-span-3 grid grid-cols-2 gap-3">
+          <button type="submit" id="wo-submit-btn" onclick="$('wo-type').value='รับเข้า'" class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold py-3 rounded-lg text-sm">📥 เปิดตั๋ว "รับเข้า"</button>
+          <button type="submit" id="wo-submit-btn-out" onclick="$('wo-type').value='จ่ายออก'" class="bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-bold py-3 rounded-lg text-sm">📤 เปิดตั๋ว "จ่ายออก"</button>
+        </div>
       </form>
     </div>
     <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
@@ -737,17 +742,17 @@ aside{transition:width .3s ease,transform .3s ease}
 
 /* =================== CONFIG =================== */
 const WMS_CONFIG = Object.freeze({
-  API_URL: 'https://script.google.com/macros/s/AKfycbziBJCfg7IqSEc0LY3Wl9N_rMVPT27zHE0dxx3E8drLyHODSv9PZ1Fq0ZSymolDl8RG/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycby18_IJj_yyTqrBZKjufyCVU8EfME2waPGEUHsu3u_dbV5KXVouGuTqmToRV3co7Zfz/exec',
   // 'local'  = ตรวจรหัสผ่านในเครื่อง (ใช้ API_KEY ส่งไปกับทุก request)
   // 'server' = ตรวจรหัสผ่านที่ Apps Script แล้วรับ token รายผู้ใช้กลับมา (ปลอดภัยกว่า แนะนำสำหรับใช้งานจริง)
-  AUTH_MODE: 'local',
+  AUTH_MODE: 'server',
   API_KEY: '',               // ตั้งให้ตรงกับ Script Properties "API_KEY" ฝั่ง Apps Script
   SESSION_MAX_HOURS: 10,
   IDLE_TIMEOUT_MIN: 30,
   SILO_MAX_KG: 30000,
   MAX_TRUCK_KG: 80000,
   PENDING_ALERT_HOURS: 6,
-  SHOW_DEMO_HINT: true       // ตั้งเป็น false ก่อนใช้งานจริง
+  SHOW_DEMO_HINT: false      // true = โชว์บัญชีทดสอบบนหน้าล็อกอิน (ห้ามเปิดตอนใช้งานจริง)
 });
 
 const SELF_HTML = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
@@ -1030,1484 +1035,54 @@ function uiConfirm(title, opts={}){
 /* =================== API =================== */
 const apiReady = () => !!WMS_CONFIG.API_URL && !WMS_CONFIG.API_URL.includes('PASTE_');
 async function apiPost(payload){
-  const res = await fetch(WMS_CONFIG.API_URL, {
-    method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({ ...payload, token: authToken || WMS_CONFIG.API_KEY })
-  });
-  return res.json().catch(() => ({ ok:false, error:'invalid json' }));
-}
-
-/* =================== SESSION / LOGIN =================== */
-let loginFails = 0, loginLockUntil = 0;
-function readSession(){ try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); } catch(e){ return null; } }
-function sessionExpired(s){
-  if (!s) return true;
-  const now = Date.now();
-  return (now - num(s.loginAt) > WMS_CONFIG.SESSION_MAX_HOURS * 3.6e6) || (now - num(s.lastActive) > WMS_CONFIG.IDLE_TIMEOUT_MIN * 6e4);
-}
-function applyUserUI(){
-  $('user-display-name').textContent = currentUser ? currentUser.name : '-';
-  $('user-role-text').textContent = currentUser ? currentUser.role : '-';
-  $('user-avatar').textContent = currentUser ? currentUser.name.substring(0,2) : '-';
-  $('login-overlay').classList.toggle('hidden', !!currentUser);
-}
-function startSession(user, token){
-  const now = Date.now();
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ username:user.username, role:user.role, name:user.name, token:token||'', loginAt:now, lastActive:now }));
-  currentUser = { username:user.username, role:user.role, name:user.name };
-  authToken = token || '';
-  applyUserUI();
-}
-function checkLoginSession(){
-  const s = readSession();
-  if (!s || sessionExpired(s)){ sessionStorage.removeItem(SESSION_KEY); currentUser = null; authToken = ''; applyUserUI(); return; }
-  if (WMS_CONFIG.AUTH_MODE === 'local'){
-    // ไม่เชื่อ role จาก storage — อ่านจากรายชื่อผู้ใช้จริงเสมอ
-    const u = DEFAULT_USERS.find(x => x.username === s.username);
-    if (!u){ sessionStorage.removeItem(SESSION_KEY); currentUser = null; applyUserUI(); return; }
-    currentUser = { username:u.username, role:u.role, name:u.name };
-  } else {
-    currentUser = { username:s.username, role:s.role, name:s.name }; // server ตรวจสิทธิ์จริงจาก token
-  }
-  authToken = s.token || '';
-  applyUserUI();
-}
-let lastTouch = 0;
-function touchSession(){
-  if (!currentUser) return;
-  const now = Date.now(); if (now - lastTouch < 15000) return; lastTouch = now;
-  const s = readSession(); if (s){ s.lastActive = now; sessionStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
-}
-['click','keydown','touchstart'].forEach(ev => document.addEventListener(ev, touchSession, { passive:true }));
-setInterval(() => { if (currentUser && sessionExpired(readSession())) handleLogout('หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบใหม่'); }, 30000);
-
-function handleLogin(e){
-  e.preventDefault();
-  withLock('login', $('login-submit-btn'), async () => {
-    const msg = $('login-msg');
-    if (Date.now() < loginLockUntil){
-      msg.textContent = `ใส่รหัสผิดหลายครั้ง กรุณารอ ${Math.ceil((loginLockUntil - Date.now())/1000)} วินาที`;
-      msg.classList.remove('hidden'); return;
-    }
-    const u = $('login-username').value.trim().toLowerCase();
-    const p = $('login-password').value;
-    let user = null, token = '';
-    if (WMS_CONFIG.AUTH_MODE === 'server'){
-      try { const r = await apiPost({ action:'login', username:u, password:p }); if (r && r.ok && r.user){ user = r.user; token = r.token; } }
-      catch(err){ return toast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ไม่สามารถเข้าสู่ระบบ', 'error'); }
-    } else {
-      const f = DEFAULT_USERS.find(x => x.username === u);
-      const h = await sha256Hex(p);
-      if (f && f.passHash === h){ user = { username:f.username, role:f.role, name:f.name }; token = WMS_CONFIG.API_KEY; }
-    }
-    if (!user){
-      loginFails++;
-      if (loginFails >= 5){ loginLockUntil = Date.now() + 60000; loginFails = 0; }
-      msg.textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'; msg.classList.remove('hidden');
-      $('login-password').value = '';
-      return;
-    }
-    loginFails = 0; msg.classList.add('hidden');
-    $('login-password').value = '';
-    startSession(user, token);
-    logActivity(`เข้าสู่ระบบ`);
-    saveData();
-    renderNav();
-    switchView(allowedViews()[0]);
-    if (typeof window.syncFromExcelDB === 'function') window.syncFromExcelDB(false);
-    toast(`ยินดีต้อนรับ ${user.name}`, 'ok');
-  });
-}
-function handleLogout(reason){
-  if (currentUser){ logActivity('ออกจากระบบ' + (typeof reason === 'string' ? ` (${reason})` : '')); saveData(); }
-  currentUser = null; authToken = '';
-  sessionStorage.removeItem(SESSION_KEY);
-  if (!$('modal-root').classList.contains('hidden')) closeModal();
-  $('form-login').reset();
-  applyUserUI(); renderNav(); switchView('dashboard');
-  toast(typeof reason === 'string' ? reason : 'ออกจากระบบเรียบร้อยแล้ว', 'info');
-}
-
-/* =================== LOAD / SAVE =================== */
-function loadData(){
-  let raw = null;
-  try { raw = localStorage.getItem(STORAGE_KEY); }
-  catch(e){ toast('เบราว์เซอร์ปิดพื้นที่จัดเก็บ ข้อมูลจะไม่ถูกบันทึก','error',8000); return; }
-  if (raw){
-    try {
-      const p = JSON.parse(raw);
-      delete p.currentUserRole;
-      appState = { ...JSON.parse(JSON.stringify(DEFAULT_STATE)), ...p,
-        settings:{ ...DEFAULT_STATE.settings, ...(p.settings||{}),
-          zones: Array.isArray(p.settings?.zones) && p.settings.zones.length ? p.settings.zones : DEFAULT_STATE.settings.zones } };
-      migrate();
-    } catch(e){
-      toast('ข้อมูลในเครื่องเสียหาย — กรุณากู้คืนจากไฟล์สำรอง','error',9000);
-      appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
-    }
-  }
-  window.WMS_SYNC?.takeSnapshot();
-}
-
-function migrate(){
-  const arr = v => Array.isArray(v) ? v : [];
-  appState.lots = arr(appState.lots).filter(Boolean);
-  appState.weighingRecords = arr(appState.weighingRecords).filter(Boolean);
-  appState.issueRecords = arr(appState.issueRecords).filter(Boolean);
-  appState.activityLogs = arr(appState.activityLogs);
-  appState.readAlerts = arr(appState.readAlerts);
-  appState.dismissedAlerts = arr(appState.dismissedAlerts);
-  appState.counters = (appState.counters && typeof appState.counters === 'object') ? appState.counters : {};
-  const lotIds = new Set();
-  appState.lots.forEach(l => {
-    l.id = safeId(l.id, 'LOT'); lotIds.add(l.id);
-    l.status ||= 'active'; l.docNo ||= l.lotNumber; l.lotNumber ||= l.docNo;
-    l.initialMoisture ??= l.currentMoisture;
-    ['currentWeight','netWeight','weightIn','weightOut','currentMoisture','initialMoisture','bucketPrice','totalPrice'].forEach(k => l[k] = num(l[k]));
-    l.pricePerKg = round2(l.pricePerKg);
-  });
-  appState.issueRecords.forEach(r => {
-    r.id = safeId(r.id, 'ISS'); r.status ||= 'active';
-    r.weight = num(r.weight); r.totalPrice = num(r.totalPrice); r.pricePerKg = num(r.pricePerKg);
-    if (r.lotId && !SAFE_ID.test(String(r.lotId))) r.lotId = '';
-    if (!Array.isArray(r.allocations)) r.allocations = r.lotId ? [{ lotId:r.lotId, lotNumber:r.lotNumber, qty:r.weight }] : [];
-    r.allocations = r.allocations.filter(a => a && SAFE_ID.test(String(a.lotId))).map(a => ({ lotId:String(a.lotId), lotNumber:a.lotNumber, qty:num(a.qty) }));
-  });
-  appState.weighingRecords.forEach(w => {
-    w.id = safeId(w.id, 'WT'); w.status ||= 'done'; w.docNo ||= w.lotNumber || w.id;
-    w.weightIn = num(w.weightIn);
-    w.weightOut = (w.weightOut === null || w.weightOut === '' || w.weightOut === undefined) ? null : num(w.weightOut);
-    w.netWeight = (w.netWeight === null || w.netWeight === '' || w.netWeight === undefined) ? null : num(w.netWeight);
-    w.moisture = num(w.moisture);
-  });
-  appState.version = SCHEMA_VERSION;
-}
-
-function saveData(){
-  appState.activityLogs = appState.activityLogs.slice(0,500);
-  appState.readAlerts = appState.readAlerts.slice(-500);
-  appState.dismissedAlerts = appState.dismissedAlerts.slice(-500);
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); }
-  catch(e){ toast('บันทึกไม่สำเร็จ: พื้นที่จัดเก็บเต็ม — กรุณาสำรองข้อมูลทันที','error',9000); return false; }
-  window.WMS_SYNC?.onSave();
-  refreshBadges(); refreshPendingBadgeCount();
-  if (currentView === 'dashboard') renderDashboard();
-  return true;
-}
-
-function logActivity(action){ appState.activityLogs.unshift({ ts:new Date().toISOString(), user:actorName(), action }); }
-function docExists(d){ return appState.lots.some(l=>l.docNo===d)||appState.issueRecords.some(i=>i.docNo===d)||appState.weighingRecords.some(w=>w.docNo===d); }
-function peekDocNo(prefix){
-  const k = dayKey(nowLocalInput()).replace(/-/g,'');
-  let n = (appState.counters[prefix+k]||0)+1, doc;
-  do { doc = `${prefix}-${k}-${String(n).padStart(3,'0')}`; n++; } while (docExists(doc));
-  return doc;
-}
-function commitDocNo(doc){ const p = doc.split('-'); if (p.length < 3) return; const key = p[0]+p[1]; appState.counters[key] = Math.max(appState.counters[key]||0, parseInt(p[2],10)||0); }
-function daysStored(iso){ const d = new Date(iso); return isNaN(d) ? 0 : Math.max(0, Math.floor((Date.now()-d.getTime())/86400000)); }
-
-/* ---------- เกณฑ์ความชื้น / กอง ---------- */
-const siloT = () => num(appState.settings.moistWarn) || 30;
-function zoneForMoisture(m){
-  const target = m >= siloT() ? 'high' : 'safe';
-  const z = appState.settings.zones.find(z => z.targetMoisture === target);
-  return z ? z.code : (target === 'high' ? 'กองที่ 1' : 'กองที่ 2');
-}
-function zoneMatchesMoisture(code, m){
-  const z = appState.settings.zones.find(z => z.code === code);
-  if (!z) return false;
-  return z.targetMoisture === 'high' ? m >= siloT() : m < siloT();
-}
-
-function evaluateLotRisk(lot){
-  const s = appState.settings, days = daysStored(lot.receivedDate), m = num(lot.currentMoisture);
-  const T = siloT(), N = num(s.moistNormal) || 15;
-  let score = 0; const reasons = [];
-  if (m >= T){ score = 100; reasons.push(`ความชื้นตั้งแต่ ${nf(T,1)}% ขึ้นไป ต้องเข้าไซโรอบความชื้น`); }
-  else if (m >= N + 3){ score += 50; reasons.push(`ความชื้นค่อนข้างสูง (${nf(N+3,1)}% – ${nf(T-0.1,1)}%)`); }
-  else if (m > N){ score += 25; reasons.push(`ความชื้นเกินระดับปกติ (> ${nf(N,1)}%)`); }
-  if (days > s.ageMax){ score += 40; reasons.push(`ระยะเวลาจัดเก็บเกินกำหนดสูงสุด (${days} วัน > ${s.ageMax} วัน)`); }
-  else if (days > s.ageWarn){ score += 20; reasons.push(`ระยะเวลาจัดเก็บเริ่มนาน (${days} วัน > ${s.ageWarn} วัน)`); }
-  score = Math.min(score, 100);
-  let status = 'ปกติ', badgeClass = 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 cursor-pointer shadow-sm';
-  if (m >= T){ status = 'รอเข้าไซโรอบ'; badgeClass = 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 cursor-pointer shadow-sm'; }
-  else if (score >= 60){ status = 'เสี่ยงสูง'; badgeClass = 'bg-red-100 text-red-800 hover:bg-red-200 cursor-pointer shadow-sm'; }
-  else if (score >= 30){ status = 'เฝ้าระวัง'; badgeClass = 'bg-amber-100 text-amber-800 hover:bg-amber-200 cursor-pointer shadow-sm'; }
-  return { score, status, badgeClass, days, reasons };
-}
-
-const activeLots    = () => appState.lots.filter(l => l.status !== 'void');
-const availableLots = () => activeLots().filter(l => num(l.currentWeight) > 0);
-const findLotByDoc  = docNo => appState.lots.find(l => (l.docNo === docNo || l.lotNumber === docNo) && l.status !== 'void');
-const zoneStockKg   = code => activeLots().filter(l => l.location === code).reduce((a,l) => a + Math.max(0, num(l.currentWeight)), 0);
-function fifoLotsInZone(code){
-  return activeLots().filter(l => l.location === code && num(l.currentWeight) > 0)
-    .sort((a,b) => new Date(a.receivedDate) - new Date(b.receivedDate));
-}
-function allocateFIFO(code, qty){
-  const lots = fifoLotsInZone(code);
-  const total = lots.reduce((a,l) => a + num(l.currentWeight), 0);
-  if (qty > total + 1e-6) return null;
-  const alloc = []; let remain = qty;
-  for (const lot of lots){
-    if (remain <= 0) break;
-    const take = round2(Math.min(num(lot.currentWeight), remain));
-    alloc.push({ lotId:lot.id, lotNumber:lot.lotNumber, qty:take });
-    remain = round2(remain - take);
-  }
-  return alloc;
-}
-function applyAllocations(alloc, sign){
-  alloc.forEach(a => {
-    const lot = appState.lots.find(l => l.id === a.lotId);
-    if (!lot) return;
-    lot.currentWeight = round2(num(lot.currentWeight) + sign * num(a.qty));
-    if (lot.currentWeight > num(lot.netWeight)){ logActivity(`⚠️ ปรับยอด ${lot.lotNumber} เกินน้ำหนักรับเข้า — ตัดให้เท่ากับ ${nf(lot.netWeight)} กก.`); lot.currentWeight = num(lot.netWeight); }
-    if (lot.currentWeight < 0) lot.currentWeight = 0;
-  });
-}
-
-/* =================== NAV / ROLES =================== */
-const NAV_ITEMS = [
-  ['dashboard','layout-dashboard','Dashboard'],
-  ['receiving','log-in','บันทึกรถเข้า'],
-  ['pending_outbound','clock','รายการรอชั่งออก'],
-  ['outbound_pricing','calculator','ชั่งน้ำหนักรถขาออก'],
-  ['weighing','scale','ตั๋วชั่ง / ใบเสร็จ'],
-  ['lots','boxes','จัดการ Lot & ตั๋วชั่ง'],
-  ['map','map','จำนวนข้าวโพดในคลัง'],
-  ['alerts','bell','ศูนย์แจ้งเตือน'],
-  ['reports','file-text','รายงานและส่งออก'],
-  ['settings','settings','ตั้งค่าระบบ']
-];
-const ROLES = {
-  'เจ้าของลาน':{views:'*',perms:{settings:1,void:1,demo:1,reset:1,edit:1,backup:1}},
-  'ผู้จัดการ':{views:'*',perms:{settings:1,void:1,demo:0,reset:0,edit:1,backup:1}},
-  'พนักงานคลัง':{views:['dashboard','receiving','pending_outbound','outbound_pricing','lots','map','alerts'],perms:{edit:1}},
-  'พนักงานชั่งน้ำหนัก':{views:['dashboard','weighing','receiving','pending_outbound','outbound_pricing'],perms:{}}
-};
-const can = p => !!(currentUser && ROLES[currentUser.role]?.perms?.[p]);
-function allowedViews(){
-  const r = currentUser ? ROLES[currentUser.role] : null;
-  if (!r) return ['dashboard'];
-  return r.views === '*' ? NAV_ITEMS.map(i => i[0]) : r.views;
-}
-function requirePerm(p, msg){ if (can(p)) return true; toast(msg || 'สิทธิ์ของคุณไม่สามารถทำรายการนี้','warn'); return false; }
-
-function renderNav(){
-  const allow = allowedViews();
-  $('main-nav').innerHTML = NAV_ITEMS.filter(i => allow.includes(i[0])).map(([id,icon,label]) => `
-    <button onclick="switchView('${id}')" id="nav-${id}" title="${esc(label)}"
-      class="w-full flex items-center justify-between gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition">
-      <span class="flex items-center gap-3 overflow-hidden">
-        <i data-lucide="${icon}" class="w-5 h-5 shrink-0"></i>
-        <span class="sidebar-text truncate">${esc(label)}</span>
-      </span>
-      ${id==='pending_outbound'?'<span id="pending-count-badge" class="bg-amber-500 text-slate-950 text-xs px-2 py-0.5 rounded-full font-bold sidebar-text">0</span>':''}
-      ${id==='alerts'?'<span id="alert-badge" class="hidden bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold sidebar-text">0</span>':''}
-    </button>`).join('');
-  $('btn-demo').classList.toggle('hidden', !can('demo'));
-  $('btn-reset').classList.toggle('hidden', !can('reset'));
-  $('btn-backup').classList.toggle('hidden', !can('backup'));
-  refreshPendingBadgeCount(); refreshBadges();
-  if (window.lucide) lucide.createIcons();
-}
-
-let currentView = 'dashboard';
-function switchView(viewId){
-  if (!allowedViews().includes(viewId)){ if (currentUser) toast('สิทธิ์ของคุณไม่สามารถเข้าถึงเมนูนี้','warn'); return; }
-  currentView = viewId;
-  NAV_ITEMS.forEach(([v]) => { $('view-'+v)?.classList.add('hidden'); $('nav-'+v)?.classList.remove('sidebar-active'); });
-  $('view-'+viewId)?.classList.remove('hidden');
-  $('nav-'+viewId)?.classList.add('sidebar-active');
-  $('main-container').scrollTop = 0;
-  closeDrawer();
-  ({
-    dashboard: renderDashboard, receiving: prepareReceivingForm, pending_outbound: renderPendingTable,
-    outbound_pricing: prepareOutboundPricingForm, weighing: renderWeighingTable, lots: renderUnifiedTable,
-    map: renderWarehouseMap, alerts: renderAlertsCenter, reports: renderReports, settings: renderSettings
-  })[viewId]?.();
-  if (window.lucide) lucide.createIcons();
-}
-
-const isMobile = () => window.matchMedia('(max-width:767px)').matches;
-function toggleSidebar(){
-  const sb = $('main-sidebar');
-  if (isMobile()){
-    const open = sb.classList.toggle('drawer-open');
-    $('sidebar-overlay').classList.toggle('hidden', !open);
-    document.body.classList.toggle('drawer-lock', open);
-  } else {
-    sb.classList.toggle('sidebar-collapsed');
-    $('sidebar-toggle-icon')?.setAttribute('data-lucide', sb.classList.contains('sidebar-collapsed') ? 'panel-left-open' : 'panel-left-close');
-    if (window.lucide) lucide.createIcons();
-  }
-}
-function closeDrawer(){
-  $('main-sidebar').classList.remove('drawer-open');
-  $('sidebar-overlay').classList.add('hidden');
-  document.body.classList.remove('drawer-lock');
-}
-
-function zoneOptions(sel){
-  return appState.settings.zones.map(z => {
-    const tm = z.targetMoisture === 'high' ? `ความชื้น >= ${nf(siloT(),1)}% (รอเข้าไซโรอบ)` : `ความชื้น < ${nf(siloT(),1)}% (เข้าคลังปกติ)`;
-    return `<option value="${esc(z.code)}" ${sel===z.code?'selected':''}>${esc(z.code)} (${tm})</option>`;
-  }).join('');
-}
-function zoneOptionsWithStock(){
-  return appState.settings.zones.map(z => `<option value="${esc(z.code)}">${esc(z.code)} — คงเหลือ ${nf(zoneStockKg(z.code))} กก.</option>`).join('');
-}
-function refreshPendingBadgeCount(){
-  const b = $('pending-count-badge');
-  if (b) b.textContent = appState.weighingRecords.filter(w => w.status === 'pending').length;
-}
-function refreshSupplierList(){
-  const names = new Set();
-  [...appState.weighingRecords, ...appState.lots].forEach(r => { if (r.supplier && names.size < 80) names.add(r.supplier); });
-  $('supplier-list').innerHTML = [...names].map(n => `<option value="${esc(n)}"></option>`).join('');
-}
-function plateHasPending(plate){
-  const norm = s => String(s||'').replace(/\s+/g,'').toLowerCase();
-  return appState.weighingRecords.find(w => w.status === 'pending' && norm(w.plate) === norm(plate));
-}
-
-/* =================== STEP 1: รับรถเข้า =================== */
-function prepareReceivingForm(){
-  resetProvinceInput();
-  $('step1-datetime').value = nowLocalInput();
-  $('step1-datetime').max = nowLocalInput();
-  $('step1-doc-no').value = peekDocNo('CORN');
-  onTypeChange($('step1-type').value);
-  onInboundMoistureInput('');
-  refreshSupplierList();
-  refreshPendingBadgeCount();
-}
-
-function onInboundMoistureInput(val){
-  const m = num(val), hint = $('step1-moisture-hint'), T = siloT();
-  if (!hint) return;
-  if (m >= T){
-    hint.innerHTML = `⚠️ ความชื้น >= ${nf(T,1)}% ระบบจะกำหนดลง <b>${esc(zoneForMoisture(m))}</b> อัตโนมัติ (พักรอนำเข้าไซโรอบความชื้น)`;
-    hint.className = 'text-xs text-amber-700 font-bold mt-1.5';
-  } else if (m > 0){
-    hint.innerHTML = `✅ ความชื้น < ${nf(T,1)}% ระบบจะกำหนดลง <b>${esc(zoneForMoisture(m))}</b> อัตโนมัติ (เก็บเข้าคลังปกติ)`;
-    hint.className = 'text-xs text-emerald-700 font-bold mt-1.5';
-  } else {
-    hint.innerHTML = `💡 ระบบจะกำหนดกองให้อัตโนมัติตามความชื้น (>= ${nf(T,1)}% กองรออบ / < ${nf(T,1)}% กองเก็บปกติ)`;
-    hint.className = 'text-xs text-slate-500 mt-1.5';
-  }
-}
-
-function handleInboundStep1(e){
-  e.preventDefault();
-  withLock('inbound', $('step1-submit-btn'), async () => {
-    const type = $('step1-type').value;
-    const isOutbound = type === 'จ่ายออก';
-    const dt = $('step1-datetime').value;
-    const p1 = $('step1-plate-part1').value.trim();
-    const p2 = $('step1-plate-part2').value.trim();
-    const typedProv = $('step1-province-input').value.trim();
-    const prov = $('step1-plate-province').value || (THAI_PROVINCES.includes(typedProv) ? typedProv : '');
-    const supplier = $('step1-supplier').value.trim();
-    const moistRaw = $('step1-moisture').value;
-    const moist = isOutbound ? 0 : round1(num(moistRaw));
-    const wInRaw = $('step1-weight-in').value;
-    const wIn = num(wInRaw);
-
-    const d = new Date(dt);
-    if (!dt || isNaN(d)) return toast('กรุณาระบุวันที่และเวลาเข้าให้ถูกต้อง','warn');
-    if (d.getTime() > Date.now() + 5*60000) return toast('วันเวลาเข้าต้องไม่เป็นเวลาในอนาคต','warn');
-    if (!/^[0-9ก-ฮ]{1,3}$/.test(p1) || !/^\d{1,4}$/.test(p2)) return toast('รูปแบบทะเบียนไม่ถูกต้อง (หน้าขีด 1–3 ตัว / หลังขีดตัวเลข 1–4 หลัก)','warn');
-    if (!prov) return toast('กรุณาเลือกจังหวัดทะเบียนรถจากรายการ','warn');
-    if (!supplier) return toast('กรุณาระบุชื่อผู้ขาย/ลูกค้า','warn');
-    if (!isOutbound && (moist < 5 || moist > 40)) return toast('ความชื้นต้องอยู่ระหว่าง 5–40%','warn');
-    if (!isInt(wInRaw) || wIn <= 0 || wIn > WMS_CONFIG.MAX_TRUCK_KG) return toast(`น้ำหนักต้องเป็นจำนวนเต็ม 1–${nf(WMS_CONFIG.MAX_TRUCK_KG)} กก.`,'warn');
-
-    const plate = `${p1}-${p2} ${prov}`;
-    const dup = plateHasPending(plate);
-    if (dup) return toast(`รถทะเบียน ${plate} มีตั๋วค้างรอชั่งออกอยู่แล้ว (${dup.docNo}) — ต้องปิดตั๋วเดิมก่อน`,'error',7000);
-
-    const docNo = peekDocNo('CORN');  // ออกเลขจริงตอนบันทึก กันเลขชน
-    appState.weighingRecords.unshift({
-      id: uid('WT'), docNo, type, plate, supplier,
-      customerType: $('step1-customer-type').value, product: $('step1-product').value,
-      weightIn: wIn, weightOut: null, netWeight: null, moisture: moist,
-      location: isOutbound ? 'ไซโรอบ' : zoneForMoisture(moist),
-      datetimeIn: dt, datetimeOut: null, status: 'pending', refNo: null, createdBy:ผมแก้ไขโค้ดครบทุกข้อตามรีวิวแล้วครับ ระหว่างไล่โค้ดใหม่อย่างละเอียด ผมพบว่ารีวิวรอบก่อนผิดไปบางจุด เลยต้องแจ้งให้ทราบก่อน:
-
-- **ประเมินบางข้อเกินจริง:** เรื่องกดบันทึกซ้ำในแท็บเดียว จริง ๆ แล้วเสี่ยงต่ำกว่าที่ผมบอก เพราะ JavaScript ทำงานทีละคำสั่ง แต่ผมก็ใส่ระบบล็อกกันกดซ้ำไว้ให้แล้ว
-- **พลาดบั๊กที่ร้ายแรงกว่า:** เช่น ยกเลิกใบจ่ายแล้วสต็อกคืนผิด Lot, ปิดตั๋วชั่งได้โดยไม่ตัดสต็อก, ทุก Role กดลบข้อมูลทั้งหมดได้ และส่งข้อมูลขึ้น Sheets ทุกแถวทุกครั้งที่บันทึก ผมแก้ทั้งหมดนี้ในเวอร์ชันนี้ด้วย
-
-## สรุปสิ่งที่แก้ไข (v2.2)
-
-| ระดับ | ปัญหาเดิม | สิ่งที่แก้ |
-|---|---|---|
-| Critical | ยกเลิกใบจ่ายแบบผ่านตาชั่ง สต็อกคืนเข้า Lot แรกทั้งหมด แม้ตอนจ่ายจะตัดจากหลาย Lot | ตอนจ่ายจะบันทึกว่าตัดจาก Lot ไหนกี่ กก. (`allocations`) และคืนสต็อกตามนั้น |
-| Critical | ปุ่ม "ชั่งออก" ในหน้าตั๋วชั่งและหน้า Lot ปิดตั๋วได้โดยไม่สร้าง Lot หรือตัดสต็อก | ทุกปุ่มชั่งออกต้องผ่านขั้นตอนเดียวกัน (Step 3) |
-| Critical | ลบตั๋วชั่งได้แม้ Lot ถูกเบิกไปแล้ว ทำให้สต็อกหายไปเฉย ๆ | เปลี่ยนเป็นยกเลิกแบบเก็บประวัติ (Soft-void) ต้องระบุเหตุผล และระบบไม่ยอมให้ยกเลิกถ้า Lot ถูกเบิกไปแล้ว |
-| Critical | ทุก Role กด "ลบข้อมูลทั้งหมด" ได้ รวมถึงล้าง Google Sheets / ปุ่มข้อมูลจำลองเขียนทับข้อมูลจริง | เช็คสิทธิ์ในตัวฟังก์ชัน ไม่ใช่แค่ซ่อนปุ่ม / ข้อมูลจำลองเพิ่มต่อท้าย ไม่เขียนทับ |
-| Critical | รหัสผ่านเก็บเป็นข้อความธรรมดา / Role อ่านจาก Storage ที่ผู้ใช้แก้เองได้ | เก็บรหัสผ่านแบบ SHA-256, ล็อกชั่วคราวเมื่อใส่รหัสผิด 5 ครั้ง, Session หมดอายุ (ไม่ใช้งาน 30 นาที / สูงสุด 10 ชม.) และอ่าน Role จากรายชื่อผู้ใช้ในระบบเท่านั้น |
-| Critical | URL ของ Apps Script ไม่มีการยืนยันตัวตน | ทุก Request แนบ Token ไปด้วย และรองรับโหมดล็อกอินผ่านเซิร์ฟเวอร์ (ตัวอย่างโค้ด Apps Script อยู่ด้านล่าง) |
-| Medium | ส่งทุกแถวขึ้น Sheets ทุกครั้งที่บันทึก / ดึงข้อมูลจาก Sheets ทับข้อมูลในเครื่องที่ยังส่งไม่สำเร็จ | ส่งเฉพาะแถวที่เปลี่ยน คิวไม่ซ้ำ และไม่ดึงข้อมูลทับถ้ายังมีคิวค้างส่ง |
-| Medium | ตัดสต็อกจาก Lot ใหม่สุดก่อน (LIFO) | ตัดจาก Lot เก่าสุดก่อน (FIFO) ตามวันที่รับเข้า |
-| Medium | เลือกกองไม่ตรงความชื้นได้ | ระบบกำหนดกองตามความชื้นให้เองและล็อกไว้ (ตอนรับเข้า, ในรายการรอชั่งออก และตอนแก้ไข Lot) |
-| Medium | ใบเบิกด่วนบันทึกเวลาเป็น UTC ทำให้รายการช่วง 00:00–07:00 ไปนับเป็นเมื่อวาน | ใช้เวลาท้องถิ่น |
-| Medium | ใช้ ID ที่ได้จาก Sheets หรือไฟล์สำรองใส่ใน `onclick` ตรง ๆ (เสี่ยง XSS) | ตรวจ ID ให้มีเฉพาะอักขระที่ปลอดภัยทุกครั้งที่โหลดข้อมูล |
-| Medium | CSV ที่ส่งออกถูกฝังสูตร Excel ได้ | เติม `'` หน้าข้อความที่ขึ้นต้นด้วย `= + - @` |
-| Medium | หน้า "ตั๋วชั่ง" เข้าไม่ได้ / Role ที่ไม่รู้จักได้สิทธิ์ทุกเมนู | เพิ่มเมนูตั๋วชั่ง / Role ที่ไม่รู้จักเห็นแค่ Dashboard |
-| Medium | เกณฑ์ความชื้นในหน้าตั้งค่าไม่ได้ถูกใช้คำนวณจริง | การคำนวณความเสี่ยงและการแบ่งกองใช้ค่าจากหน้าตั้งค่า |
-| Low/UX | พิมพ์ e, +, - ในช่องตัวเลขได้ / เลื่อนเมาส์แล้วตัวเลขเปลี่ยนเอง / ทะเบียนรถกรอกอะไรก็ได้ | บล็อกอักขระเหล่านี้ / ปิดการเลื่อนเมาส์เปลี่ยนค่า / ตรวจรูปแบบทะเบียน / กันรถคันเดียวกันเปิดตั๋วค้างซ้ำ |
-| Low/UX | ตารางบนมือถือยาวมาก / ปุ่มลบอยู่ติดปุ่มอื่น / ใบเสร็จไม่มียอดเงิน / ศูนย์แจ้งเตือนว่าง 3 แท็บ | ซ่อนคอลัมน์รองบนมือถือและเพิ่มปุ่ม "รายละเอียด" / แยกปุ่มยกเลิกออกห่าง / ใบเสร็จแสดงราคาและยอดเงิน / เพิ่มแจ้งเตือนความจุ, ตั๋วค้างนาน และคิวซิงก์ค้าง |
-
-## โค้ดฉบับแก้ไข (HTML ทั้งไฟล์)
-
-```html
-<!DOCTYPE html>
-<html lang="th">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Smart Corn WMS v2.2 — ระบบบริหารคลังลานข้าวโพด</title>
-
-<script src="https://cdn.tailwindcss.com/3.4.16"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-
-<script>
-(function(){
-  var inIframe = false; try { inIframe = window.self !== window.top; } catch(e){ inIframe = true; }
-  var wantPreview = (location.hash === '#preview') && !inIframe;
-  document.documentElement.setAttribute('data-mode', wantPreview ? 'preview' : 'app');
-  window.__WMS_MODE__ = wantPreview ? 'preview' : 'app';
-})();
-</script>
-
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
-*{font-family:'Sarabun',sans-serif}
-html,body{height:100%}
-body{min-height:100dvh}
-
-html[data-mode="app"]     #preview-shell{display:none!important}
-html[data-mode="preview"] #app-root,
-html[data-mode="preview"] #modal-root,
-html[data-mode="preview"] #toast-root,
-html[data-mode="preview"] #login-overlay{display:none!important}
-html[data-mode="preview"] body{background:#0f172a;color:#f1f5f9;overflow:hidden}
-
-#preview-shell{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
-.preview-frame{transition:all .4s cubic-bezier(.4,0,.2,1)}
-.mobile-shell{width:390px;height:min(844px,88dvh);border-radius:48px;border:12px solid #1e293b;
-  box-shadow:0 25px 50px -12px rgba(0,0,0,.4),0 0 0 2px #334155;position:relative}
-.mobile-shell::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
-  width:120px;height:28px;background:#1e293b;border-radius:0 0 16px 16px;z-index:50;pointer-events:none}
-.tablet-shell{width:min(820px,95vw);height:min(1000px,88dvh);border-radius:24px;border:10px solid #1e293b;
-  box-shadow:0 25px 50px -12px rgba(0,0,0,.4)}
-.desktop-shell{width:100%;height:100%;border-radius:8px;border:1px solid #cbd5e1;
-  box-shadow:0 10px 15px -3px rgba(0,0,0,.1)}
-
-.sidebar-active{background:#1e293b;color:#38bdf8;border-right:4px solid #38bdf8}
-aside{transition:width .3s ease,transform .3s ease}
-.sidebar-collapsed{width:5rem!important}
-.sidebar-collapsed .sidebar-text,.sidebar-collapsed .sidebar-header-text,
-.sidebar-collapsed .user-info-text,.sidebar-collapsed .sidebar-footer{display:none!important}
-.sidebar-collapsed nav button{justify-content:center;padding-left:0;padding-right:0}
-
-@media (max-width:767px){
-  #main-sidebar{position:fixed;top:0;bottom:0;left:0;width:17rem!important;
-    transform:translateX(-100%);z-index:60;padding-top:env(safe-area-inset-top)}
-  #main-sidebar.drawer-open{transform:translateX(0)}
-  body.drawer-lock{overflow:hidden}
-  #app-header{padding-top:calc(.25rem + env(safe-area-inset-top))}
-  .rtable thead{display:none}
-  .rtable tbody{display:block}
-  .rtable tr{display:block;border:1px solid #e2e8f0;border-radius:.75rem;margin-bottom:.6rem;padding:.4rem .2rem;background:#fff}
-  .rtable td{display:flex;justify-content:space-between;align-items:center;gap:1rem;
-    border:0!important;padding:.4rem .7rem;text-align:right!important}
-  .rtable td::before{content:attr(data-label);font-weight:600;color:#64748b;font-size:.72rem;text-align:left;flex-shrink:0}
-  .rtable td:empty{display:none}
-  .rtable td.m-hide{display:none!important}
-  button,select,input,a.btn{min-height:44px}
-  .btn-xs{min-height:38px}
-}
-
-@media print {
-  .no-print, #preview-shell, aside, #sidebar-overlay, #app-header, #login-overlay { display: none !important; }
-  html, body { background:#fff!important; color:#0f172a!important; height:auto!important; min-height:0!important; overflow:visible!important; display:block!important; font-size:11pt!important; }
-  main, #main-container { overflow:visible!important; height:auto!important; display:block!important; padding:0!important; margin:0!important; }
-  #view-reports > div:first-child { display:none!important; }
-  #view-reports .bg-white { border:none!important; box-shadow:none!important; padding:0!important; margin:0!important; border-radius:0!important; }
-  #report-title { font-size:16pt!important; font-weight:bold!important; color:#0f172a!important; border-bottom:2px solid #1e293b!important; padding-bottom:6px!important; margin-bottom:12px!important; text-align:center!important; }
-  .rtable, table { display:table!important; width:100%!important; border-collapse:collapse!important; margin-top:8px!important; }
-  .rtable thead { display:table-header-group!important; }
-  .rtable tbody { display:table-row-group!important; }
-  .rtable tr { display:table-row!important; border:none!important; margin:0!important; padding:0!important; background:transparent!important; page-break-inside:avoid!important; }
-  .rtable th, .rtable td { display:table-cell!important; padding:6px 8px!important; border:1px solid #cbd5e1!important; font-size:10pt!important; color:#1e293b!important; }
-  .rtable td::before { display:none!important; }
-  .rtable th { background-color:#f1f5f9!important; color:#0f172a!important; font-weight:700!important; text-align:center!important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  body.print-ticket #app-root { display:none!important; }
-  body.print-ticket #print-area { display:block!important; }
-}
-#print-area{display:none}
-.toast-in{animation:ti .25s ease}
-@keyframes ti{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-</style>
-</head>
-
-<body class="bg-slate-100 text-slate-800 overflow-hidden">
-
-<!-- LOGIN OVERLAY -->
-<div id="login-overlay" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 space-y-6 border border-slate-200">
-    <div class="text-center space-y-2">
-      <div class="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg text-slate-950">
-        <i data-lucide="wheat" class="w-10 h-10"></i>
-      </div>
-      <h2 class="text-2xl font-bold text-slate-800">Smart Corn WMS</h2>
-      <p class="text-xs text-slate-500">กรุณาเข้าสู่ระบบเพื่อเข้าใช้งานฐานข้อมูลรวม</p>
-    </div>
-
-    <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
-      <div>
-        <label for="login-username" class="block text-xs font-bold text-slate-700 mb-1">ชื่อผู้ใช้งาน (Username) *</label>
-        <input type="text" id="login-username" required autocomplete="username" maxlength="40" placeholder="เช่น admin, scale" class="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold">
-      </div>
-      <div>
-        <label for="login-password" class="block text-xs font-bold text-slate-700 mb-1">รหัสผ่าน (Password) *</label>
-        <input type="password" id="login-password" required autocomplete="current-password" maxlength="100" placeholder="••••••••" class="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold">
-      </div>
-      <p id="login-msg" class="hidden text-xs text-red-600 font-semibold"></p>
-      <button type="submit" id="login-submit-btn" class="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-slate-950 font-bold py-3.5 rounded-xl text-sm shadow-lg transition flex items-center justify-center gap-2">
-        <i data-lucide="key-round" class="w-4 h-4"></i> เข้าสู่ระบบ
-      </button>
-    </form>
-
-    <div id="demo-hint" class="hidden bg-slate-50 border rounded-xl p-3 text-[11px] text-slate-500 space-y-1">
-      <p class="font-bold text-slate-700">บัญชีทดสอบ (รหัสผ่าน: 1234) — ปิดกล่องนี้ก่อนใช้งานจริง</p>
-      <div class="grid grid-cols-2 gap-1 pt-1">
-        <span>• <b>admin</b> (เจ้าของลาน)</span>
-        <span>• <b>manager</b> (ผู้จัดการ)</span>
-        <span>• <b>scale</b> (พนักงานชั่ง)</span>
-        <span>• <b>stock</b> (พนักงานคลัง)</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- PREVIEW SHELL -->
-<div id="preview-shell" class="no-print">
-  <header class="bg-slate-800 border-b border-slate-700 h-16 px-4 md:px-6 flex items-center justify-between shrink-0 gap-3">
-    <div class="flex items-center gap-3 min-w-0">
-      <div class="p-2 bg-amber-500 rounded-lg text-slate-900"><i data-lucide="smartphone-charging" class="w-5 h-5"></i></div>
-      <div class="min-w-0">
-        <h1 class="font-bold text-white text-sm md:text-base truncate">Smart Corn WMS — Responsive Preview</h1>
-        <p class="text-xs text-slate-400 truncate">จำลองการแสดงผลบนอุปกรณ์จริง</p>
-      </div>
-    </div>
-    <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700 gap-1">
-      <button data-dev="desktop" class="dev-btn px-3 py-2 rounded-lg text-xs font-semibold"><i data-lucide="monitor" class="w-4 h-4 inline"></i><span class="hidden sm:inline ml-1">Desktop</span></button>
-      <button data-dev="tablet"  class="dev-btn px-3 py-2 rounded-lg text-xs font-semibold"><i data-lucide="tablet" class="w-4 h-4 inline"></i><span class="hidden sm:inline ml-1">Tablet</span></button>
-      <button data-dev="mobile"  class="dev-btn px-3 py-2 rounded-lg text-xs font-semibold"><i data-lucide="smartphone" class="w-4 h-4 inline"></i><span class="hidden sm:inline ml-1">Mobile</span></button>
-    </div>
-    <div class="flex items-center gap-2 text-xs text-slate-400">
-      <span id="device-info-text" class="hidden lg:inline bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-700/50">Desktop (100%)</span>
-      <button onclick="previewReload()" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">รีโหลด</button>
-      <button onclick="exitPreview()" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold rounded-lg">เปิดเต็มจอ</button>
-    </div>
-  </header>
-  <main class="flex-1 bg-slate-950 p-4 md:p-6 flex items-center justify-center overflow-auto">
-    <div id="frame-wrapper" class="preview-frame desktop-shell bg-white overflow-hidden relative">
-      <iframe id="app-iframe" class="w-full h-full border-none" title="Smart Corn WMS"></iframe>
-      <div id="frame-fallback" class="hidden absolute inset-0 bg-white p-6 text-center flex flex-col items-center justify-center gap-3 text-slate-600">
-        <p class="text-sm">ไม่สามารถโหลดแอปในกรอบได้</p>
-        <button onclick="exitPreview()" class="px-4 py-2 bg-amber-500 text-slate-950 rounded-lg text-sm font-semibold">เปิดแบบเต็มจอแทน</button>
-      </div>
-    </div>
-  </main>
-</div>
-
-<!-- APPLICATION -->
-<div id="app-root" class="flex h-[100dvh] overflow-hidden">
-
-<div id="sidebar-overlay" onclick="closeDrawer()" class="hidden fixed inset-0 bg-slate-900/50 z-50 no-print"></div>
-
-<aside id="main-sidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col no-print shrink-0 shadow-lg relative z-20">
-  <div class="p-4 border-b border-slate-800 flex items-center justify-between">
-    <div class="flex items-center gap-2 overflow-hidden">
-      <i data-lucide="wheat" class="text-amber-500 w-8 h-8 shrink-0"></i>
-      <div class="sidebar-header-text">
-        <h1 class="font-bold text-white text-lg leading-tight truncate">Smart Corn WMS</h1>
-        <span class="text-xs text-slate-400 truncate block">ระบบบริหารคลังลานข้าวโพด</span>
-      </div>
-    </div>
-    <button onclick="toggleSidebar()" aria-label="ย่อ/ขยายเมนู" class="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition">
-      <i data-lucide="panel-left-close" id="sidebar-toggle-icon" class="w-5 h-5"></i>
-    </button>
-  </div>
-
-  <div class="p-3 bg-slate-800/50 m-2 rounded-lg flex items-center justify-between border border-slate-700/50 overflow-hidden">
-    <div class="flex items-center gap-2.5 min-w-0">
-      <div class="w-9 h-9 rounded-full bg-amber-500 text-slate-900 font-bold flex items-center justify-center text-sm shrink-0" id="user-avatar">-</div>
-      <div class="overflow-hidden user-info-text min-w-0">
-        <p class="font-semibold text-white text-xs truncate" id="user-display-name">-</p>
-        <span class="text-[10px] text-amber-400 truncate block" id="user-role-text">-</span>
-      </div>
-    </div>
-    <button onclick="handleLogout()" title="ออกจากระบบ" class="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg shrink-0">
-      <i data-lucide="log-out" class="w-4 h-4"></i>
-    </button>
-  </div>
-
-  <nav id="main-nav" class="flex-1 overflow-y-auto py-2 px-2 space-y-1 text-sm"></nav>
-
-  <div class="p-3 border-t border-slate-800 text-xs text-slate-500 text-center sidebar-footer">
-    <span id="online-dot" class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1"></span>Smart Corn WMS v2.2
-    <div id="sync-status-text" class="text-[10px] mt-1 text-slate-500"></div>
-  </div>
-</aside>
-
-<main class="flex-1 flex flex-col overflow-hidden bg-slate-50 min-w-0">
-  <header id="app-header" class="bg-white border-b border-slate-200 px-3 md:px-6 py-2 flex items-center justify-between shrink-0 no-print gap-2">
-    <div class="flex items-center gap-2 flex-1 min-w-0 max-w-xl">
-      <button onclick="toggleSidebar()" aria-label="เปิดเมนู" class="p-2 text-slate-600 hover:bg-slate-100 rounded-lg shrink-0"><i data-lucide="menu" class="w-5 h-5"></i></button>
-      <div class="relative w-full">
-        <label for="global-search" class="sr-only">ค้นหา</label>
-        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-        <input type="text" id="global-search" autocomplete="off" maxlength="60" oninput="onSearchInput(this.value)" onfocus="onSearchInput(this.value)"
-          placeholder="ค้นหา Lot / ทะเบียน / ผู้ขาย" class="w-full pl-9 pr-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
-        <div id="search-results" class="hidden absolute z-40 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl max-h-80 overflow-y-auto"></div>
-      </div>
-    </div>
-    <div class="flex items-center gap-2 shrink-0">
-      <button id="btn-preview" onclick="enterPreview()" title="ทดสอบการแสดงผลบนอุปกรณ์" class="px-3 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200 border border-slate-300"><i data-lucide="monitor-smartphone" class="w-4 h-4"></i></button>
-      <button id="btn-demo" onclick="loadDemoData()" class="px-3 py-2 bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg hover:bg-amber-200 border border-amber-300">⚡<span class="hidden sm:inline ml-1">ข้อมูลจำลอง</span></button>
-      <button id="btn-backup" onclick="exportBackup()" title="สำรองข้อมูล" class="px-3 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200 border border-slate-300"><i data-lucide="download" class="w-4 h-4"></i></button>
-      <button id="btn-reset" onclick="resetData()" title="ลบข้อมูลทั้งหมด" class="hidden px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg border border-red-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-    </div>
-  </header>
-
-  <div class="flex-1 overflow-y-auto p-3 md:p-6" id="main-container">
-
-  <!-- 1) DASHBOARD -->
-  <section id="view-dashboard" class="space-y-5">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-      <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">ภาพรวมคลังและลานข้าวโพด</h2>
-        <p class="text-sm text-slate-500">ข้อมูลคำนวณจากรายการจริงในระบบทั้งหมด</p></div>
-      <select id="dashboard-timeframe" onchange="renderDashboard()" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium">
-        <option value="today">วันนี้</option><option value="7days" selected>7 วันล่าสุด</option><option value="30days">30 วันล่าสุด</option>
-      </select>
-    </div>
-    <div id="empty-state-notice" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
-      <i data-lucide="inbox" class="w-12 h-12 text-amber-500 mx-auto mb-2"></i>
-      <h3 class="font-bold text-lg text-amber-900">ยังไม่มีข้อมูลในระบบ</h3>
-      <p class="text-slate-600 text-sm mb-4">เริ่มต้นโดยบันทึกการรับข้าวโพดล็อตแรก</p>
-      <button onclick="switchView('receiving')" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg shadow text-sm">+ บันทึกรับเข้า</button>
-    </div>
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-xs font-semibold text-slate-500">ปริมาณคงเหลือรวม</p>
-        <h3 class="text-xl md:text-2xl font-bold text-slate-800 mt-1" id="dash-total-stock">0 <span class="text-sm font-normal text-slate-500">ตัน</span></h3></div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-xs font-semibold text-slate-500">รับเข้าวันนี้</p>
-        <h3 class="text-xl md:text-2xl font-bold text-emerald-600 mt-1" id="dash-today-in">0 <span class="text-sm font-normal text-slate-500">ตัน</span></h3></div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-xs font-semibold text-slate-500">จ่ายออกวันนี้</p>
-        <h3 class="text-xl md:text-2xl font-bold text-blue-600 mt-1" id="dash-today-out">0 <span class="text-sm font-normal text-slate-500">ตัน</span></h3></div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-xs font-semibold text-slate-500">ความชื้นเฉลี่ย (ถ่วงน้ำหนัก)</p>
-        <h3 class="text-xl md:text-2xl font-bold text-slate-800 mt-1" id="dash-avg-moisture">0 <span class="text-sm font-normal text-slate-500">%</span></h3></div>
-    </div>
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-      <div class="bg-white p-3 rounded-lg border text-center"><span class="text-xs text-slate-500 block">Lot ในช่วง</span><span class="text-lg font-bold" id="dash-count-lots">0</span></div>
-      <div class="bg-white p-3 rounded-lg border text-center"><span class="text-xs text-slate-500 block">รถ เข้า-ออก</span><span class="text-lg font-bold" id="dash-count-vehicles">0</span></div>
-      <div class="bg-white p-3 rounded-lg border text-center"><span class="text-xs text-amber-600 block">Lot เฝ้าระวัง</span><span class="text-lg font-bold text-amber-600" id="dash-warning-lots">0</span></div>
-      <div class="bg-white p-3 rounded-lg border text-center"><span class="text-xs text-red-600 block">Lot เสี่ยงสูง/รออบ</span><span class="text-lg font-bold text-red-600" id="dash-risk-lots">0</span></div>
-      <div class="bg-white p-3 rounded-lg border text-center"><span class="text-xs text-slate-500 block">มูลค่าคงเหลือ (ทุน)</span><span class="text-base font-bold text-emerald-700" id="dash-est-value">0 ฿</span></div>
-      <div class="bg-white p-3 rounded-lg border text-center"><span class="text-xs text-slate-500 block">พื้นที่ถูกใช้</span><span class="text-lg font-bold text-indigo-600" id="dash-used-capacity">0%</span></div>
-    </div>
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-      <div class="bg-white p-4 rounded-xl border shadow-sm">
-        <h4 class="font-bold mb-3 text-sm flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4 text-amber-500"></i> ปริมาณ เข้า-ออก จริง (ตัน)</h4>
-        <div class="h-60"><canvas id="chart-inout"></canvas></div></div>
-      <div class="bg-white p-4 rounded-xl border shadow-sm">
-        <h4 class="font-bold mb-3 text-sm flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-amber-500"></i> สัดส่วนสินค้าคงเหลือ (ตามน้ำหนัก)</h4>
-        <div class="h-60 flex justify-center"><canvas id="chart-quality"></canvas></div></div>
-    </div>
-  </section>
-
-  <!-- 2.1) RECEIVING -->
-  <section id="view-receiving" class="hidden space-y-5">
-    <div>
-      <h2 class="text-xl md:text-2xl font-bold text-slate-800">รับรถขาเข้า</h2>
-      <p class="text-sm text-slate-500">ขั้นตอนที่ 1: วัดความชื้น ➔ กรอกข้อมูลรถและชั่งน้ำหนักขาเข้า</p>
-    </div>
-
-    <div class="bg-white rounded-xl border shadow-sm p-4 md:p-6 max-w-2xl mx-auto space-y-4">
-      <form id="form-inbound-step1" onsubmit="handleInboundStep1(event)" class="space-y-4" autocomplete="off">
-        <div>
-          <label for="step1-type" class="block text-xs font-bold text-slate-700 mb-1">1. ประเภทรายการ *</label>
-          <select id="step1-type" onchange="onTypeChange(this.value)" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold bg-amber-50 focus:ring-2 focus:ring-amber-500">
-            <option value="รับเข้า">📥 รับเข้า (Inbound)</option>
-            <option value="จ่ายออก">📤 จ่ายออก (Outbound)</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="step1-datetime" class="block text-xs font-bold text-slate-700 mb-1">2. วันที่และเวลาเข้า *</label>
-          <input type="datetime-local" id="step1-datetime" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-amber-500">
-        </div>
-
-        <div>
-          <label for="step1-doc-no" class="block text-xs font-bold text-slate-700 mb-1">3. เลขที่เอกสาร (สร้างอัตโนมัติ — ยืนยันเลขจริงตอนบันทึก)</label>
-          <input type="text" id="step1-doc-no" readonly class="w-full bg-slate-100 border rounded-lg px-3 py-2.5 text-sm font-mono font-bold text-slate-600">
-        </div>
-
-        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-          <span class="block text-xs font-bold text-slate-700">4. ข้อมูลป้ายทะเบียนรถ *</span>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
-            <div>
-              <label for="step1-plate-part1" class="block text-[11px] text-slate-500 mb-1">ตัวอักษร/เลข (หน้าขีด)</label>
-              <input type="text" id="step1-plate-part1" required maxlength="3" placeholder="เช่น 1กก หรือ 80"
-                oninput="this.value=this.value.replace(/[^0-9ก-ฮ]/g,'')"
-                class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-center focus:ring-2 focus:ring-amber-500 bg-white">
-            </div>
-            <div>
-              <label for="step1-plate-part2" class="block text-[11px] text-slate-500 mb-1">หมายเลข (หลังขีด)</label>
-              <input type="text" id="step1-plate-part2" required maxlength="4" inputmode="numeric" placeholder="เช่น 1234"
-                oninput="this.value=this.value.replace(/\D/g,'')"
-                class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-center focus:ring-2 focus:ring-amber-500 bg-white">
-            </div>
-            <div class="relative" id="province-box">
-              <label for="step1-province-input" class="block text-[11px] text-slate-500 mb-1">จังหวัดทะเบียนรถ</label>
-              <div class="relative">
-                <input type="text" id="step1-province-input" required autocomplete="off" placeholder="พิมพ์ค้นหาจังหวัด..."
-                  oninput="onProvinceSearchInput(this.value)" onfocus="onProvinceInputFocus()" onkeydown="onProvinceKeyDown(event)"
-                  class="w-full border border-slate-300 rounded-lg pl-3 pr-8 py-2.5 text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500">
-                <input type="hidden" id="step1-plate-province">
-                <i data-lucide="chevron-down" class="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-              </div>
-              <div id="province-dropdown" class="hidden absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100"></div>
-            </div>
-          </div>
-          <span class="text-[10px] text-slate-400 block">💡 หน้าขีด: ตัวเลข/พยัญชนะไทย 1–3 ตัว · หลังขีด: ตัวเลข 1–4 หลัก · กด Enter เพื่อเลือกจังหวัดเมื่อเหลือตัวเลือกเดียว</span>
-        </div>
-
-        <div>
-          <label for="step1-supplier" class="block text-xs font-bold text-slate-700 mb-1">5. ชื่อผู้ขาย / ลูกค้า *</label>
-          <input type="text" id="step1-supplier" list="supplier-list" required maxlength="80" placeholder="ชื่อ-นามสกุล / บริษัท (พิมพ์เพื่อเลือกจากรายชื่อเดิม)" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-amber-500">
-          <datalist id="supplier-list"></datalist>
-        </div>
-
-        <div>
-          <label for="step1-customer-type" class="block text-xs font-bold text-slate-700 mb-1">6. ประเภทลูกค้า</label>
-          <select id="step1-customer-type" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-amber-500">
-            <option>ลูกค้าทั่วไป</option><option>บริษัท CPF</option><option>โรงงานอาหารสัตว์</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="step1-product" class="block text-xs font-bold text-slate-700 mb-1">7. ประเภทสินค้า *</label>
-          <select id="step1-product" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-amber-500">
-            <option>ข้าวโพดเมล็ด</option><option>ข้าวโพดฝัก</option>
-          </select>
-        </div>
-
-        <div id="step1-moisture-wrapper" class="bg-cyan-50/60 p-3.5 rounded-xl border border-cyan-200">
-          <label for="step1-moisture" class="block text-xs font-bold text-cyan-900 mb-1">8. เปอร์เซ็นต์ความชื้น (%) [วัดก่อนเข้าลาน] *</label>
-          <input type="number" id="step1-moisture" required step="0.1" min="5" max="40" inputmode="decimal" placeholder="เช่น 15.5" oninput="onInboundMoistureInput(this.value)" class="w-full border border-cyan-300 rounded-lg px-3 py-2.5 text-base font-bold text-cyan-800 bg-white focus:ring-2 focus:ring-cyan-500">
-          <p id="step1-moisture-hint" class="text-xs text-slate-500 mt-1.5">💡 ระบบจะกำหนดกองให้อัตโนมัติตามความชื้น</p>
-        </div>
-
-        <div class="bg-amber-50/80 border border-amber-200 p-4 rounded-xl">
-          <label for="step1-weight-in" id="step1-weight-label" class="block text-xs font-bold text-amber-900 mb-1">9. น้ำหนักรถเข้า (Gross Weight - กิโลกรัม) *</label>
-          <input type="number" id="step1-weight-in" required min="1" max="80000" step="1" inputmode="numeric" placeholder="เช่น 15000" class="w-full border border-amber-300 rounded-lg px-3 py-3 text-lg font-bold text-slate-800 bg-white focus:ring-2 focus:ring-amber-500">
-        </div>
-
-        <div class="flex justify-end gap-3 pt-4 border-t">
-          <button type="reset" onclick="setTimeout(prepareReceivingForm,0)" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg text-sm">ล้างฟอร์ม</button>
-          <button type="submit" id="step1-submit-btn" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-lg text-sm flex items-center gap-2 shadow-md">
-            <i data-lucide="save" class="w-4 h-4"></i> บันทึกรถเข้า & วัดความชื้น
-          </button>
-        </div>
-      </form>
-    </div>
-  </section>
-
-  <!-- 2.2) PENDING OUTBOUND -->
-  <section id="view-pending_outbound" class="hidden space-y-5">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b pb-3">
-      <div>
-        <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
-          <i data-lucide="clock" class="w-6 h-6 text-amber-500"></i> รายการรอชั่งออก & เทข้าวลงกอง
-        </h2>
-        <p class="text-sm text-slate-500">ขั้นตอนที่ 2: รถชั่งเข้าแล้ว ➔ เทข้าวลงกองตามความชื้น (ระบบกำหนดกองอัตโนมัติ) ➔ กลับมาชั่งออก</p>
-      </div>
-      <button type="button" onclick="renderPendingTable()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border flex items-center gap-1.5 self-start md:self-auto shadow-sm">
-        <i data-lucide="refresh-cw" class="w-4 h-4"></i> รีเฟรชตาราง
-      </button>
-    </div>
-
-    <div class="bg-white rounded-xl border shadow-sm p-4 md:p-6 overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="rtable w-full text-left text-sm text-slate-600">
-          <thead class="bg-slate-100 text-slate-700 uppercase text-xs font-bold">
-            <tr>
-              <th class="p-3">เลขที่เอกสาร</th>
-              <th class="p-3">เวลาชั่งเข้า</th>
-              <th class="p-3">ทะเบียนรถ</th>
-              <th class="p-3">ผู้ขาย</th>
-              <th class="p-3 text-right">น้ำหนักเข้า (กก.)</th>
-              <th class="p-3 text-center" style="width:120px">ความชื้น (%)</th>
-              <th class="p-3 text-center" style="width:170px">กอง/Zone (อัตโนมัติ)</th>
-              <th class="p-3 text-center">สถานะ</th>
-              <th class="p-3 text-center">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody id="table-pending-outbound-body" class="divide-y divide-slate-200"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- 2.3) OUTBOUND & DISPATCH HUB -->
-  <section id="view-outbound_pricing" class="hidden space-y-5">
-    <div>
-      <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
-        <i data-lucide="truck" class="w-6 h-6 text-amber-500"></i> ชั่งน้ำหนักรถขาออก
-      </h2>
-      <p class="text-sm text-slate-500">ปิดตั๋วชั่งทั้งรับเข้าและจ่ายออก — ระบบสร้าง Lot / ตัดสต็อก FIFO อัตโนมัติ (จ่ายออกจำกัดรอบละ 30 ตัน)</p>
-    </div>
-
-    <div class="flex bg-slate-200 p-1 rounded-xl max-w-md gap-1">
-      <button onclick="switchOutboundMode('scale')" id="tab-mode-scale" class="flex-1 py-2 px-4 rounded-lg text-xs font-bold bg-white text-slate-900 shadow transition flex items-center justify-center gap-2">
-        <i data-lucide="calculator" class="w-4 h-4 text-amber-500"></i> ชั่งออกผ่านตาชั่ง
-      </button>
-      <button onclick="switchOutboundMode('manual')" id="tab-mode-manual" class="flex-1 py-2 px-4 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 transition flex items-center justify-center gap-2">
-        <i data-lucide="boxes" class="w-4 h-4 text-blue-500"></i> เบิกจ่าย / ตัดสต็อกด่วน
-      </button>
-    </div>
-
-    <!-- MODE 1 -->
-    <div id="outbound-mode-scale-container" class="bg-white rounded-xl border shadow-sm p-4 md:p-6 space-y-5 max-w-2xl mx-auto">
-      <div class="bg-indigo-50/70 border border-indigo-200 p-4 rounded-xl space-y-2">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <label for="step3-pending-select" class="block text-xs font-bold text-indigo-900">เลือกรถที่รอชั่งออก *</label>
-          <span class="text-[11px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold">⚠️ จ่ายออกสูงสุด 30,000 กก. ต่อรอบไซโร</span>
-        </div>
-        <select id="step3-pending-select" onchange="onSelectPendingOutbound(this.value)" class="w-full border border-indigo-300 rounded-lg px-3 py-2.5 text-sm font-bold bg-white text-indigo-950"></select>
-      </div>
-
-      <form id="form-outbound-step3" onsubmit="handleOutboundStep3(event)" class="space-y-4" autocomplete="off">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-3.5 rounded-xl border text-xs">
-          <div><span class="text-slate-500 block">เลขที่เอกสาร:</span> <b id="step3-disp-doc" class="text-slate-800 text-sm font-mono">-</b></div>
-          <div><span class="text-slate-500 block">ทะเบียนรถ:</span> <b id="step3-disp-plate" class="text-slate-800 text-sm">-</b></div>
-          <div><span class="text-slate-500 block">ผู้ขาย/ลูกค้า:</span> <b id="step3-disp-supplier" class="text-slate-800 text-sm">-</b></div>
-          <div><span class="text-slate-500 block">ประเภท / สินค้า:</span> <b id="step3-disp-product" class="text-slate-800 text-sm">-</b></div>
-        </div>
-
-        <div>
-          <label for="step3-moisture" id="step3-moisture-label" class="block text-xs font-bold text-slate-700 mb-1">1. ความชื้น (%) *</label>
-          <input type="number" id="step3-moisture" required step="0.1" min="5" max="40" inputmode="decimal" oninput="onStep3MoistureInput()" placeholder="14.0" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-semibold text-cyan-700">
-        </div>
-
-        <div>
-          <label for="step3-location" id="step3-location-label" class="block text-xs font-bold text-slate-700 mb-1">2. กอง/ตำแหน่ง *</label>
-          <select id="step3-location" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm disabled:bg-slate-100 disabled:font-bold"></select>
-          <p id="step3-location-hint" class="text-[11px] text-slate-500 mt-1"></p>
-        </div>
-
-        <div>
-          <label for="step3-weight-in" id="step3-weight-in-label" class="block text-xs font-bold text-slate-700 mb-1">3. น้ำหนักชั่งเข้า (กก.)</label>
-          <input type="number" id="step3-weight-in" readonly class="w-full bg-slate-100 border rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700">
-        </div>
-
-        <div>
-          <label for="step3-weight-out" id="step3-weight-out-label" class="block text-xs font-bold text-slate-700 mb-1">4. น้ำหนักชั่งออก (กก.) *</label>
-          <input type="number" id="step3-weight-out" required min="1" max="80000" step="1" inputmode="numeric" oninput="calcStep3Totals()" placeholder="เช่น 25000" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-blue-700 bg-blue-50/30">
-        </div>
-
-        <div class="border border-amber-200 bg-amber-50/60 p-4 rounded-xl space-y-3">
-          <div>
-            <label for="step3-weight-net" class="block text-xs font-bold text-slate-700 mb-1">น้ำหนักสุทธิสินค้า (กก.)</label>
-            <input type="number" id="step3-weight-net" readonly class="w-full bg-emerald-100 border border-emerald-300 rounded-lg px-3 py-2.5 text-base font-bold text-emerald-800">
-          </div>
-          <div>
-            <label for="step3-price-bucket" class="block text-xs font-bold text-amber-900 mb-1">ราคาต่อถัง (บาท)</label>
-            <input type="number" id="step3-price-bucket" step="0.01" min="0" max="10000" inputmode="decimal" oninput="calcStep3Totals()" placeholder="เช่น 95" class="w-full border border-amber-300 rounded-lg px-3 py-2.5 text-sm font-bold bg-white">
-          </div>
-          <div>
-            <label for="step3-price-kg" class="block text-xs font-semibold text-amber-800 mb-1">ราคาต่อ กก. (บาท)</label>
-            <input type="text" id="step3-price-kg" readonly placeholder="0.00" class="w-full bg-amber-100/70 border border-amber-300 rounded-lg px-3 py-2.5 text-sm font-mono font-bold">
-          </div>
-          <div>
-            <label for="step3-total-price" class="block text-xs font-bold text-amber-900 mb-1">จำนวนเงินสุทธิ (บาท)</label>
-            <input type="text" id="step3-total-price" readonly placeholder="0.00" class="w-full bg-emerald-600 border border-emerald-700 rounded-lg px-3 py-2.5 text-base font-mono font-bold text-white">
-          </div>
-        </div>
-
-        <div>
-          <label for="step3-remark" class="block text-xs font-bold text-slate-700 mb-1">หมายเหตุเพิ่มเติม</label>
-          <input type="text" id="step3-remark" maxlength="200" placeholder="หมายเหตุ..." class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm">
-        </div>
-
-        <div class="flex justify-end gap-3 pt-2">
-          <button type="submit" id="step3-submit-btn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-lg text-sm flex items-center justify-center gap-2 shadow-md">
-            <i data-lucide="printer" class="w-4 h-4"></i> บันทึกชั่งออก & พิมพ์ใบเสร็จรับ-จ่ายเงิน
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- MODE 2 -->
-    <div id="outbound-mode-manual-container" class="hidden space-y-5 max-w-2xl mx-auto">
-      <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 md:p-5">
-        <h3 class="font-bold text-indigo-900 flex items-center gap-2 text-sm"><i data-lucide="lightbulb" class="w-5 h-5"></i> คำแนะนำการเบิกจ่าย (ผ่านไซโรอบ 30 ตัน)</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3" id="recommendation-cards"></div>
-      </div>
-      <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
-        <h3 class="font-bold mb-3 text-slate-800 text-sm">ฟอร์มเบิกจ่าย / ตัดสต็อกด่วน</h3>
-        <form id="form-issue" onsubmit="handleManualIssueSubmit(event)" class="space-y-4" autocomplete="off">
-          <div><label for="issue-lot-id" class="block text-xs font-bold text-slate-700 mb-1">1. Lot ที่เบิก *</label><select id="issue-lot-id" onchange="updateIssueHint()" class="w-full border rounded-lg px-3 py-2.5 text-sm"></select></div>
-          <div><label for="issue-customer" class="block text-xs font-bold text-slate-700 mb-1">2. ลูกค้า/ปลายทาง *</label><input type="text" id="issue-customer" list="supplier-list" maxlength="80" class="w-full border rounded-lg px-3 py-2.5 text-sm" placeholder="ชื่อลูกค้า"></div>
-          <div><label for="issue-plate" class="block text-xs font-bold text-slate-700 mb-1">3. ทะเบียนรถมารับ</label><input type="text" id="issue-plate" maxlength="30" class="w-full border rounded-lg px-3 py-2.5 text-sm" placeholder="เช่น 80-1234 สุโขทัย"></div>
-          <div><label for="issue-weight" class="block text-xs font-bold text-slate-700 mb-1">4. จำนวน (กก. - สูงสุด 30,000 กก./รอบไซโร) *</label>
-            <input type="number" id="issue-weight" min="1" max="30000" step="1" inputmode="numeric" class="w-full border rounded-lg px-3 py-2.5 text-sm font-bold" placeholder="น้ำหนักเบิกไม่เกิน 30 ตัน">
-            <p id="issue-hint" class="text-xs text-slate-500 mt-1"></p></div>
-          <div><label for="issue-remark" class="block text-xs font-bold text-slate-700 mb-1">5. หมายเหตุ</label><input type="text" id="issue-remark" maxlength="150" class="w-full border rounded-lg px-3 py-2.5 text-sm" placeholder="หมายเหตุ..."></div>
-          <p class="text-[11px] text-slate-400">ผู้ดำเนินการจะถูกบันทึกจากบัญชีที่ล็อกอินอัตโนมัติ</p>
-          <div class="flex justify-end pt-2"><button type="submit" id="issue-submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 rounded-lg text-sm shadow">ยืนยันการเบิกจ่ายด่วนผ่านไซโร</button></div>
-        </form>
-      </div>
-    </div>
-
-    <!-- HISTORY -->
-    <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm space-y-3">
-      <div class="flex items-center justify-between border-b pb-2">
-        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2"><i data-lucide="history" class="w-4 h-4 text-amber-500"></i> ประวัติการจ่ายออกและเบิกสินค้า</h3>
-        <span class="text-xs text-slate-500">รวมทั้งผ่านตาชั่งและเบิกตรง</span>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="rtable w-full text-left text-sm text-slate-600">
-          <thead class="bg-slate-100 text-xs font-bold uppercase text-slate-700">
-            <tr>
-              <th class="p-2.5">เลขที่</th><th class="p-2.5">เวลา</th><th class="p-2.5">Lot / กอง</th><th class="p-2.5">ลูกค้า</th>
-              <th class="p-2.5">ทะเบียนรถ</th><th class="p-2.5 text-right">น้ำหนัก (กก.)</th><th class="p-2.5 text-center">ประเภท</th>
-              <th class="p-2.5 text-center">สถานะ</th><th class="p-2.5 text-center">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody id="table-issue-history" class="divide-y divide-slate-200"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- 3) WEIGHING -->
-  <section id="view-weighing" class="hidden space-y-5">
-    <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">ตั๋วชั่ง / ใบเสร็จรับ-จ่ายเงิน</h2>
-      <p class="text-sm text-slate-500">เปิดตั๋วชั่งด่วน — การชั่งออกทุกครั้งจะผ่านหน้า "ชั่งน้ำหนักรถขาออก" เพื่อให้สต็อกถูกต้อง</p></div>
-    <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
-      <h3 class="font-bold text-slate-800 mb-3 text-sm">เปิดตั๋วชั่งใหม่ (ด่วน)</h3>
-      <form id="form-weigh-open" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" autocomplete="off">
-        <div><label for="wo-type" class="block text-xs font-semibold text-slate-600 mb-1">ประเภท</label>
-          <select id="wo-type" class="w-full border rounded-lg px-3 py-2.5 text-sm"><option>รับเข้า</option><option>จ่ายออก</option></select></div>
-        <div><label for="wo-plate" class="block text-xs font-semibold text-slate-600 mb-1">ทะเบียนรถ *</label>
-          <input type="text" id="wo-plate" maxlength="30" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>
-        <div><label for="wo-supplier" class="block text-xs font-semibold text-slate-600 mb-1">ผู้ขาย/ลูกค้า *</label>
-          <input type="text" id="wo-supplier" list="supplier-list" maxlength="80" class="w-full border rounded-lg px-3 py-2.5 text-sm"></div>
-        <div><label for="wo-weight-in" class="block text-xs font-semibold text-slate-600 mb-1">น้ำหนักชั่งเข้า (กก.) *</label>
-          <input type="number" id="wo-weight-in" min="1" max="80000" step="1" inputmode="numeric" class="w-full border rounded-lg px-3 py-2.5 text-sm font-semibold"></div>
-        <button type="submit" id="wo-submit-btn" class="bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white font-semibold py-3 rounded-lg text-sm">เปิดตั๋วชั่ง</button>
-      </form>
-    </div>
-    <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
-      <h3 class="font-bold text-slate-800 mb-3 text-sm">รายการตั๋วชั่ง</h3>
-      <div class="overflow-x-auto">
-        <table class="rtable w-full text-left text-sm text-slate-600">
-          <thead class="bg-slate-100 text-slate-700 uppercase text-xs font-bold">
-            <tr><th class="p-3">เลขตั๋ว</th><th class="p-3">เวลา</th><th class="p-3">ทะเบียน</th><th class="p-3">ผู้ขาย/ลูกค้า</th>
-            <th class="p-3 text-right">เข้า</th><th class="p-3 text-right">ออก</th><th class="p-3 text-right">สุทธิ</th>
-            <th class="p-3 text-center">สถานะ</th><th class="p-3 text-center">จัดการ</th></tr></thead>
-          <tbody id="table-weighing-body" class="divide-y divide-slate-200"></tbody>
-        </table>
-      </div>
-      <div id="weigh-pager" class="flex justify-between items-center pt-3 text-sm"></div>
-    </div>
-  </section>
-
-  <!-- 4) LOTS -->
-  <section id="view-lots" class="hidden space-y-5">
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-3">
-      <div>
-        <h2 class="text-xl md:text-2xl font-bold text-slate-800">จัดการข้อมูลตั๋วชั่ง & สต็อก Lot ข้าวโพด</h2>
-        <p class="text-sm text-slate-500">รวมข้อมูลการชั่งน้ำหนัก ตั๋วชั่ง และสถานะ Lot ไว้ในตารางเดียว</p>
-      </div>
-      <div class="flex gap-2">
-        <input type="text" id="unified-filter" maxlength="60" oninput="unifiedPage=1;renderUnifiedTable()" placeholder="กรอง Lot / ทะเบียน / ผู้ขาย" class="border rounded-lg px-3 py-2.5 text-sm">
-        <select id="unified-sort" onchange="renderUnifiedTable()" class="border rounded-lg px-3 py-2.5 text-sm">
-          <option value="date_desc">ใหม่ → เก่า</option>
-          <option value="date_asc">เก่า → ใหม่ (FIFO)</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="flex flex-wrap items-center gap-3 md:gap-5 bg-white p-3.5 rounded-xl border border-slate-200 text-xs shadow-sm">
-      <span class="font-bold text-slate-700 flex items-center gap-1.5"><i data-lucide="info" class="w-4 h-4 text-amber-500"></i> สถานะ:</span>
-      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500"></span> รอชั่งออก</span>
-      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> ปกติ / สำเร็จ</span>
-      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500"></span> เฝ้าระวัง / เสี่ยงสูง</span>
-      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-400"></span> ยกเลิก</span>
-    </div>
-
-    <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="rtable w-full text-left text-sm text-slate-600">
-          <thead class="bg-slate-800 text-slate-200 uppercase text-xs font-bold">
-            <tr>
-              <th class="p-3">เลขที่ / Lot</th><th class="p-3">เวลา</th><th class="p-3">ทะเบียนรถ</th><th class="p-3">ผู้ขาย / ลูกค้า</th>
-              <th class="p-3 text-right">ชั่งเข้า (กก.)</th><th class="p-3 text-right">ชั่งออก (กก.)</th><th class="p-3 text-right">สุทธิ (กก.)</th>
-              <th class="p-3 text-center">ชื้น (%)</th><th class="p-3 text-center">กอง</th><th class="p-3 text-center">สถานะตั๋ว</th>
-              <th class="p-3 text-center">ความเสี่ยง / Lot</th><th class="p-3 text-center">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody id="table-unified-body" class="divide-y divide-slate-200"></tbody>
-        </table>
-      </div>
-      <div id="unified-pager" class="flex justify-between items-center p-3 text-sm border-t"></div>
-    </div>
-  </section>
-
-  <!-- 5) MAP -->
-  <section id="view-map" class="hidden space-y-5">
-    <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">จำนวนข้าวโพดที่เหลือในคลัง</h2>
-      <p class="text-sm text-slate-500">สถานะกองตามระดับความเสี่ยง ความจุ และช่วงความชื้นประจำกอง</p></div>
-
-    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
-      <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4 text-amber-500"></i> เกณฑ์การจัดเก็บแยกตาม 2 กองหลัก</h3>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead class="bg-slate-100 text-slate-700 font-bold border-b">
-            <tr><th class="p-2 border">กองในระบบ</th><th class="p-2 border">ช่วงความชื้น</th><th class="p-2 border">กระบวนการจัดการ</th></tr>
-          </thead>
-          <tbody class="divide-y text-slate-600">
-            <tr><td class="p-2 border font-bold text-amber-800">กองที่ 1</td><td class="p-2 border font-bold" id="map-rule-high">&gt;= 30% ขึ้นไป</td>
-              <td class="p-2 border">พักรอนำเข้าไซโรอบความชื้น เพื่อลดเปอร์เซ็นต์ความชื้นก่อนเก็บเข้าคลัง</td></tr>
-            <tr><td class="p-2 border font-bold text-emerald-800">กองที่ 2</td><td class="p-2 border font-bold" id="map-rule-safe">&lt; 30% ลงมา</td>
-              <td class="p-2 border">เก็บเข้าคลังทันที และเข้าไซโรอบเฉพาะตอนจ่ายออกตามเปอร์เซ็นต์ที่ลูกค้าต้องการ</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="map-grid-container"></div>
-  </section>
-
-  <!-- 7) ALERTS -->
-  <section id="view-alerts" class="hidden space-y-5">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-4">
-      <div>
-        <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2"><i data-lucide="bell" class="w-6 h-6 text-amber-500"></i> ศูนย์แจ้งเตือนอัจฉริยะ</h2>
-        <p class="text-sm text-slate-500">ตรวจสอบความชื้น อายุจัดเก็บ ความจุลาน ตั๋วชั่งค้าง และการซิงก์ข้อมูล</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <button onclick="markAllAlertsAsRead()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 flex items-center gap-1.5 transition"><i data-lucide="check-check" class="w-4 h-4 text-emerald-600"></i> อ่านทั้งหมด</button>
-        <button onclick="switchView('settings')" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 flex items-center gap-1.5 transition"><i data-lucide="settings" class="w-4 h-4 text-slate-500"></i> ตั้งค่าแจ้งเตือน</button>
-      </div>
-    </div>
-    <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
-      <div class="flex flex-wrap gap-1">
-        <button onclick="setAlertTab('all')" id="tab-alert-all" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 shadow">ทั้งหมด</button>
-        <button onclick="setAlertTab('stock')" id="tab-alert-stock" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100">สินค้า/คลัง</button>
-        <button onclick="setAlertTab('capacity')" id="tab-alert-capacity" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100">พื้นที่/ความจุ</button>
-        <button onclick="setAlertTab('system')" id="tab-alert-system" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100">ระบบ/ตั๋วชั่ง</button>
-      </div>
-      <span id="unread-count-text" class="text-xs font-bold text-amber-600 pr-2">ยังไม่อ่าน 0 รายการ</span>
-    </div>
-    <div id="alerts-container" class="space-y-4"></div>
-  </section>
-
-  <!-- 8) REPORTS -->
-  <section id="view-reports" class="hidden space-y-5">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-      <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">รายงานและส่งออก</h2>
-        <p class="text-sm text-slate-500">กรองช่วงวันที่ พิมพ์ และส่งออก CSV</p></div>
-      <div class="flex flex-wrap gap-2 no-print">
-        <button onclick="window.print()" class="px-4 py-2.5 bg-slate-800 text-white rounded-lg text-sm flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i> พิมพ์</button>
-        <button onclick="exportCSV()" class="px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm flex items-center gap-2"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> CSV/Excel</button>
-        <button onclick="exportBackup()" class="px-4 py-2.5 bg-slate-600 text-white rounded-lg text-sm">สำรอง JSON</button>
-        <label class="px-4 py-2.5 bg-slate-200 rounded-lg text-sm cursor-pointer">กู้คืน<input type="file" accept="application/json" class="hidden" onchange="importBackup(this)"></label>
-      </div>
-    </div>
-    <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 no-print">
-        <div><label for="rep-from" class="block text-xs font-semibold mb-1">ตั้งแต่วันที่</label><input type="date" id="rep-from" onchange="renderReports()" class="w-full border rounded-lg px-2 py-2.5 text-sm"></div>
-        <div><label for="rep-to" class="block text-xs font-semibold mb-1">ถึงวันที่</label><input type="date" id="rep-to" onchange="renderReports()" class="w-full border rounded-lg px-2 py-2.5 text-sm"></div>
-        <div><label for="rep-type" class="block text-xs font-semibold mb-1">ประเภท</label>
-          <select id="rep-type" onchange="renderReports()" class="w-full border rounded-lg px-2 py-2.5 text-sm">
-            <option value="stock">สต็อกคงเหลือรายล็อต</option><option value="in">รายการรับเข้า</option><option value="out">รายการจ่ายออก</option></select></div>
-        <div class="flex items-end"><button onclick="clearReportRange()" class="w-full bg-slate-200 rounded-lg py-2.5 text-sm">ล้างช่วงวันที่</button></div>
-      </div>
-      <h3 class="font-bold text-lg mb-3 text-center border-b pb-2" id="report-title">รายงานสรุปสถานะคลังสินค้าลานข้าวโพด</h3>
-      <div class="grid grid-cols-2 gap-3 text-sm mb-4">
-        <div><strong>วันที่ออกรายงาน:</strong> <span id="report-date"></span></div>
-        <div><strong>ผู้ออกรายงาน:</strong> <span id="report-author"></span></div>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="rtable w-full text-left text-sm border-collapse border border-slate-300">
-          <thead id="report-table-head"></thead><tbody id="report-table-body"></tbody>
-          <tfoot id="report-table-foot" class="font-bold bg-slate-50"></tfoot>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- 9) SETTINGS -->
-  <section id="view-settings" class="hidden space-y-5">
-    <div><h2 class="text-xl md:text-2xl font-bold text-slate-800">ตั้งค่าเกณฑ์ระบบ</h2>
-      <p class="text-sm text-slate-500">ทุกค่าถูกใช้คำนวณจริงทั้งระบบ</p></div>
-    <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm max-w-3xl space-y-4">
-      <h3 class="font-bold border-b pb-2">เกณฑ์ความชื้น (%)</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><label for="setting-moist-normal" class="block text-xs font-semibold mb-1">ปกติ (ไม่เกิน %)</label><input type="number" id="setting-moist-normal" step="0.1" class="w-full border rounded-lg p-2.5 text-sm"></div>
-        <div><label for="setting-moist-warn" class="block text-xs font-semibold mb-1">ต้องเข้าไซโรอบ / แบ่งกอง (ตั้งแต่ %)</label><input type="number" id="setting-moist-warn" step="0.1" class="w-full border rounded-lg p-2.5 text-sm"></div>
-      </div>
-      <h3 class="font-bold border-b pb-2 pt-2">ระยะเวลาจัดเก็บ (วัน)</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><label for="setting-age-warn" class="block text-xs font-semibold mb-1">เริ่มเฝ้าระวัง</label><input type="number" id="setting-age-warn" class="w-full border rounded-lg p-2.5 text-sm"></div>
-        <div><label for="setting-age-max" class="block text-xs font-semibold mb-1">นานเกินกำหนด</label><input type="number" id="setting-age-max" class="w-full border rounded-lg p-2.5 text-sm"></div>
-      </div>
-      <h3 class="font-bold border-b pb-2 pt-2">หน่วยและความจุ</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div><label for="setting-bucket-kg" class="block text-xs font-semibold mb-1">น้ำหนักต่อถัง (กก.)</label><input type="number" id="setting-bucket-kg" step="0.1" min="1" class="w-full border rounded-lg p-2.5 text-sm"></div>
-        <div><label for="setting-capacity" class="block text-xs font-semibold mb-1">ความจุลานรวม (กก.)</label><input type="number" id="setting-capacity" min="1" class="w-full border rounded-lg p-2.5 text-sm"></div>
-        <div><label for="setting-cap-alert" class="block text-xs font-semibold mb-1">เตือนเมื่อใช้เกิน (%)</label><input type="number" id="setting-cap-alert" min="1" max="100" class="w-full border rounded-lg p-2.5 text-sm"></div>
-      </div>
-      <h3 class="font-bold border-b pb-2 pt-2">ความจุและเงื่อนไขความชื้นประจำกอง</h3>
-      <div id="zone-capacity-box" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-      <div class="pt-3 flex justify-end"><button onclick="saveSettings()" class="bg-emerald-600 text-white px-5 py-3 rounded-lg text-sm font-medium disabled:opacity-50">บันทึกการตั้งค่า</button></div>
-    </div>
-    <div class="bg-white p-4 md:p-6 rounded-xl border shadow-sm max-w-3xl">
-      <h3 class="font-bold border-b pb-2 mb-3">ประวัติการใช้งาน (Audit Log — 500 รายการล่าสุด)</h3>
-      <div class="max-h-72 overflow-y-auto text-xs space-y-1" id="audit-log-box"></div>
-    </div>
-  </section>
-
-  </div>
-</main>
-</div>
-
-<div id="modal-root" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-[70] p-4 overflow-y-auto no-print" role="dialog" aria-modal="true">
-  <div class="min-h-full flex items-center justify-center"><div id="modal-box" class="bg-white rounded-xl shadow-2xl max-w-md w-full p-5 space-y-4"></div></div>
-</div>
-<div id="toast-root" class="fixed top-4 right-4 z-[80] space-y-2 no-print w-[min(92vw,22rem)]"></div>
-<div id="print-area"></div>
-
-<script>
-'use strict';
-
-/* =================== CONFIG =================== */
-const WMS_CONFIG = Object.freeze({
-  API_URL: 'https://script.google.com/macros/s/AKfycbwx46_ZK2Y04ElbvoF0hySWAg3-WIbjHUv7T_wujTxH1_y_iTKkR7dOyZPyj26FMx_4Nw/exec',
-  // 'local'  = ตรวจรหัสผ่านในเครื่อง (ใช้ API_KEY ส่งไปกับทุก request)
-  // 'server' = ตรวจรหัสผ่านที่ Apps Script แล้วรับ token รายผู้ใช้กลับมา (ปลอดภัยกว่า แนะนำสำหรับใช้งานจริง)
-  AUTH_MODE: 'local',
-  API_KEY: '',               // ตั้งให้ตรงกับ Script Properties "API_KEY" ฝั่ง Apps Script
-  SESSION_MAX_HOURS: 10,
-  IDLE_TIMEOUT_MIN: 30,
-  SILO_MAX_KG: 30000,
-  MAX_TRUCK_KG: 80000,
-  PENDING_ALERT_HOURS: 6,
-  SHOW_DEMO_HINT: true       // ตั้งเป็น false ก่อนใช้งานจริง
-});
-
-const SELF_HTML = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-const IS_PREVIEW = window.__WMS_MODE__ === 'preview';
-
-/* =================== AUTH (รหัสผ่านเก็บเป็น SHA-256) =================== */
-// SHA-256("1234") — เปลี่ยนรหัสผ่านด้วยการแทนค่า hash ใหม่ (ห้ามเก็บรหัสผ่านตรง ๆ)
-const PASS_1234 = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4';
-const DEFAULT_USERS = Object.freeze([
-  { username:'admin',   passHash:PASS_1234, role:'เจ้าของลาน',          name:'ผู้ดูแลระบบหลัก' },
-  { username:'manager', passHash:PASS_1234, role:'ผู้จัดการ',           name:'ผู้จัดการลาน' },
-  { username:'stock',   passHash:PASS_1234, role:'พนักงานคลัง',         name:'พนักงานคลังสินค้า' },
-  { username:'scale',   passHash:PASS_1234, role:'พนักงานชั่งน้ำหนัก', name:'พนักงานประจำเครื่องชั่ง' }
-]);
-
-function sha256Fallback(str){
-  const bytes = Array.from(new TextEncoder().encode(str));
-  const maxWord = 4294967296, K = [], H = [], comp = {};
-  for (let c = 2, n = 0; n < 64; c++){
-    if (!comp[c]){
-      for (let i = 0; i < 313; i += c) comp[i] = c;
-      H[n] = (Math.pow(c, .5) * maxWord) | 0;
-      K[n++] = (Math.pow(c, 1/3) * maxWord) | 0;
-    }
-  }
-  const bitLen = bytes.length * 8;
-  bytes.push(0x80);
-  while (bytes.length % 64 !== 56) bytes.push(0);
-  const hi = Math.floor(bitLen / maxWord), lo = bitLen >>> 0;
-  bytes.push((hi>>>24)&255,(hi>>>16)&255,(hi>>>8)&255,hi&255,(lo>>>24)&255,(lo>>>16)&255,(lo>>>8)&255,lo&255);
-  const hash = H.slice(0, 8);
-  const rr = (v, n) => (v >>> n) | (v << (32 - n));
-  for (let off = 0; off < bytes.length; off += 64){
-    const w = new Array(64);
-    for (let i = 0; i < 16; i++){ const j = off + i*4; w[i] = (bytes[j]<<24)|(bytes[j+1]<<16)|(bytes[j+2]<<8)|bytes[j+3]; }
-    for (let i = 16; i < 64; i++){
-      const x = w[i-15], y = w[i-2];
-      w[i] = (w[i-16] + (rr(x,7)^rr(x,18)^(x>>>3)) + w[i-7] + (rr(y,17)^rr(y,19)^(y>>>10))) | 0;
-    }
-    let [a,b,c,d,e,f,g,h] = hash;
-    for (let i = 0; i < 64; i++){
-      const t1 = (h + (rr(e,6)^rr(e,11)^rr(e,25)) + ((e&f)^(~e&g)) + K[i] + w[i]) | 0;
-      const t2 = ((rr(a,2)^rr(a,13)^rr(a,22)) + ((a&b)^(a&c)^(b&c))) | 0;
-      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
-    }
-    hash[0]=(hash[0]+a)|0; hash[1]=(hash[1]+b)|0; hash[2]=(hash[2]+c)|0; hash[3]=(hash[3]+d)|0;
-    hash[4]=(hash[4]+e)|0; hash[5]=(hash[5]+f)|0; hash[6]=(hash[6]+g)|0; hash[7]=(hash[7]+h)|0;
-  }
-  return hash.map(x => (x >>> 0).toString(16).padStart(8, '0')).join('');
-}
-async function sha256Hex(str){
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 25000);
   try {
-    if (window.crypto && crypto.subtle){
-      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
-    }
-  } catch(e){}
-  return sha256Fallback(str);
+    const res = await fetch(WMS_CONFIG.API_URL, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, signal: ctl.signal,
+      body: JSON.stringify({ ...payload, token: authToken || WMS_CONFIG.API_KEY })
+    });
+    return await res.json().catch(() => ({ ok:false, error:'invalid json' }));
+  } finally { clearTimeout(timer); }
 }
 
-let currentUser = null;   // { username, role, name }
-let authToken = '';
-const SESSION_KEY = 'WMS_ACTIVE_SESSION';
-
-/* =================== PROVINCES =================== */
-const THAI_PROVINCES = [
-  "กรุงเทพมหานคร","กระบี่","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร","ขอนแก่น","จันทบุรี","ฉะเชิงเทรา",
-  "ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร","ตรัง","ตราด","ตาก","นครนายก","นครปฐม","นครพนม",
-  "นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน","บึงกาฬ","บุรีรัมย์",
-  "ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี","พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง",
-  "พิจิตร","พิษณุโลก","เพชรบุรี","เพชรบูรณ์","แพร่","ภูเก็ต","มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน",
-  "ยโสธร","ยะลา","ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี","ลพบุรี","ลำปาง","ลำพูน","เลย",
-  "ศรีสะเกษ","สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร","สระแก้ว",
-  "สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์","หนองคาย","หนองบัวลำภู",
-  "อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี","เชียงราย","เชียงใหม่"
-];
-let activeProvinceFocusIndex = -1;
-
-function onProvinceSearchInput(val){
-  const dropdown = $('province-dropdown');
-  if (!dropdown) return;
-  const query = val.trim();
-  $('step1-plate-province').value = THAI_PROVINCES.includes(query) ? query : '';
-  const filtered = query === '' ? THAI_PROVINCES : THAI_PROVINCES.filter(p => p.includes(query));
-  dropdown.innerHTML = filtered.length
-    ? filtered.map(prov => `<div onclick="selectProvince(this.dataset.prov)" data-prov="${esc(prov)}"
-        class="province-item px-3.5 py-2 text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-900 cursor-pointer transition flex items-center justify-between">
-        <span>${esc(prov)}</span>${val === prov ? '<span class="text-amber-600">✓</span>' : ''}</div>`).join('')
-    : `<div class="p-3 text-xs text-slate-400 text-center">ไม่พบจังหวัดที่ค้นหา</div>`;
-  dropdown.classList.remove('hidden');
-  activeProvinceFocusIndex = -1;
+/* ---- เลขเอกสาร + ตัดสต็อก: ทำบนเซิร์ฟเวอร์ (LockService) เพื่อให้หลายอุปกรณ์ไม่ชนกัน ---- */
+async function issueDocNo(prefix){
+  if (!apiReady()) return peekDocNo(prefix);
+  try { const r = await apiPost({ action:'next_doc_no', prefix }); if (r && r.ok && r.docNo) return r.docNo; } catch(e){}
+  toast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ใช้เลขชั่วคราวของเครื่องนี้ (มี -X นำหน้า) กรุณาตรวจสัญญาณ','warn',7000);
+  const k = dayKey(nowLocalInput()).replace(/-/g,''); let d;
+  do { d = `${prefix}-${k}-X${Math.random().toString(36).slice(2,6).toUpperCase()}`; } while (docExists(d));
+  return d;
 }
-function onProvinceInputFocus(){ onProvinceSearchInput($('step1-province-input')?.value || ''); }
-function selectProvince(provName){
-  if (!THAI_PROVINCES.includes(provName)) return;
-  $('step1-province-input').value = provName;
-  $('step1-plate-province').value = provName;
-  $('province-dropdown').classList.add('hidden');
-}
-function onProvinceKeyDown(e){
-  const dropdown = $('province-dropdown');
-  if (!dropdown || dropdown.classList.contains('hidden')) return;
-  const items = dropdown.querySelectorAll('.province-item');
-  if (!items.length) return;
-  if (e.key === 'ArrowDown'){ e.preventDefault(); activeProvinceFocusIndex = (activeProvinceFocusIndex + 1) % items.length; highlightProvinceItem(items); }
-  else if (e.key === 'ArrowUp'){ e.preventDefault(); activeProvinceFocusIndex = (activeProvinceFocusIndex - 1 + items.length) % items.length; highlightProvinceItem(items); }
-  else if (e.key === 'Enter'){
-    e.preventDefault();
-    if (activeProvinceFocusIndex >= 0 && items[activeProvinceFocusIndex]) items[activeProvinceFocusIndex].click();
-    else if (items.length === 1) items[0].click();
+// คืน {ok:true,...} หรือ {ok:false,error,msg,available}
+async function stockServer(action, payload){
+  if (window.WMS_SYNC && WMS_SYNC.pendingCount() > 0){
+    await WMS_SYNC.flush();
+    if (WMS_SYNC.pendingCount() > 0) return { ok:false, error:'pending_queue', msg:'ยังมีข้อมูลค้างส่งขึ้น Sheets — ตรวจสัญญาณ/สถานะซิงก์ก่อน แล้วลองใหม่' };
   }
-  else if (e.key === 'Escape'){ dropdown.classList.add('hidden'); }
+  let r;
+  try { r = await apiPost({ action, ...payload }); }
+  catch(e){ return { ok:false, error:'network', msg:'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — การจ่ายออก/คืนสต็อกต้องออนไลน์' }; }
+  if (!r || !r.ok) return { ok:false, error:r?.error || 'rejected', available:r?.available, msg:r?.error === 'forbidden' ? 'สิทธิ์ไม่เพียงพอ' : (r?.error || 'เซิร์ฟเวอร์ปฏิเสธ') };
+  return r;
 }
-function highlightProvinceItem(items){
-  items.forEach((item, i) => {
-    const on = i === activeProvinceFocusIndex;
-    item.classList.toggle('bg-amber-100', on); item.classList.toggle('font-bold', on);
-    if (on) item.scrollIntoView({ block:'nearest' });
+function applyServerLots(list){
+  (list || []).forEach(u => {
+    const l = appState.lots.find(x => x.id === u.id);
+    if (l){ l.currentWeight = num(u.currentWeight); window.WMS_SYNC?.markSynced('lots', l); }
   });
-}
-function resetProvinceInput(){
-  $('step1-province-input').value = ''; $('step1-plate-province').value = '';
-  $('province-dropdown')?.classList.add('hidden');
-}
-document.addEventListener('click', e => {
-  const box = $('province-box');
-  if (box && !box.contains(e.target)) $('province-dropdown')?.classList.add('hidden');
-  const sr = $('search-results'), gs = $('global-search');
-  if (sr && gs && !sr.contains(e.target) && e.target !== gs) sr.classList.add('hidden');
-});
-
-function onTypeChange(type){
-  const isOutbound = type === 'จ่ายออก';
-  const mw = $('step1-moisture-wrapper'), mi = $('step1-moisture');
-  if (isOutbound){
-    mw.style.display = 'none'; mi.removeAttribute('required'); mi.value = '';
-    $('step1-weight-label').textContent = '9. น้ำหนักรถเปล่าขาเข้า (Tare Weight - กิโลกรัม) *';
-    $('step1-submit-btn').innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> บันทึกรถเข้า (จ่ายออก)`;
-  } else {
-    mw.style.display = 'block'; mi.setAttribute('required','required');
-    $('step1-weight-label').textContent = '9. น้ำหนักรถเข้า (Gross Weight - กิโลกรัม) *';
-    $('step1-submit-btn').innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> บันทึกรถเข้า & วัดความชื้น`;
-  }
-  if (window.lucide) lucide.createIcons();
-}
-
-/* =================== PREVIEW SHELL =================== */
-const SHELL = {desktop:'desktop-shell', tablet:'tablet-shell', mobile:'mobile-shell'};
-const INFO  = {desktop:'Desktop (100%)', tablet:'Tablet (820px)', mobile:'Mobile (390 x 844)'};
-function switchDevice(type){
-  const w = document.getElementById('frame-wrapper'); if (!w) return;
-  w.className = 'preview-frame ' + SHELL[type] + ' bg-white overflow-hidden relative';
-  document.getElementById('device-info-text').textContent = INFO[type];
-  document.querySelectorAll('.dev-btn').forEach(b => {
-    const on = b.dataset.dev === type;
-    b.className = 'dev-btn px-3 py-2 rounded-lg text-xs font-semibold ' + (on ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white');
-  });
-}
-function enterPreview(){ location.hash = 'preview'; location.reload(); }
-function exitPreview(){ location.hash = ''; location.reload(); }
-function previewReload(){ initPreviewFrame(); }
-function initPreviewFrame(){
-  const f = document.getElementById('app-iframe'), fb = document.getElementById('frame-fallback');
-  fb.classList.add('hidden'); f.removeAttribute('srcdoc');
-  let handshake = false;
-  const onMsg = e => { if (e.data === 'WMS_READY'){ handshake = true; window.removeEventListener('message', onMsg); } };
-  window.addEventListener('message', onMsg);
-  f.src = location.href.split('#')[0] + '#app';
-  setTimeout(() => {
-    if (handshake) return;
-    try { f.removeAttribute('src'); f.srcdoc = SELF_HTML; setTimeout(() => { if (!handshake) fb.classList.remove('hidden'); }, 2500); }
-    catch(e){ fb.classList.remove('hidden'); }
-  }, 1500);
-}
-if (IS_PREVIEW){
-  document.querySelectorAll('.dev-btn').forEach(b => b.onclick = () => switchDevice(b.dataset.dev));
-  window.addEventListener('DOMContentLoaded', () => { switchDevice('desktop'); initPreviewFrame(); if (window.lucide) lucide.createIcons(); });
-}
-
-/* =================== STATE =================== */
-const STORAGE_KEY = 'SMART_CORN_WMS_DB_V5';
-const SCHEMA_VERSION = 3;
-const DEFAULT_STATE = {
-  version: SCHEMA_VERSION,
-  settings: { moistNormal:15.0, moistWarn:30.0, ageWarn:14, ageMax:30,
-    bucketKg:15, yardCapacityKg:500000, capAlertPct:85,
-    zones: [
-      { code:'กองที่ 1', capacityKg:100000, targetMoisture:'high' },
-      { code:'กองที่ 2', capacityKg:100000, targetMoisture:'safe' }
-    ] },
-  counters:{}, lots:[], weighingRecords:[], issueRecords:[], activityLogs:[],
-  readAlerts:[], dismissedAlerts:[]
-};
-let appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
-
-const $ = id => document.getElementById(id);
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const round2 = n => Math.round(((Number(n)||0) + Number.EPSILON) * 100) / 100;
-const round1 = n => Math.round((Number(n)||0) * 10) / 10;
-const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
-const nf = (n,d=0) => (Number(n)||0).toLocaleString('th-TH',{minimumFractionDigits:d,maximumFractionDigits:d});
-const uid = p => p + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
-const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
-const safeId = (id, prefix) => (typeof id === 'string' && SAFE_ID.test(id)) ? id : uid(prefix);
-const isInt = v => Number.isInteger(Number(v));
-function toLocalInput(d){ return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16); }
-function nowLocalInput(){ return toLocalInput(new Date()); }
-const dayKey = iso => { const s = String(iso||''); if (/Z$|[+-]\d\d:\d\d$/.test(s)){ const d = new Date(s); if (!isNaN(d)) return toLocalInput(d).slice(0,10); } return s.slice(0,10); };
-const hoursSince = iso => { const d = new Date(iso); return isNaN(d) ? 0 : (Date.now() - d.getTime()) / 3.6e6; };
-function fmtDT(iso){ if(!iso) return '-'; const d=new Date(iso); return isNaN(d)?esc(iso):d.toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}); }
-function fmtD(iso){ if(!iso) return '-'; const d=new Date(iso); return isNaN(d)?esc(iso):d.toLocaleDateString('th-TH',{dateStyle:'medium'}); }
-const actorName = () => currentUser ? `${currentUser.name} (${currentUser.username})` : 'system';
-
-function toast(msg, type='ok', ms=3500){
-  const c = {ok:'bg-emerald-600', error:'bg-red-600', warn:'bg-amber-500', info:'bg-slate-800'};
-  const el = document.createElement('div');
-  el.className = `toast-in ${c[type]||c.info} text-white text-sm px-4 py-3 rounded-lg shadow-lg`;
-  el.setAttribute('role','status'); el.textContent = msg;
-  $('toast-root').appendChild(el);
-  setTimeout(() => { el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(() => el.remove(), 300); }, ms);
-}
-
-/* ---------- Submit lock (กันกดซ้ำ) ---------- */
-const _busy = new Set();
-async function withLock(key, btn, fn){
-  if (_busy.has(key)) return;
-  _busy.add(key); if (btn) btn.disabled = true;
-  try { await fn(); }
-  catch(err){ console.error(err); toast('เกิดข้อผิดพลาด: ' + (err?.message || err), 'error', 6000); }
-  finally { setTimeout(() => { _busy.delete(key); if (btn) btn.disabled = false; }, 500); }
-}
-
-/* ---------- Modal ---------- */
-let lastFocus = null, modalCloseCb = null;
-function openModal(html, onOpen, onClose){
-  lastFocus = document.activeElement;
-  modalCloseCb = onClose || null;
-  $('modal-box').innerHTML = html;
-  $('modal-root').classList.remove('hidden');
-  document.body.classList.add('drawer-lock');
-  if (window.lucide) lucide.createIcons();
-  const f = $('modal-box').querySelector('input:not([disabled]),select:not([disabled]),textarea,button'); if (f) f.focus();
-  if (onOpen) onOpen();
-}
-function closeModal(){
-  const cb = modalCloseCb; modalCloseCb = null;
-  $('modal-root').classList.add('hidden'); $('modal-box').innerHTML = '';
-  document.body.classList.remove('drawer-lock');
-  if (lastFocus && lastFocus.focus) lastFocus.focus();
-  if (cb) cb();
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('modal-root').classList.contains('hidden')) closeModal(); });
-
-function uiConfirm(title, opts={}){
-  return new Promise(resolve => {
-    openModal(`
-      <h3 class="font-bold text-base text-slate-800 border-b pb-2 mb-3">${esc(title)}</h3>
-      ${opts.message ? `<p class="text-sm text-slate-600 mb-2">${esc(opts.message)}</p>` : ''}
-      ${opts.askReason ? `<label for="ui-confirm-reason" class="block text-xs font-bold text-slate-700 mb-1">เหตุผล *</label>
-        <input type="text" id="ui-confirm-reason" maxlength="150" class="w-full border border-slate-300 rounded-lg p-2 text-sm mb-2" placeholder="เช่น คีย์น้ำหนักผิด">` : ''}
-      ${opts.requireText ? `<p class="text-xs text-slate-500 mb-2">พิมพ์คำว่า "<b>${esc(opts.requireText)}</b>" เพื่อยืนยัน</p>
-        <input type="text" id="ui-confirm-input" class="w-full border border-slate-300 rounded-lg p-2 text-sm mb-2">` : ''}
-      <div class="flex justify-end gap-2 pt-2">
-        <button id="ui-confirm-cancel" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium">ยกเลิก</button>
-        <button id="ui-confirm-ok" class="px-4 py-2 ${opts.danger?'bg-red-600':'bg-amber-500'} text-white rounded-lg text-sm font-bold shadow">ยืนยัน</button>
-      </div>`,
-    () => {
-      $('ui-confirm-ok').onclick = () => {
-        if (opts.requireText && $('ui-confirm-input').value.trim() !== opts.requireText) return toast(`กรุณาพิมพ์ "${opts.requireText}" ให้ถูกต้อง`, 'warn');
-        let reason = true;
-        if (opts.askReason){ reason = $('ui-confirm-reason').value.trim(); if (!reason) return toast('กรุณาระบุเหตุผล','warn'); }
-        resolve(reason); closeModal();
-      };
-      $('ui-confirm-cancel').onclick = () => { resolve(false); closeModal(); };
-    },
-    () => resolve(false));
-  });
-}
-
-/* =================== API =================== */
-const apiReady = () => !!WMS_CONFIG.API_URL && !WMS_CONFIG.API_URL.includes('PASTE_');
-async function apiPost(payload){
-  const res = await fetch(WMS_CONFIG.API_URL, {
-    method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({ ...payload, token: authToken || WMS_CONFIG.API_KEY })
-  });
-  return res.json().catch(() => ({ ok:false, error:'invalid json' }));
 }
 
 /* =================== SESSION / LOGIN =================== */
 let loginFails = 0, loginLockUntil = 0;
 function readSession(){ try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); } catch(e){ return null; } }
+const STAFF_ROLES = ['พนักงานคลัง','พนักงานชั่งน้ำหนัก'];   // เข้าด้วย PIN ประจำวัน
+const bkkToday = () => new Date().toLocaleDateString('en-CA', { timeZone:'Asia/Bangkok' });
+const staffDayExpired = s => !!s && STAFF_ROLES.includes(s.role) && (!s.day || s.day !== bkkToday());
 function sessionExpired(s){
   if (!s) return true;
   const now = Date.now();
+  if (staffDayExpired(s) || (s.expiresAt && now > s.expiresAt)) return true;   // พนักงาน: หมดอายุ 00:00 น. ต้องใช้ PIN ใหม่
   return (now - num(s.loginAt) > WMS_CONFIG.SESSION_MAX_HOURS * 3.6e6) || (now - num(s.lastActive) > WMS_CONFIG.IDLE_TIMEOUT_MIN * 6e4);
 }
 function applyUserUI(){
@@ -2516,9 +1091,10 @@ function applyUserUI(){
   $('user-avatar').textContent = currentUser ? currentUser.name.substring(0,2) : '-';
   $('login-overlay').classList.toggle('hidden', !!currentUser);
 }
-function startSession(user, token){
+function startSession(user, token, extra){
   const now = Date.now();
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ username:user.username, role:user.role, name:user.name, token:token||'', loginAt:now, lastActive:now }));
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ username:user.username, role:user.role, name:user.name, token:token||'', loginAt:now, lastActive:now,
+    day: (extra && extra.day) || bkkToday(), expiresAt: (extra && extra.expiresAt) || null }));
   currentUser = { username:user.username, role:user.role, name:user.name };
   authToken = token || '';
   applyUserUI();
@@ -2544,7 +1120,11 @@ function touchSession(){
   const s = readSession(); if (s){ s.lastActive = now; sessionStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
 }
 ['click','keydown','touchstart'].forEach(ev => document.addEventListener(ev, touchSession, { passive:true }));
-setInterval(() => { if (currentUser && sessionExpired(readSession())) handleLogout('หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบใหม่'); }, 30000);
+setInterval(() => {
+  if (currentUser && sessionExpired(readSession())){
+    handleLogout(STAFF_ROLES.includes(currentUser.role) && staffDayExpired(readSession()) ? 'ขึ้นวันใหม่แล้ว — PIN ประจำวันเดิมหมดอายุ กรุณาขอ PIN ใหม่จากผู้จัดการ' : 'หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบใหม่');
+  } else if (currentUser && can('pins') && pinCache && pinCache.date !== bkkToday()) renderPinBox(true);   // ผู้จัดการ: ข้ามวัน → โหลด PIN ใหม่
+}, 30000);
 
 function handleLogin(e){
   e.preventDefault();
@@ -2556,10 +1136,21 @@ function handleLogin(e){
     }
     const u = $('login-username').value.trim().toLowerCase();
     const p = $('login-password').value;
-    let user = null, token = '';
+    let user = null, token = '', loginExtra = null;
     if (WMS_CONFIG.AUTH_MODE === 'server'){
-      try { const r = await apiPost({ action:'login', username:u, password:p }); if (r && r.ok && r.user){ user = r.user; token = r.token; } }
-      catch(err){ return toast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ไม่สามารถเข้าสู่ระบบ', 'error'); }
+      const showErr = t => { msg.textContent = t; msg.classList.remove('hidden'); toast(t, 'error', 9000); };
+      if (!apiReady()) return showErr('ยังไม่ได้ตั้งค่า API_URL ในไฟล์ (WMS_CONFIG.API_URL)');
+      msg.textContent = 'กำลังเชื่อมต่อเซิร์ฟเวอร์…'; msg.classList.remove('hidden');
+      let r;
+      try { r = await apiPost({ action:'login', username:u, password:p }); }
+      catch(err){ return showErr(err && err.name === 'AbortError'
+        ? 'เซิร์ฟเวอร์ไม่ตอบสนองภายใน 25 วินาที — ตรวจอินเทอร์เน็ต แล้วลองใหม่'
+        : 'ติดต่อ Apps Script ไม่ได้ — ตรวจว่าลิงก์ API_URL ถูกต้อง, Deploy เป็น Web app แล้ว และตั้ง "Who has access: Anyone"'); }
+      if (r && r.ok && r.user){ user = r.user; token = r.token; loginExtra = { day:r.day, expiresAt:r.expiresAt }; msg.classList.add('hidden'); }
+      else if (r && r.error === 'locked') return showErr('ใส่รหัสผิดหลายครั้ง บัญชีถูกล็อกชั่วคราว รอ 1 นาทีแล้วลองใหม่');
+      else if (r && r.error === 'invalid json') return showErr('เซิร์ฟเวอร์ตอบกลับไม่ใช่ข้อมูลที่ถูกต้อง — ลิงก์อาจไม่ใช่ Web app หรือยังไม่ได้ Deploy เวอร์ชันใหม่ของ Code.gs');
+      else if (r && (r.error === 'unknown action' || r.error === 'invalid table')) return showErr('Code.gs บนเซิร์ฟเวอร์ยังเป็นเวอร์ชันเก่า — ต้อง Deploy > Manage deployments > Edit > New version');
+      else if (r && r.error && r.error !== 'invalid credentials') return showErr('เซิร์ฟเวอร์ตอบ: ' + r.error);
     } else {
       const f = DEFAULT_USERS.find(x => x.username === u);
       const h = await sha256Hex(p);
@@ -2568,13 +1159,13 @@ function handleLogin(e){
     if (!user){
       loginFails++;
       if (loginFails >= 5){ loginLockUntil = Date.now() + 60000; loginFails = 0; }
-      msg.textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'; msg.classList.remove('hidden');
+      msg.textContent = 'ชื่อผู้ใช้ หรือรหัสผ่าน/PIN ไม่ถูกต้อง (PIN ของเมื่อวานใช้ไม่ได้ — สอบถามผู้จัดการ)'; msg.classList.remove('hidden');
       $('login-password').value = '';
       return;
     }
     loginFails = 0; msg.classList.add('hidden');
     $('login-password').value = '';
-    startSession(user, token);
+    startSession(user, token, loginExtra);
     logActivity(`เข้าสู่ระบบ`);
     saveData();
     renderNav();
@@ -2589,7 +1180,7 @@ function handleLogout(reason){
   sessionStorage.removeItem(SESSION_KEY);
   if (!$('modal-root').classList.contains('hidden')) closeModal();
   $('form-login').reset();
-  applyUserUI(); renderNav(); switchView('dashboard');
+  pinCache = null; applyUserUI(); renderNav(); switchView('dashboard');
   toast(typeof reason === 'string' ? reason : 'ออกจากระบบเรียบร้อยแล้ว', 'info');
 }
 
@@ -2652,8 +1243,17 @@ function saveData(){
   appState.activityLogs = appState.activityLogs.slice(0,500);
   appState.readAlerts = appState.readAlerts.slice(-500);
   appState.dismissedAlerts = appState.dismissedAlerts.slice(-500);
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); }
-  catch(e){ toast('บันทึกไม่สำเร็จ: พื้นที่จัดเก็บเต็ม — กรุณาสำรองข้อมูลทันที','error',9000); return false; }
+  let str = JSON.stringify(appState);
+  try { localStorage.setItem(STORAGE_KEY, str); }
+  catch(e){
+    // พยายามเก็บกวาดข้อมูลรอง (log/แจ้งเตือน) แล้วลองใหม่หนึ่งครั้ง
+    appState.activityLogs = appState.activityLogs.slice(0,50); appState.readAlerts = []; appState.dismissedAlerts = [];
+    str = JSON.stringify(appState);
+    try { localStorage.setItem(STORAGE_KEY, str); toast('พื้นที่จัดเก็บใกล้เต็ม — ล้างประวัติกิจกรรมเก่าแล้ว กรุณาสำรองข้อมูล','warn',9000); }
+    catch(e2){ toast('บันทึกไม่สำเร็จ: พื้นที่จัดเก็บเต็ม — ห้ามรีเฟรชหน้านี้ กรุณาสำรองข้อมูลทันที','error',12000); return false; }
+  }
+  const usePct = Math.round(str.length / 5000000 * 100);
+  if (usePct >= 70 && !saveData._warned){ saveData._warned = true; toast(`พื้นที่จัดเก็บในเครื่องใช้ไปแล้ว ~${usePct}% — ควรสำรองข้อมูลและแจ้งผู้ดูแลระบบ`,'warn',10000); }
   window.WMS_SYNC?.onSave();
   refreshBadges(); refreshPendingBadgeCount();
   if (currentView === 'dashboard') renderDashboard();
@@ -2705,12 +1305,12 @@ const activeLots    = () => appState.lots.filter(l => l.status !== 'void');
 const availableLots = () => activeLots().filter(l => num(l.currentWeight) > 0);
 const findLotByDoc  = docNo => appState.lots.find(l => (l.docNo === docNo || l.lotNumber === docNo) && l.status !== 'void');
 const zoneStockKg   = code => activeLots().filter(l => l.location === code).reduce((a,l) => a + Math.max(0, num(l.currentWeight)), 0);
-function fifoLotsInZone(code){
-  return activeLots().filter(l => l.location === code && num(l.currentWeight) > 0)
-    .sort((a,b) => new Date(a.receivedDate) - new Date(b.receivedDate));
+function fifoLotsInZone(code, product){
+  return activeLots().filter(l => l.location === code && num(l.currentWeight) > 0 && (!product || l.product === product))
+    .sort((a,b) => (new Date(a.receivedDate) - new Date(b.receivedDate)) || String(a.id).localeCompare(String(b.id)));
 }
-function allocateFIFO(code, qty){
-  const lots = fifoLotsInZone(code);
+function allocateFIFO(code, qty, product){
+  const lots = fifoLotsInZone(code, product);
   const total = lots.reduce((a,l) => a + num(l.currentWeight), 0);
   if (qty > total + 1e-6) return null;
   const alloc = []; let remain = qty;
@@ -2733,11 +1333,15 @@ function applyAllocations(alloc, sign){
 }
 
 /* =================== NAV / ROLES =================== */
+// [id, icon, label, flow]  — งานรับเข้า (in) กับ งานจ่ายออก (out) แยกเมนูกัน ไม่มีปุ่มสลับประเภท
 const NAV_ITEMS = [
   ['dashboard','layout-dashboard','Dashboard'],
-  ['receiving','log-in','บันทึกรถเข้า'],
-  ['pending_outbound','clock','รายการรอชั่งออก'],
-  ['outbound_pricing','calculator','ชั่งน้ำหนักรถขาออก'],
+  ['receiving_in','log-in','ชั่งรถเข้า','in'],
+  ['pending_in','clock','รอชั่งออก','in','tab'],          // 'tab' = ไม่โชว์ในเมนูซ้าย แต่เป็นแท็บบนหน้า "ชั่งรถเข้า"
+  ['close_in','calculator','ปิดตั๋วรับเข้า','in','tab'],
+  ['receiving_out','log-out','ชั่งรถเปล่าเข้า','out'],
+  ['pending_out','clock','รอรับข้าว/ชั่งออก','out','tab'],
+  ['close_out','truck','ปิดตั๋ว/ตัดสต็อก','out','tab'],
   ['weighing','scale','ตั๋วชั่ง / ใบเสร็จ'],
   ['lots','boxes','จัดการ Lot & ตั๋วชั่ง'],
   ['map','map','จำนวนข้าวโพดในคลัง'],
@@ -2745,11 +1349,21 @@ const NAV_ITEMS = [
   ['reports','file-text','รายงานและส่งออก'],
   ['settings','settings','ตั้งค่าระบบ']
 ];
+const FLOW_IN = 'รับเข้า', FLOW_OUT = 'จ่ายออก';
+// หน้าจอจริง (section) ที่ใช้ร่วมกัน + งานที่ล็อกไว้ตามเมนู
+const VIEW_MAP = {
+  receiving_in:{sec:'receiving',flow:FLOW_IN},  pending_in:{sec:'pending_outbound',flow:FLOW_IN},  close_in:{sec:'outbound_pricing',flow:FLOW_IN},
+  receiving_out:{sec:'receiving',flow:FLOW_OUT}, pending_out:{sec:'pending_outbound',flow:FLOW_OUT}, close_out:{sec:'outbound_pricing',flow:FLOW_OUT}
+};
+const SECTIONS = ['dashboard','receiving','pending_outbound','outbound_pricing','weighing','lots','map','alerts','reports','settings'];
+let curFlow = FLOW_IN;
+const curSec = () => (VIEW_MAP[currentView] || { sec:currentView }).sec;
+const FLOW_VIEWS = ['receiving_in','pending_in','close_in','receiving_out','pending_out','close_out'];
 const ROLES = {
-  'เจ้าของลาน':{views:'*',perms:{settings:1,void:1,demo:1,reset:1,edit:1,backup:1}},
-  'ผู้จัดการ':{views:'*',perms:{settings:1,void:1,demo:0,reset:0,edit:1,backup:1}},
-  'พนักงานคลัง':{views:['dashboard','receiving','pending_outbound','outbound_pricing','lots','map','alerts'],perms:{edit:1}},
-  'พนักงานชั่งน้ำหนัก':{views:['dashboard','weighing','receiving','pending_outbound','outbound_pricing'],perms:{}}
+  'เจ้าของลาน':{views:'*',perms:{settings:1,void:1,demo:1,reset:1,edit:1,backup:1,pins:1}},
+  'ผู้จัดการ':{views:'*',perms:{settings:1,void:1,demo:0,reset:0,edit:1,backup:1,pins:1}},
+  'พนักงานคลัง':{views:['dashboard',...FLOW_VIEWS,'lots','map','alerts'],perms:{edit:1}},
+  'พนักงานชั่งน้ำหนัก':{views:['dashboard','weighing',...FLOW_VIEWS],perms:{}}
 };
 const can = p => !!(currentUser && ROLES[currentUser.role]?.perms?.[p]);
 function allowedViews(){
@@ -2761,16 +1375,22 @@ function requirePerm(p, msg){ if (can(p)) return true; toast(msg || 'สิท�
 
 function renderNav(){
   const allow = allowedViews();
-  $('main-nav').innerHTML = NAV_ITEMS.filter(i => allow.includes(i[0])).map(([id,icon,label]) => `
-    <button onclick="switchView('${id}')" id="nav-${id}" title="${esc(label)}"
-      class="w-full flex items-center justify-between gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition">
+  let lastFlow = '';
+  const groupHead = f => f === 'in' ? '<div class="sidebar-text mt-3 mb-1 px-3 py-1.5 rounded-md bg-emerald-600 text-white text-xs font-extrabold tracking-wide">📥 งานรับเข้า (ซื้อ)</div>'
+                       : f === 'out' ? '<div class="sidebar-text mt-3 mb-1 px-3 py-1.5 rounded-md bg-sky-600 text-white text-xs font-extrabold tracking-wide">📤 งานจ่ายออก (ขาย)</div>' : '<div class="mt-3 border-t border-slate-700"></div>';
+  $('main-nav').innerHTML = NAV_ITEMS.filter(i => allow.includes(i[0]) && i[4] !== 'tab').map(([id,icon,label,flow]) => {
+    const head = (flow || '') !== lastFlow && (flow || lastFlow) ? groupHead(flow) : ''; lastFlow = flow || '';
+    const edge = flow === 'in' ? 'border-l-4 border-emerald-500' : flow === 'out' ? 'border-l-4 border-sky-500' : '';
+    return head + `
+    <button onclick="switchView('${id}')" id="nav-${id}" title="${esc((flow==='in'?'รับเข้า: ':flow==='out'?'จ่ายออก: ':'')+label)}"
+      class="w-full flex items-center justify-between gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition ${edge}">
       <span class="flex items-center gap-3 overflow-hidden">
         <i data-lucide="${icon}" class="w-5 h-5 shrink-0"></i>
         <span class="sidebar-text truncate">${esc(label)}</span>
       </span>
-      ${id==='pending_outbound'?'<span id="pending-count-badge" class="bg-amber-500 text-slate-950 text-xs px-2 py-0.5 rounded-full font-bold sidebar-text">0</span>':''}
+      ${id==='receiving_in'||id==='receiving_out'?`<span id="pending-count-badge-${id==='receiving_in'?'in':'out'}" class="bg-amber-500 text-slate-950 text-xs px-2 py-0.5 rounded-full font-bold sidebar-text">0</span>`:''}
       ${id==='alerts'?'<span id="alert-badge" class="hidden bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold sidebar-text">0</span>':''}
-    </button>`).join('');
+    </button>`; }).join('');
   $('btn-demo').classList.toggle('hidden', !can('demo'));
   $('btn-reset').classList.toggle('hidden', !can('reset'));
   $('btn-backup').classList.toggle('hidden', !can('backup'));
@@ -2779,19 +1399,53 @@ function renderNav(){
 }
 
 let currentView = 'dashboard';
+function applyFlowUI(sec){
+  const st = $('flow-stripe'); if (!st) return;
+  const isFlow = sec === 'receiving' || sec === 'pending_outbound' || sec === 'outbound_pricing';
+  if (!isFlow){ st.className = 'hidden'; st.innerHTML = ''; return; }
+  const inb = curFlow === FLOW_IN;
+  const tabs = inb ? [['receiving_in','1. ชั่งรถเข้า'],['pending_in','2. รอชั่งออก'],['close_in','3. ปิดตั๋วรับเข้า']]
+                   : [['receiving_out','1. ชั่งรถเปล่าเข้า'],['pending_out','2. รอรับข้าว/ชั่งออก'],['close_out','3. ปิดตั๋ว/ตัดสต็อก']];
+  const allow = allowedViews();
+  st.className = 'sticky top-0 z-20 mb-4 rounded-xl px-3 pt-3 pb-2 text-white shadow-lg ' + (inb ? 'bg-emerald-600' : 'bg-sky-600');
+  st.innerHTML = `<div class="px-1 pb-2 text-lg md:text-xl font-extrabold">${inb ? '📥 งานรับเข้า — ซื้อข้าวโพดเข้าลาน' : '📤 งานจ่ายออก — ขายข้าวโพดออกจากลาน'}</div>
+    <div class="flex gap-1.5 overflow-x-auto">${tabs.filter(([v]) => allow.includes(v)).map(([v, label]) => {
+      const on = v === currentView;
+      return `<button type="button" onclick="switchView('${v}')" class="whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-bold transition ${on ? 'bg-white ' + (inb ? 'text-emerald-700' : 'text-sky-700') + ' shadow' : 'bg-white/20 hover:bg-white/30 text-white'}">${label}${v.startsWith('pending') ? ` <span id="flow-tab-pending-badge" class="ml-1 bg-amber-400 text-slate-900 text-xs px-2 py-0.5 rounded-full font-extrabold">0</span>` : ''}</button>`;
+    }).join('')}</div>`;
+  refreshPendingBadgeCount();
+  const T = {
+    receiving: inb ? ['งานรับเข้า: ชั่งรถเข้า','วัดความชื้น ➔ กรอกข้อมูลรถ/ผู้ขาย ➔ ชั่งน้ำหนักรถเต็ม (Gross)']
+                   : ['งานจ่ายออก: ชั่งรถเปล่าเข้า','กรอกข้อมูลรถ/ลูกค้า ➔ ชั่งน้ำหนักรถเปล่า (Tare) — ความชื้นวัดตอนชั่งออก'],
+    pending_outbound: inb ? ['รถรับเข้าที่รอชั่งออก','รถชั่งเข้าแล้ว ➔ เทข้าวลงกองตามความชื้น (ระบบกำหนดกองอัตโนมัติ) ➔ กลับมาชั่งรถเปล่าออก']
+                          : ['รถจ่ายออกที่รอรับข้าว/ชั่งออก','รถเปล่าชั่งเข้าแล้ว ➔ รับข้าวจากกอง/ไซโร ➔ กลับมาชั่งรถบรรทุกขาออก'],
+    outbound_pricing: inb ? ['ปิดตั๋วรับเข้า','ชั่งรถเปล่าออก ➔ ระบบสร้าง Lot และกำหนดกองตามความชื้น']
+                          : ['ปิดตั๋วจ่ายออก & ตัดสต็อก','ชั่งรถบรรทุกขาออก ➔ ระบบตัดสต็อก FIFO ตามกอง/ประเภทสินค้า (จ่ายออกสูงสุดรอบละ 30 ตัน)']
+  }[sec];
+  const set = (id, t) => { const e = $(id); if (e) e.textContent = t; };
+  if (sec === 'receiving'){ set('receiving-title', T[0]); set('receiving-sub', T[1]); }
+  if (sec === 'pending_outbound'){ set('pending-title', T[0]); set('pending-sub', T[1]); }
+  if (sec === 'outbound_pricing'){ set('close-title', T[0]); set('close-sub', T[1]); $('outbound-mode-tabs')?.classList.toggle('hidden', inb); if (inb) switchOutboundMode('scale'); }
+  const card = $('receiving-card'); if (card) card.style.borderTop = '6px solid ' + (inb ? '#059669' : '#0284c7');
+}
+
 function switchView(viewId){
   if (!allowedViews().includes(viewId)){ if (currentUser) toast('สิทธิ์ของคุณไม่สามารถเข้าถึงเมนูนี้','warn'); return; }
+  const m = VIEW_MAP[viewId] || { sec:viewId };
   currentView = viewId;
-  NAV_ITEMS.forEach(([v]) => { $('view-'+v)?.classList.add('hidden'); $('nav-'+v)?.classList.remove('sidebar-active'); });
-  $('view-'+viewId)?.classList.remove('hidden');
-  $('nav-'+viewId)?.classList.add('sidebar-active');
+  if (m.flow) curFlow = m.flow;
+  SECTIONS.forEach(v => $('view-'+v)?.classList.add('hidden'));
+  NAV_ITEMS.forEach(([v]) => $('nav-'+v)?.classList.remove('sidebar-active'));
+  $('view-'+m.sec)?.classList.remove('hidden');
+  $('nav-'+(m.flow ? (m.flow === FLOW_IN ? 'receiving_in' : 'receiving_out') : viewId))?.classList.add('sidebar-active');
   $('main-container').scrollTop = 0;
   closeDrawer();
+  applyFlowUI(m.sec);
   ({
     dashboard: renderDashboard, receiving: prepareReceivingForm, pending_outbound: renderPendingTable,
     outbound_pricing: prepareOutboundPricingForm, weighing: renderWeighingTable, lots: renderUnifiedTable,
     map: renderWarehouseMap, alerts: renderAlertsCenter, reports: renderReports, settings: renderSettings
-  })[viewId]?.();
+  })[m.sec]?.();
   if (window.lucide) lucide.createIcons();
 }
 
@@ -2824,8 +1478,12 @@ function zoneOptionsWithStock(){
   return appState.settings.zones.map(z => `<option value="${esc(z.code)}">${esc(z.code)} — คงเหลือ ${nf(zoneStockKg(z.code))} กก.</option>`).join('');
 }
 function refreshPendingBadgeCount(){
-  const b = $('pending-count-badge');
-  if (b) b.textContent = appState.weighingRecords.filter(w => w.status === 'pending').length;
+  [['in',FLOW_IN],['out',FLOW_OUT]].forEach(([k,f]) => {
+    const b = $('pending-count-badge-' + k);
+    const n = appState.weighingRecords.filter(w => w.status === 'pending' && w.type === f).length;
+    if (b){ b.textContent = n; b.classList.toggle('hidden', n === 0); b.title = 'รถรอชั่งออก ' + n + ' คัน'; }
+    if (f === curFlow){ const t = $('flow-tab-pending-badge'); if (t) t.textContent = n; }
+  });
 }
 function refreshSupplierList(){
   const names = new Set();
@@ -2839,6 +1497,7 @@ function plateHasPending(plate){
 
 /* =================== STEP 1: รับรถเข้า =================== */
 function prepareReceivingForm(){
+  $('step1-type').value = curFlow;      // ประเภทถูกล็อกตามเมนูที่เข้า (รับเข้า / จ่ายออก)
   resetProvinceInput();
   $('step1-datetime').value = nowLocalInput();
   $('step1-datetime').max = nowLocalInput();
@@ -2867,7 +1526,8 @@ function onInboundMoistureInput(val){
 function handleInboundStep1(e){
   e.preventDefault();
   withLock('inbound', $('step1-submit-btn'), async () => {
-    const type = $('step1-type').value;
+    const type = curFlow;                 // ใช้ประเภทจากเมนูที่เข้าเท่านั้น
+    if (curSec() !== 'receiving') return toast('กรุณาเข้าจากเมนูงานรับเข้า/งานจ่ายออกอีกครั้ง','warn');
     const isOutbound = type === 'จ่ายออก';
     const dt = $('step1-datetime').value;
     const p1 = $('step1-plate-part1').value.trim();
@@ -2893,7 +1553,8 @@ function handleInboundStep1(e){
     const dup = plateHasPending(plate);
     if (dup) return toast(`รถทะเบียน ${plate} มีตั๋วค้างรอชั่งออกอยู่แล้ว (${dup.docNo}) — ต้องปิดตั๋วเดิมก่อน`,'error',7000);
 
-    const docNo = peekDocNo('CORN');  // ออกเลขจริงตอนบันทึก กันเลขชน
+    const docNo = await issueDocNo('CORN');  // ออกเลขจริงจากเซิร์ฟเวอร์ตอนบันทึก (กันเลขชนข้ามอุปกรณ์)
+    if (plateHasPending(plate)) return toast(`รถทะเบียน ${plate} เพิ่งถูกเปิดตั๋วจากอีกเครื่อง — ตรวจรายการรอชั่งออก`,'error',7000);
     appState.weighingRecords.unshift({
       id: uid('WT'), docNo, type, plate, supplier,
       customerType: $('step1-customer-type').value, product: $('step1-product').value,
@@ -2907,16 +1568,16 @@ function handleInboundStep1(e){
     toast(`บันทึกสำเร็จ: ${docNo} รอชั่งออก`, 'ok', 4000);
     $('form-inbound-step1').reset();
     prepareReceivingForm();
-    switchView('pending_outbound');
+    switchView(curFlow === FLOW_OUT ? 'pending_out' : 'pending_in');
   });
 }
 
 /* =================== STEP 2: รายการรอชั่งออก =================== */
 function renderPendingTable(){
   refreshPendingBadgeCount();
-  const list = appState.weighingRecords.filter(w => w.status === 'pending');
+  const list = appState.weighingRecords.filter(w => w.status === 'pending' && w.type === curFlow);
   const tb = $('table-pending-outbound-body'); if (!tb) return;
-  if (!list.length){ tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">ไม่มีรายการรถที่รอชั่งออกในขณะนี้</td></tr>`; return; }
+  if (!list.length){ tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">ไม่มีรถ${curFlow === FLOW_OUT ? 'จ่ายออก' : 'รับเข้า'}ที่รอชั่งออกในขณะนี้</td></tr>`; return; }
   tb.innerHTML = list.map(w => {
     const isOut = w.type === 'จ่ายออก';
     const ageH = hoursSince(w.datetimeIn);
@@ -2973,7 +1634,7 @@ function switchOutboundMode(mode){
   if (mode !== 'scale') renderIssueView();
 }
 
-function selectedPending(){ const id = $('step3-pending-select').value; return appState.weighingRecords.find(w => w.id === id && w.status === 'pending'); }
+function selectedPending(){ const id = $('step3-pending-select').value; return appState.weighingRecords.find(w => w.id === id && w.status === 'pending' && w.type === curFlow); }
 
 function calcStep3Totals(){
   const rec = selectedPending();
@@ -3005,11 +1666,12 @@ function onStep3MoistureInput(){
 }
 
 function refreshStep3PendingDropdown(){
-  const list = appState.weighingRecords.filter(w => w.status === 'pending');
+  const list = appState.weighingRecords.filter(w => w.status === 'pending' && w.type === curFlow);
   const sel = $('step3-pending-select'); if (!sel) return;
   const prev = sel.value;
-  if (!list.length){ sel.innerHTML = `<option value="">-- ไม่มีรายการรถที่รอชั่งออก --</option>`; resetStep3Form(); return; }
-  sel.innerHTML = `<option value="">-- คลิกเลือกรถเพื่อชั่งออก (${list.length} คัน) --</option>` +
+  const nm = curFlow === FLOW_OUT ? 'จ่ายออก' : 'รับเข้า';
+  if (!list.length){ sel.innerHTML = `<option value="">-- ไม่มีรถ${nm}ที่รอชั่งออก --</option>`; resetStep3Form(); return; }
+  sel.innerHTML = `<option value="">-- คลิกเลือกรถ${nm}เพื่อชั่งออก (${list.length} คัน) --</option>` +
     list.map(w => `<option value="${w.id}">${esc(w.docNo)} [${esc(w.type)}] — ${esc(w.plate)} (${esc(w.supplier)})</option>`).join('');
   if (list.some(w => w.id === prev)){ sel.value = prev; } else resetStep3Form();
 }
@@ -3017,8 +1679,9 @@ function refreshStep3PendingDropdown(){
 function goToStep3WithTicket(id){
   const w = appState.weighingRecords.find(x => x.id === id);
   if (!w || w.status !== 'pending') return toast('ตั๋วนี้ไม่อยู่ในสถานะรอชั่งออก','warn');
-  switchView('outbound_pricing');
-  if (currentView !== 'outbound_pricing') return;
+  const target = w.type === FLOW_OUT ? 'close_out' : 'close_in';   // พาไปหน้าปิดตั๋วของงานที่ถูกต้องเสมอ
+  switchView(target);
+  if (currentView !== target) return;
   switchOutboundMode('scale');
   $('step3-pending-select').value = id;
   onSelectPendingOutbound(id);
@@ -3068,6 +1731,7 @@ function handleOutboundStep3(e){
   withLock('step3', $('step3-submit-btn'), async () => {
     const rec = selectedPending();
     if (!rec) return toast('กรุณาเลือกรถที่ต้องการชั่งออก (หรือรายการนี้ถูกปิดไปแล้ว)', 'warn');
+    if (rec.type !== curFlow) return toast(`ตั๋วนี้เป็นงาน${rec.type} — กรุณาปิดตั๋วจากเมนูงาน${rec.type}`, 'error', 6000);
     const isOut = rec.type === 'จ่ายออก';
     const wIn = num(rec.weightIn);
     const wOutRaw = $('step3-weight-out').value, wOut = num(wOutRaw);
@@ -3085,15 +1749,25 @@ function handleOutboundStep3(e){
     if (bucketPrice < 0 || bucketPrice > 10000) return toast('ราคาต่อถังไม่ถูกต้อง','warn');
 
     let alloc = null;
-    if (isOut){
-      alloc = allocateFIFO(location, net);
-      if (!alloc) return toast(`⚠️ สต็อกไม่เพียงพอ: "${location}" คงเหลือ ${nf(zoneStockKg(location))} กก. (ต้องการ ${nf(net)} กก.)`, 'error', 6000);
+    if (isOut && !apiReady()){
+      alloc = allocateFIFO(location, net, rec.product);
+      if (!alloc) return toast(`⚠️ สต็อกไม่เพียงพอ: "${location}" (${rec.product||'ทุกประเภท'}) คงเหลือไม่พอ (ต้องการ ${nf(net)} กก.)`, 'error', 6000);
     }
     if (bucketPrice <= 0){
       const ok = await uiConfirm('ยังไม่ได้ระบุราคาต่อถัง', { message:'ต้องการบันทึกโดยไม่มียอดเงินในใบเสร็จหรือไม่?' });
       if (!ok) return;
       if (!selectedPending() || selectedPending().id !== rec.id) return toast('รายการถูกเปลี่ยนระหว่างยืนยัน กรุณาลองใหม่','warn');
-      if (isOut){ alloc = allocateFIFO(location, net); if (!alloc) return toast('สต็อกเปลี่ยนแปลงระหว่างยืนยัน — สต็อกไม่พอแล้ว','error'); }
+      if (isOut && !apiReady()){ alloc = allocateFIFO(location, net, rec.product); if (!alloc) return toast('สต็อกเปลี่ยนแปลงระหว่างยืนยัน — สต็อกไม่พอแล้ว','error'); }
+    }
+    // จ่ายออกแบบออนไลน์: เซิร์ฟเวอร์ตัดสต็อกให้ในล็อกเดียว (ห้ามจ่ายเกินแม้สองเครื่องกดพร้อมกัน)
+    let takenOnServer = false;
+    if (isOut && apiReady()){
+      const r = await stockServer('stock_take', { mode:'fifo', location, product: rec.product || '', qty: net });
+      if (!r.ok) return toast(r.error === 'insufficient_stock'
+        ? `⚠️ สต็อกไม่เพียงพอ: "${location}" (${rec.product||'ทุกประเภท'}) คงเหลือ ${nf(r.available)} กก. (ต้องการ ${nf(net)} กก.)`
+        : `จ่ายออกไม่สำเร็จ: ${r.msg}`, 'error', 8000);
+      alloc = r.allocations; takenOnServer = true; applyServerLots(r.lots);
+      if (!selectedPending() || selectedPending().id !== rec.id){ await stockServer('stock_restore', { allocations: alloc }); return toast('รายการถูกเปลี่ยนระหว่างบันทึก — คืนสต็อกแล้ว กรุณาลองใหม่','warn'); }
     }
 
     const kgPerBucket = appState.settings.bucketKg || 15;
@@ -3106,7 +1780,7 @@ function handleOutboundStep3(e){
       bucketPrice, pricePerKg, totalPrice, remark, refNo:rec.docNo, closedBy:actorName() });
 
     if (isOut){
-      applyAllocations(alloc, -1);
+      if (!takenOnServer) applyAllocations(alloc, -1);
       appState.issueRecords.unshift({
         id: uid('ISS'), docNo: rec.docNo, datetime: dtOut,
         lotId: alloc[0]?.lotId || '', lotNumber: `${location}: ${alloc.map(a => a.lotNumber).join(', ')}`,
@@ -3126,7 +1800,10 @@ function handleOutboundStep3(e){
       logActivity(`รับเข้า ${rec.docNo} สุทธิ ${nf(net)} กก. ลง ${location} (เงิน ${nf(totalPrice,2)} บาท)`);
       toast(`บันทึกรับเข้าสำเร็จ: ${rec.docNo} (${nf(net)} กก.) → ${location}`, 'ok', 5000);
     }
-    if (!saveData()) return;
+    if (!saveData()){
+      if (takenOnServer) await stockServer('stock_restore', { allocations: alloc });
+      return;
+    }
     $('step3-pending-select').value = '';
     resetStep3Form();
     refreshStep3PendingDropdown();
@@ -3145,7 +1822,42 @@ function timeframeRange(){
   if (tf === '30days') start.setDate(start.getDate()-29);
   return { start, end, days: tf==='today'?1:(tf==='7days'?7:30) };
 }
+let pinCache = null;
+async function renderPinBox(force){
+  const box = $('pin-box'); if (!box) return;
+  if (!currentUser || !can('pins')){ box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  if (!pinCache || force || pinCache.date !== bkkToday()){
+    box.innerHTML = '<p class="text-sm text-slate-500">กำลังโหลด PIN ประจำวัน…</p>';
+    try {
+      const r = await apiPost({ action:'daily_pins' });
+      if (!r || !r.ok) throw new Error(r?.error || 'rejected');
+      pinCache = r;
+    } catch(e){
+      box.innerHTML = `<p class="text-sm text-red-600 font-semibold">โหลด PIN ประจำวันไม่สำเร็จ (ต้องออนไลน์ และ Code.gs ต้องเป็นเวอร์ชันล่าสุด)</p>
+        <button onclick="renderPinBox(true)" class="mt-2 px-3 py-1.5 bg-slate-200 rounded-lg text-xs font-bold">ลองใหม่</button>`;
+      return;
+    }
+  }
+  const dateTh = new Date(pinCache.date + 'T00:00:00').toLocaleDateString('th-TH', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const rows = pinCache.pins.map(p => `<div class="flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+      <div class="min-w-0"><div class="text-sm font-bold text-slate-800 truncate">${esc(p.name)}</div>
+        <div class="text-[11px] text-slate-500">${esc(p.role)} · username: <b>${esc(p.username)}</b></div></div>
+      <div class="text-2xl font-mono font-extrabold tracking-[0.3em] text-amber-700">${esc(p.pin)}</div></div>`).join('');
+  box.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+      <div><h3 class="font-bold text-slate-800">🔑 รหัส PIN ประจำวันของพนักงาน</h3>
+        <p class="text-xs text-slate-500">${esc(dateTh)} · เปลี่ยนใหม่อัตโนมัติเวลา 00:00 น. · แจ้งพนักงานแต่ละคนเฉพาะ PIN ของตนเอง</p></div>
+      <div class="flex gap-2"><button onclick="copyPins()" class="px-3 py-1.5 bg-amber-500 text-slate-950 rounded-lg text-xs font-bold">คัดลอกทั้งหมด</button>
+        <button onclick="renderPinBox(true)" class="px-3 py-1.5 bg-slate-200 rounded-lg text-xs font-bold">รีเฟรช</button></div></div>
+    <div class="grid gap-2 sm:grid-cols-2">${rows || '<p class="text-sm text-slate-500">ยังไม่มีบัญชีพนักงานที่เปิดใช้งาน (ดูชีต users)</p>'}</div>`;
+}
+function copyPins(){
+  if (!pinCache) return;
+  const t = `PIN ประจำวัน ${pinCache.date}\n` + pinCache.pins.map(p => `${p.name} (${p.username}): ${p.pin}`).join('\n');
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('คัดลอก PIN แล้ว','ok'), () => toast('คัดลอกไม่ได้ — จดจากหน้าจอแทน','warn'));
+}
 function renderDashboard(){
+  renderPinBox();
   const lots = activeLots();
   $('empty-state-notice').classList.toggle('hidden', lots.length > 0);
   const { start, end, days } = timeframeRange();
@@ -3209,7 +1921,8 @@ function handleWeighOpen(e){
     const dup = plateHasPending(plate);
     if (dup) return toast(`ทะเบียนนี้มีตั๋วค้างอยู่แล้ว (${dup.docNo})`,'error',6000);
     const type = $('wo-type').value;
-    const docNo = peekDocNo('WT');
+    const docNo = await issueDocNo('WT');
+    if (plateHasPending(plate)) return toast(`ทะเบียนนี้เพิ่งถูกเปิดตั๋วจากอีกเครื่อง`,'error',6000);
     appState.weighingRecords.unshift({ id:uid('WT'), docNo, type, plate, supplier, product:'ข้าวโพดเมล็ด', customerType:'ลูกค้าทั่วไป',
       weightIn:wIn, weightOut:null, netWeight:null, moisture:0, location: type === 'จ่ายออก' ? 'ไซโรอบ' : '',
       datetimeIn:nowLocalInput(), datetimeOut:null, status:'pending', refNo:null, createdBy:actorName() });
@@ -3281,11 +1994,15 @@ function printTicket(id){
 window.addEventListener('afterprint', () => { document.body.classList.remove('print-ticket'); const p = $('print-area'); if (p) p.innerHTML = ''; });
 
 /* =================== VOID (ยกเลิกแบบเก็บประวัติ) =================== */
-function restoreIssue(r, reason){
+async function restoreIssue(r, reason){
   const alloc = r.allocations && r.allocations.length ? r.allocations : (r.lotId ? [{ lotId:r.lotId, qty:r.weight }] : []);
   const missing = alloc.filter(a => !appState.lots.find(l => l.id === a.lotId));
   if (!alloc.length || missing.length){ toast('ไม่พบ Lot ต้นทางบางรายการ ไม่สามารถคืนสต็อกอัตโนมัติได้ — ติดต่อผู้ดูแลระบบ','error',8000); return false; }
-  applyAllocations(alloc, +1);
+  if (apiReady()){
+    const rr = await stockServer('stock_restore', { allocations: alloc.map(a => ({ lotId:a.lotId, qty:a.qty })) });
+    if (!rr.ok){ toast(`คืนสต็อกไม่สำเร็จ: ${rr.msg}`,'error',8000); return false; }
+    applyServerLots(rr.lots);
+  } else applyAllocations(alloc, +1);
   Object.assign(r, { status:'void', voidReason:reason, voidBy:actorName(), voidAt:new Date().toISOString() });
   return true;
 }
@@ -3310,7 +2027,7 @@ async function voidWeigh(id){
   if (!reason) return;
   // ตรวจซ้ำหลังยืนยัน (ข้อมูลอาจเปลี่ยนระหว่างรอ)
   if (w.status === 'void') return;
-  if (issue && !restoreIssue(issue, reason)) return;
+  if (issue && !(await restoreIssue(issue, reason))) return;
   if (lot){
     if (num(lot.currentWeight) < num(lot.netWeight) - 0.001) return toast('Lot ถูกเบิกระหว่างยืนยัน — ยกเลิกไม่ได้','error');
     Object.assign(lot, { status:'void', voidReason:reason, voidBy:actorName(), voidAt:new Date().toISOString() });
@@ -3318,9 +2035,9 @@ async function voidWeigh(id){
   Object.assign(w, { status:'void', voidReason:reason, voidBy:actorName(), voidAt:new Date().toISOString() });
   logActivity(`ยกเลิกตั๋ว ${w.docNo}${lot?` และ Lot ${lot.lotNumber}`:''}${issue?` และคืนสต็อก ${nf(issue.weight)} กก.`:''} — เหตุผล: ${reason}`);
   saveData();
-  if (currentView === 'weighing') renderWeighingTable();
-  if (currentView === 'lots') renderUnifiedTable();
-  if (currentView === 'outbound_pricing') renderIssueView();
+  if (curSec() === 'weighing') renderWeighingTable();
+  if (curSec() === 'lots') renderUnifiedTable();
+  if (curSec() === 'outbound_pricing') renderIssueView();
   toast('ยกเลิกเอกสารเรียบร้อย (เก็บประวัติไว้ในระบบ)', 'ok');
 }
 
@@ -3330,7 +2047,7 @@ async function voidIssue(id){
   if (!r || r.status === 'void') return;
   const reason = await uiConfirm(`ยกเลิกใบเบิก ${r.docNo} และคืนสต็อก ${nf(r.weight)} กก.?`, { danger:true, askReason:true, requireText:'ยกเลิก' });
   if (!reason || r.status === 'void') return;
-  if (!restoreIssue(r, reason)) return;
+  if (!(await restoreIssue(r, reason))) return;
   const w = appState.weighingRecords.find(x => x.docNo === r.docNo && x.type === 'จ่ายออก' && x.status === 'done');
   if (w) Object.assign(w, { status:'void', voidReason:reason, voidBy:actorName(), voidAt:new Date().toISOString() });
   logActivity(`ยกเลิกใบเบิก ${r.docNo} คืนสต็อก ${nf(r.weight)} กก. — เหตุผล: ${reason}`);
@@ -3586,9 +2303,13 @@ function handleManualIssueSubmit(e){
     const ok = await uiConfirm(`ยืนยันเบิก ${nf(w)} กก. จาก ${lot.lotNumber}?`, { message:`ลูกค้า: ${customer}` });
     if (!ok) return;
     if (w > num(lot.currentWeight) || lot.status === 'void') return toast('สต็อกเปลี่ยนแปลงระหว่างยืนยัน — กรุณาตรวจสอบใหม่','error');
-    const docNo = peekDocNo('OUT');
-    const alloc = [{ lotId:lot.id, lotNumber:lot.lotNumber, qty:w }];
-    applyAllocations(alloc, -1);
+    const docNo = await issueDocNo('OUT');
+    let alloc = [{ lotId:lot.id, lotNumber:lot.lotNumber, qty:w }];
+    if (apiReady()){
+      const r = await stockServer('stock_take', { mode:'lot', lotId:lot.id, qty:w });
+      if (!r.ok) return toast(r.error === 'insufficient_stock' ? `เบิกเกินคงเหลือ (เหลือ ${nf(r.available)} กก.)` : `เบิกไม่สำเร็จ: ${r.msg}`, 'error', 7000);
+      alloc = r.allocations; applyServerLots(r.lots);
+    } else applyAllocations(alloc, -1);
     appState.issueRecords.unshift({
       id: uid('ISS'), docNo, datetime: nowLocalInput(), lotId: lot.id, lotNumber: lot.lotNumber, allocations: alloc,
       customer, plate: $('issue-plate').value.trim(), weight: w, operator: actorName(), remark: $('issue-remark').value.trim(),
@@ -3596,7 +2317,7 @@ function handleManualIssueSubmit(e){
     });
     commitDocNo(docNo);
     logActivity(`เบิกจ่ายด่วน ${docNo} จาก ${lot.lotNumber} ${nf(w)} กก. → ${customer}`);
-    if (!saveData()) return;
+    if (!saveData()){ if (apiReady()) await stockServer('stock_restore', { allocations: alloc }); return; }
     $('form-issue').reset(); renderIssueView();
     toast(`บันทึกการเบิกจ่ายสำเร็จ (${docNo})`,'ok');
   });
@@ -3842,15 +2563,15 @@ async function resetData(){
   if (!await uiConfirm('ลบข้อมูลทั้งหมดถาวร?', { danger:true, requireText:'ลบทั้งหมด', message:'ข้อมูลทั้งในเครื่องและใน Google Sheets จะถูกลบและกู้คืนไม่ได้ — แนะนำให้สำรองข้อมูลก่อน' })) return;
   if (apiReady()){
     try {
-      for (const table of ['lots','issue_records','weighing_records']){
-        const r = await apiPost({ action:'clear_table', table });
-        if (!r || !r.ok) throw new Error(r?.error || 'server rejected');
-      }
+      // คำสั่งเดียวบนเซิร์ฟเวอร์: คัดลอกทุกตารางไปชีตสำรอง (bak_...) แล้วค่อยล้าง — สำเร็จทั้งหมดหรือไม่เปลี่ยนอะไร
+      const r = await apiPost({ action:'reset_all' });
+      if (!r || !r.ok) throw new Error(r?.error || 'server rejected');
+      toast(`สำรองข้อมูลบน Sheets แล้ว (${r.backup}) และล้างระบบเรียบร้อย`,'ok',6000);
     } catch(e){
-      return toast('ล้างข้อมูลบน Google Sheets ไม่สำเร็จ (' + e.message + ') — ยกเลิกการลบเพื่อป้องกันข้อมูลไม่ตรงกัน', 'error', 9000);
+      return toast('รีเซ็ตบน Google Sheets ไม่สำเร็จ (' + e.message + ') — ไม่มีอะไรถูกลบ ทั้งในเครื่องและบน Sheets', 'error', 9000);
     }
   }
-  try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem('WMS_PENDING_PUSH_QUEUE'); } catch(e){}
+  try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem('WMS_PENDING_PUSH_QUEUE'); localStorage.removeItem('WMS_EPOCH'); } catch(e){}
   location.reload();
 }
 
@@ -3944,21 +2665,37 @@ if (!IS_PREVIEW) window.addEventListener('DOMContentLoaded', initApp);
   async function flushPending(){
     if (!apiReady() || !navigator.onLine || flushing || !currentUser) return;
     flushing = true;
+    const attempted = new Set();
     try {
       while (true){
         const q = loadQueue(); if (!q.length) break;
         const op = q[0];
+        if (attempted.has(op.qid)) break;   // วนครบทุกรายการในรอบนี้แล้ว (เหลือแต่รายการที่ถูกปฏิเสธ) — ลองใหม่รอบหน้า
+        attempted.add(op.qid);
+        let rejected = null;
         try {
           const r = await apiPost({ action:op.action, table:op.table, record:op.record });
           if (!r || !r.ok){
             if (r && r.error === 'unauthorized'){ toast('การเชื่อมต่อ Sheets ถูกปฏิเสธ (สิทธิ์/Token ไม่ถูกต้อง)','error',7000); break; }
-            throw new Error(r?.error || 'rejected');
+            rejected = r?.error || 'rejected';
           }
-        } catch(e){ break; }   // เก็บไว้ในคิว ส่งใหม่รอบหน้า
+        } catch(e){ break; }   // เครือข่ายล่ม: เก็บไว้ในคิว ส่งใหม่รอบหน้า
+        if (rejected){
+          // เซิร์ฟเวอร์ปฏิเสธรายการนี้ซ้ำ ๆ → แยกไปที่ "ถังรายการเสีย" เพื่อไม่ให้ขวางรายการอื่นทั้งคิว
+          op.tries = (op.tries || 0) + 1;
+          if (op.tries < 3){ const rest = loadQueue().filter(x => x.qid !== op.qid); rest.push(op); saveQueue(rest); continue; }  // ย้ายไปท้ายคิว ให้รายการอื่นไปก่อน
+          try { const dl = JSON.parse(localStorage.getItem('WMS_DEAD_LETTER') || '[]'); dl.push({ ...op, error:rejected, at:new Date().toISOString() }); localStorage.setItem('WMS_DEAD_LETTER', JSON.stringify(dl.slice(-100))); } catch(e){}
+          saveQueue(loadQueue().filter(x => x.qid !== op.qid));
+          toast(`รายการ ${op.table}/${op.id} ถูกเซิร์ฟเวอร์ปฏิเสธ (${rejected}) — แยกไว้ตรวจสอบ ไม่ขวางรายการอื่น`,'error',9000);
+          continue;
+        }
         saveQueue(loadQueue().filter(x => x.qid !== op.qid));
       }
     } finally { flushing = false; updateStatus(); refreshBadges(); }
   }
+
+  // ทำเครื่องหมายว่า record นี้ตรงกับเซิร์ฟเวอร์แล้ว (ใช้หลังเซิร์ฟเวอร์ตัดสต็อกให้) จะได้ไม่ส่งซ้ำทับ
+  function markSynced(t, rec){ if (snapshot[t] && rec && rec.id) snapshot[t].set(rec.id, JSON.stringify(rec)); }
 
   async function pullFromSheet(showToast){
     if (!apiReady()){ if (showToast) toast('ยังไม่ได้ตั้งค่าลิงก์ Google Sheets API','warn'); return; }
@@ -3972,11 +2709,41 @@ if (!IS_PREVIEW) window.addEventListener('DOMContentLoaded', initApp);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       if (data && data.ok === false) throw new Error(data.error || 'rejected');
+      const epoch = String(data.epoch ?? '0');
+      let storedEpoch = null; try { storedEpoch = localStorage.getItem('WMS_EPOCH'); } catch(e){}
+      const before = JSON.stringify(TABLE_MAP.map(([k]) => appState[k]));
+      // เครื่องนี้มีข้อมูลที่ยังไม่เคยขึ้นเซิร์ฟเวอร์ไหม (ซิงก์ครั้งแรก)
+      const localOnly = [];
+      TABLE_MAP.forEach(([k,t]) => {
+        const ids = new Set((Array.isArray(data[t]) ? data[t] : []).map(r => r.id));
+        (appState[k] || []).forEach(r => { if (r && r.id && !ids.has(r.id)) localOnly.push({ k, t, r }); });
+      });
+      if (storedEpoch === null && localOnly.length){
+        const ok = await uiConfirm(`พบข้อมูลในเครื่องนี้ ${localOnly.length} รายการที่ยังไม่อยู่บน Google Sheets`, { message:'กด "ยืนยัน" = ส่งข้อมูลในเครื่องนี้ขึ้น Sheets รวมกับข้อมูลกลาง (แนะนำ). กด "ยกเลิก" = ยังไม่ซิงก์ ข้อมูลในเครื่องจะไม่ถูกแตะต้อง' });
+        if (!ok) return;
+        TABLE_MAP.forEach(([k,t]) => {
+          const ids = new Set((Array.isArray(data[t]) ? data[t] : []).map(r => r.id));
+          const keep = (appState[k] || []).filter(r => r && r.id && !ids.has(r.id));
+          appState[k] = [...keep, ...(Array.isArray(data[t]) ? data[t] : [])];
+        });
+        takeSnapshot();
+        localOnly.forEach(x => enqueue({ table:x.t, id:x.r.id, action:'save', record:x.r }));
+        try { localStorage.setItem('WMS_EPOCH', epoch); } catch(e){}
+        migrate(); saveData(); flushPending();
+        if (typeof currentView !== 'undefined') switchView(currentView);
+        if (showToast) toast('ส่งข้อมูลในเครื่องขึ้น Sheets และรวมกับข้อมูลกลางแล้ว','ok');
+        return;
+      }
+      if (storedEpoch !== null && storedEpoch !== epoch && localOnly.length) toast('มีการรีเซ็ตระบบกลาง — ข้อมูลเก่าในเครื่องนี้ถูกแทนที่ด้วยข้อมูลกลาง','warn',8000);
       TABLE_MAP.forEach(([k,t]) => { if (Array.isArray(data[t])) appState[k] = data[t]; });
+      try { localStorage.setItem('WMS_EPOCH', epoch); } catch(e){}
       migrate();         // ตรวจ/ทำความสะอาดข้อมูลจากภายนอก (ID ปลอดภัย, ตัวเลข)
       takeSnapshot();    // ถือว่าตรงกับเซิร์ฟเวอร์แล้ว ไม่ต้องส่งกลับ
       saveData();
-      if (typeof currentView !== 'undefined') switchView(currentView);
+      const changed = before !== JSON.stringify(TABLE_MAP.map(([k]) => appState[k]));
+      // ซิงก์เบื้องหลัง: วาดหน้าใหม่เฉพาะเมื่อข้อมูลเปลี่ยนและไม่ได้กำลังกรอกฟอร์ม (กันฟอร์มถูกรีเซ็ต)
+      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '') && !showToast;
+      if (typeof currentView !== 'undefined' && (showToast || (changed && !typing))) switchView(currentView);
       if (showToast) toast('ซิงก์ข้อมูลกลางจาก Google Sheets เรียบร้อยแล้ว','ok');
     } catch(err){
       if (showToast) toast('ดึงข้อมูลกลางไม่สำเร็จ: ' + err.message, 'error', 6000);
@@ -3989,7 +2756,7 @@ if (!IS_PREVIEW) window.addEventListener('DOMContentLoaded', initApp);
     await pullFromSheet(showToast);
   }
 
-  window.WMS_SYNC = { takeSnapshot, onSave, flush: flushPending, pendingCount: () => loadQueue().length };
+  window.WMS_SYNC = { takeSnapshot, onSave, markSynced, flush: flushPending, pendingCount: () => loadQueue().length };
   window.syncFromExcelDB = syncNow;
 
   function injectSyncButton(){
@@ -4009,6 +2776,8 @@ if (!IS_PREVIEW) window.addEventListener('DOMContentLoaded', initApp);
     injectSyncButton();
     updateStatus();
     if (currentUser) setTimeout(() => syncNow(false), 400);
+    // ดึงข้อมูลกลางเป็นระยะ ให้หลายอุปกรณ์เห็นสต็อกตรงกัน
+    setInterval(() => { if (currentUser && navigator.onLine && !document.hidden) syncNow(false); }, 30000);
   });
 })();
 </script>

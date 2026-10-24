@@ -2798,6 +2798,19 @@ if (!IS_PREVIEW) window.addEventListener('DOMContentLoaded', initApp);
     } catch(e){}
     return false;
   }
+  // ดึงรูปจาก Drive มาเก็บในเครื่องนี้ (กรณีอัปโหลดจากเครื่องอื่น)
+  async function fetchRemotePhoto(w){
+    if (!apiReady() || !navigator.onLine || !currentUser || !w.signedPhoto || !w.signedPhoto.fileId) return null;
+    try {
+      const r = await apiPost({ action:'get_photo', id:w.id });
+      if (r && r.ok && r.data){
+        const rec = { id:w.id, docNo:w.docNo, dataUrl:'data:image/jpeg;base64,' + r.data, at:w.signedPhoto.at || new Date().toISOString(), by:w.signedPhoto.by || '', synced:true };
+        await putPhoto(rec); return rec;
+      }
+      if (r && r.error === 'unknown action') toast('Code.gs บนเซิร์ฟเวอร์ยังไม่รองรับการดึงรูป (get_photo) — วางโค้ดใหม่แล้ว Deploy เวอร์ชันใหม่', 'warn', 8000);
+    } catch(e){}
+    return null;
+  }
   async function retryPhotoUploads(){
     if (serverNoPhoto || !currentUser) return;
     try { for (const rec of (await allPhotos()) || []) if (!rec.synced) { if (!(await pushPhoto(rec))) break; } } catch(e){}
@@ -2823,6 +2836,7 @@ if (!IS_PREVIEW) window.addEventListener('DOMContentLoaded', initApp);
     const w = appState.weighingRecords.find(x => x.id === id);
     if (!w || w.status === 'void'){ box.innerHTML = ''; return; }
     let rec = null; try { rec = await getPhoto(id); } catch(e){}
+    if (!rec && w.signedPhoto && w.signedPhoto.fileId) rec = await fetchRemotePhoto(w);
     const sp = w.signedPhoto, canUp = can('photo') && w.status === 'done';
     const pdfBtn = w.status === 'done' ? `<button onclick="downloadTicketPDF('${w.id}')" class="w-full mt-2 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-bold">⬇ ดาวน์โหลดใบเสร็จ PDF${rec ? ' (แนบรูปเซ็น)' : ''}</button>` : '';
     let body;
@@ -2937,6 +2951,7 @@ if (!IS_PREVIEW) window.addEventListener('DOMContentLoaded', initApp);
     if (!w || w.status !== 'done') return toast('ดาวน์โหลดได้เฉพาะตั๋วที่ปิดแล้ว', 'warn');
     withLock('pdf-' + id, null, async () => {
       let rec = null; try { rec = await getPhoto(id); } catch(e){}
+    if (!rec && w.signedPhoto && w.signedPhoto.fileId) rec = await fetchRemotePhoto(w);
       const el = document.createElement('div'); el.innerHTML = ticketHTML(w);
       if (rec){
         const pg = document.createElement('div');
